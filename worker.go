@@ -1,10 +1,13 @@
 /*
 * worker.go
-*/
+ */
 package main
 
 import (
+	"io/ioutil"
 	"log"
+	"os/exec"
+	"time"
 )
 
 // Worker waits for strings on a channel, and launches a Katydid process for
@@ -14,7 +17,41 @@ func Worker(context Context, config Config) {
 	// to process
 	defer context.Pool.Done()
 
+	// a little helpful closure over the variables we already know
+	buildCmd := func(fname string) *exec.Cmd {
+		return exec.Command(config.KatydidPath,
+			"-c",
+			config.KatydidConfPath,
+			"-e",
+			fname)
+	}
+
 	for f := range context.FilePipeline {
-		log.Print(f)
+		// build the command, using the new filename.
+		// FIXME: this will allocate some memory, can we avoid that?
+		// probably...
+		cmd := buildCmd(f)
+
+		// run the process
+		if stdout, stdoutErr := cmd.StdoutPipe(); stdoutErr == nil {
+			var startTime time.Time
+			if procErr := cmd.Start(); procErr != nil {
+				log.Printf("couldn't start command: %v", procErr)
+			} else {
+				startTime = time.Now()
+				output, readErr := ioutil.ReadAll(stdout)
+				if readErr != nil {
+					log.Printf("Error running process: %v",
+						string(output[:]))
+				}
+			}
+			cmd.Wait()
+			log.Printf("Execution finished.  Elapsed time: %v\n",
+				time.Since(startTime))
+
+		} else {
+			log.Printf("error opening stdout: %v", stdoutErr)
+		}
+
 	}
 }
