@@ -10,9 +10,19 @@ import (
 	"time"
 )
 
+// WorkerID is an identifier for a particular worker goroutine.
+type WorkerID uint
+
+// JobID is an identifier for a particular processing job.
+type JobID uint
+
+func workerLog(fmt string, id WorkerID, job JobID, args ...interface{}) {
+	
+}
+
 // Worker waits for strings on a channel, and launches a Katydid process for
 // each string it receives, which should be the name of the file to process.
-func Worker(context Context, config Config) {
+func Worker(context Context, config Config, id WorkerID) {
 	// Put off being done until there's nothing left in the channel
 	// to process
 	defer context.Pool.Done()
