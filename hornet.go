@@ -16,7 +16,7 @@
 *
 *   hornet -h
 *
-*/
+ */
 package main
 
 import (
@@ -38,6 +38,7 @@ var (
 // Config represents the user-specified configuration data of hornet
 type Config struct {
 	PoolSize        uint
+	WatchDirPath    string
 	KatydidPath     string
 	KatydidConfPath string
 }
@@ -46,22 +47,22 @@ type Config struct {
 //   1) the number of threads is sane
 //   2) the provided path to katydid actually points at an executable
 //   3) the provided config file is parsable json
+//   4) the provided watch directory is indeed a directory
 func (c Config) Validate() (e error) {
 	if c.PoolSize > MaxPoolSize {
-		e = fmt.Errorf("Size of thread pool cannot exceed %d!", MaxPoolSize)
+		e = fmt.Errorf("Size of thread pool cannot exceed %d", MaxPoolSize)
 	}
 
 	if execInfo, execErr := os.Stat(c.KatydidPath); execErr == nil {
 		if (execInfo.Mode() & 0111) == 0 {
-			e = fmt.Errorf("Katydid does not appear to be executable!")
+			e = fmt.Errorf("Katydid does not appear to be executable")
 		}
 	} else {
 		e = fmt.Errorf("error when examining Katydid executable: %v",
 			execErr)
 	}
 
-	if confBytes, confErr := ioutil.ReadFile(c.KatydidConfPath); 
-	confErr == nil {
+	if confBytes, confErr := ioutil.ReadFile(c.KatydidConfPath); confErr == nil {
 		v := make(map[string]interface{})
 		confDecoder := json.NewDecoder(bytes.NewReader(confBytes))
 		if decodeErr := confDecoder.Decode(&v); decodeErr != nil {
@@ -73,12 +74,21 @@ func (c Config) Validate() (e error) {
 			confErr)
 	}
 
+	if wdInfo, wdErr := os.Stat(c.WatchDirPath); wdErr == nil {
+		if wdInfo.IsDir() == false {
+			e = fmt.Errorf("watch directory must be a directory")
+		}
+	} else {
+		e = fmt.Errorf("Problem opening watch directory: %v",
+			wdErr)
+	}
+
 	return
 }
 
 // Context is the state of hornet
 type Context struct {
-	Pool *sync.WaitGroup
+	Pool         *sync.WaitGroup
 	FilePipeline chan string
 }
 
@@ -100,6 +110,10 @@ func main() {
 		"katydid-conf",
 		"REQUIRED",
 		"full path to Katydid config file to use when processing")
+	flag.StringVar(&conf.WatchDirPath,
+		"watch-dir",
+		"REQUIRED",
+		"directory to watch for new data files")
 	flag.Parse()
 
 	if configErr := conf.Validate(); configErr != nil {
@@ -117,7 +131,7 @@ func main() {
 	var pool sync.WaitGroup
 	ctx := Context{
 		FilePipeline: make(chan string),
-		Pool: &pool,
+		Pool:         &pool,
 	}
 
 	for i := uint(0); i < conf.PoolSize; i++ {
@@ -125,16 +139,16 @@ func main() {
 		go Worker(ctx, conf)
 	}
 
-	wd, wdErr := os.Open(".")
+	wd, wdErr := os.Open(conf.WatchDirPath)
 	if wdErr != nil {
 		log.Fatal("couldn't open working directory!")
 	}
 
-	fnames, _  := wd.Readdirnames(0)
-	for _, fname := range(fnames) {
+	fnames, _ := wd.Readdirnames(0)
+	for _, fname := range fnames {
 		ctx.FilePipeline <- fname
 	}
-	
+
 	close(ctx.FilePipeline)
 	ctx.Pool.Wait()
 	log.Print("All goroutines finished.  terminating...")
