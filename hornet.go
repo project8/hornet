@@ -27,6 +27,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"sync"
 )
 
 // Global config
@@ -59,7 +60,8 @@ func (c Config) Validate() (e error) {
 			execErr)
 	}
 
-	if confBytes, confErr := ioutil.ReadFile(c.KatydidConfPath); confErr == nil {
+	if confBytes, confErr := ioutil.ReadFile(c.KatydidConfPath); 
+	confErr == nil {
 		v := make(map[string]interface{})
 		confDecoder := json.NewDecoder(bytes.NewReader(confBytes))
 		if decodeErr := confDecoder.Decode(&v); decodeErr != nil {
@@ -72,6 +74,12 @@ func (c Config) Validate() (e error) {
 	}
 
 	return
+}
+
+// Context is the state of hornet
+type Context struct {
+	Pool *sync.WaitGroup
+	FilePipeline chan string
 }
 
 func main() {
@@ -106,5 +114,28 @@ func main() {
 	// already know about the file in question.  if not, and it is a
 	// data file, we'll enqueue it to get chewed on by the next available
 	// worker thread.
+	var pool sync.WaitGroup
+	ctx := Context{
+		FilePipeline: make(chan string),
+		Pool: &pool,
+	}
 
+	for i := uint(0); i < conf.PoolSize; i++ {
+		ctx.Pool.Add(1)
+		go Worker(ctx, conf)
+	}
+
+	wd, wdErr := os.Open(".")
+	if wdErr != nil {
+		log.Fatal("couldn't open working directory!")
+	}
+
+	fnames, _  := wd.Readdirnames(0)
+	for _, fname := range(fnames) {
+		ctx.FilePipeline <- fname
+	}
+	
+	close(ctx.FilePipeline)
+	ctx.Pool.Wait()
+	log.Print("All goroutines finished.  terminating...")
 }
