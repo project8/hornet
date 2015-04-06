@@ -27,6 +27,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"strings"
 	"sync"
 )
 
@@ -93,11 +94,18 @@ type Context struct {
 }
 
 func main() {
+	// user needs help
+	var needHelp bool
+
 	// default configuration parameters.  these may be changed by
 	// command line options.
 	conf := Config{}
 
 	// set up flag to point at conf, parse arguments and then verify
+	flag.BoolVar(&needHelp,
+		"help",
+		false,
+		"display this dialog")
 	flag.UintVar(&conf.PoolSize,
 		"pool-size",
 		20,
@@ -116,9 +124,14 @@ func main() {
 		"directory to watch for new data files")
 	flag.Parse()
 
-	if configErr := conf.Validate(); configErr != nil {
+	if needHelp {
 		flag.Usage()
-		log.Fatal("(FATAL) ", configErr)
+		os.Exit(1)
+	} else {
+		if configErr := conf.Validate(); configErr != nil {
+			flag.Usage()
+			log.Fatal("(FATAL) ", configErr)
+		}
 	}
 
 	// if we've made it this far, it's time to get down to business.
@@ -128,6 +141,7 @@ func main() {
 	// already know about the file in question.  if not, and it is a
 	// data file, we'll enqueue it to get chewed on by the next available
 	// worker thread.
+	// we use IN_CLOSE_WRITE | IN_CLOSE_ONESHOT here
 	var pool sync.WaitGroup
 	ctx := Context{
 		FilePipeline: make(chan string),
@@ -136,7 +150,7 @@ func main() {
 
 	for i := uint(0); i < conf.PoolSize; i++ {
 		ctx.Pool.Add(1)
-		go Worker(ctx, conf)
+		go Worker(ctx, conf, WorkerID(i))
 	}
 
 	wd, wdErr := os.Open(conf.WatchDirPath)
@@ -146,7 +160,12 @@ func main() {
 
 	fnames, _ := wd.Readdirnames(0)
 	for _, fname := range fnames {
-		ctx.FilePipeline <- fname
+		// FIXME: strings.join may be inefficient, probably should use
+		// bytes.Buffer instead.  we're also building a slice every time
+		// we get a new file, which is silly.
+		if strings.HasSuffix(fname, ".MAT") {
+			ctx.FilePipeline <- strings.Join([]string{conf.WatchDirPath, fname}, "/")
+		}
 	}
 
 	close(ctx.FilePipeline)
