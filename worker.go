@@ -35,12 +35,15 @@ func Worker(context Context, config Config, id WorkerID) {
 	defer context.Pool.Done()
 
 	// a little helpful closure over the variables we already know
-	buildCmd := func(fname string) *exec.Cmd {
+	buildCmd := func(fname string, job JobID) *exec.Cmd {
+		outFilename := fmt.Sprintf("%d_%d.h5", id, job) 
 		return exec.Command(config.KatydidPath,
 			"-c",
 			config.KatydidConfPath,
 			"-e",
-			fname)
+			fname,
+			"--hdf5-file",
+			outFilename)
 	}
 	
 	var jobCount JobID = 0
@@ -48,7 +51,7 @@ func Worker(context Context, config Config, id WorkerID) {
 		// build the command, using the new filename.
 		// FIXME: this will allocate some memory, can we avoid that?
 		// probably...
-		cmd := buildCmd(f)
+		cmd := buildCmd(f, jobCount)
 
 		// run the process
 		if stdout, stdoutErr := cmd.StdoutPipe(); stdoutErr == nil {
@@ -67,7 +70,7 @@ func Worker(context Context, config Config, id WorkerID) {
 			}
 			cmd.Wait()
 			localLog(jobCount,
-				"Execution finished.  Elapsed time: %v\n",
+				"Execution finished.  Elapsed time: %v",
 				time.Since(startTime))
 
 		} else {
