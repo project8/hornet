@@ -18,7 +18,7 @@ line at runtime.
 
 ### Dependencies
 Hornet is almost all standard library, except for the inotify package at 
-[golang.org](golang.org/x/exp/inotify).  You only need the ```go``` tool to build
+[golang.org](http://golang.org/x/exp/inotify).  You only need the ```go``` tool to build
 Hornet and run it.  
 
 Because Hornet uses inotify, currently it will only build correctly on Linux
