@@ -9,7 +9,7 @@ When a file close event is detected, it checks to see if the file should be
 processed (currently it simply checks if it is a MAT file such as those produced
 by the RSA), and if it does the file is scheduled for processing.  
 
-A simple round-robin scheduling is used to process incoming events.  A group of
+A simple FCFS scheduler is applied to incoming events.  A group of
 goroutines is waiting for new filenames to be processed, and as they come in the
 first free goroutine takes the job of processing the data.  
 
