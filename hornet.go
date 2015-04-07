@@ -37,15 +37,18 @@ var (
 	MaxPoolSize uint = 25
 )
 
-// A ControlMessage is sent from the main thread to all of the worker threads
-// to indicate system events (such as termination) that the worker threads must
-// respond to.
+// A ControlMessage is sent between the main thread and the worker threads
+// to indicate system events (such as termination) that must be handled.
 type ControlMessage uint
 
 const (
 	// StopExecution asks the worker threads to finish what they are doing
 	// and return gracefully.
 	StopExecution = 0
+
+	// In the event that a thread cannot continue what it's doing due to 
+	// an error, the main thread should shut hornet down.
+	ThreadCannotContinue = 1
 )
 
 // Config represents the user-specified configuration data of hornet
@@ -157,7 +160,7 @@ func main() {
 	// we use IN_CLOSE_WRITE here, we only care about file close events
 	var pool sync.WaitGroup
 	ctx := Context{
-		FilePipeline: make(chan string),
+		FilePipeline: make(chan string, conf.PoolSize*3),
 		Pool:         &pool,
 		Control:      make(chan ControlMessage),
 	}
@@ -175,8 +178,20 @@ func main() {
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, os.Interrupt)
 	signal.Notify(sigChan, syscall.SIGTERM)
-	<-sigChan
-	log.Printf("termination requested.  stopping workers gracefully...\n")
+stopLoop:
+	for {
+		select {
+		case <- sigChan:
+			log.Printf("termination requested...\n")
+			break stopLoop
+			
+		case threadMsg := <- ctx.Control:
+			if threadMsg == ThreadCannotContinue {
+				log.Print("thread error!  cannot continue...")
+				break stopLoop
+			}
+		}
+	}
 
 	// Close everybody gracefully
 	ctx.Control <- StopExecution
