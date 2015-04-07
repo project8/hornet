@@ -30,25 +30,20 @@ func Watcher(context Context, config Config) {
 
 	log.Print("watcher started successfully.  waiting for events...")
 
-	var control ControlMessage
+runLoop:
 	for {
 		select {
 		// First check for any control messages.
-		case control = <-context.Control:
+		case control := <-context.Control:
 			if control == StopExecution {
 				log.Print("stop requested.  watcher stopping...")
-				break
+				break runLoop
 			}
 		case inotEvt := <-inot.Event:
 			fname := inotEvt.Name
 			context.FilePipeline <- fname
 		case inotErr = <-inot.Error:
 			log.Printf("inotify error! %v", inotErr)
-		}
-
-		// TODO: This is a little weird, surely we can do this better.
-		if control == StopExecution {
-			break
 		}
 	}
 }
