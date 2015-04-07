@@ -35,24 +35,24 @@ func Worker(context Context, config Config, id WorkerID) {
 	// to process
 	defer context.Pool.Done()
 
-	// a little helpful closure over the variables we already know
-	buildCmd := func(fname string, job JobID) *exec.Cmd {
-		outFilename := fmt.Sprintf("%d_%d.h5", id, job)
-		return exec.Command(config.KatydidPath,
-			"-c",
-			config.KatydidConfPath,
-			"-e",
-			fname,
-			"--hdf5-file",
-			outFilename)
-	}
+	// the base command we're going to run.  everything is fixed at build time
+	// except for the input and output names.  we mutate the array in place
+	// we get events, so we keep the indices to those elements in the argument
+	// array.
+	cmd := exec.Command(config.KatydidPath,
+		"-c",
+		config.KatydidConfPath,
+		"-e",
+		"dummyInName",
+		"--hdf5-file",
+		"dummyOutName")
+	inFnamePos := len(cmd.Args) - 3
+	outFnamePos := len(cmd.Args) - 1
 
-	var jobCount JobID 
+	var jobCount JobID
 	for f := range context.FilePipeline {
-		// build the command, using the new filename.
-		// FIXME: this will allocate some memory, can we avoid that?
-		// probably...
-		cmd := buildCmd(f, jobCount)
+		cmd.Args[inFnamePos] = f
+		cmd.Args[outFnamePos] = fmt.Sprintf("%s_%d_%d.h5", f, id, jobCount)
 
 		// run the process
 		if stdout, stdoutErr := cmd.StdoutPipe(); stdoutErr == nil {
@@ -79,4 +79,7 @@ func Worker(context Context, config Config, id WorkerID) {
 		}
 		jobCount++
 	}
+	localLog(jobCount+1,
+		"no work remaining.  total of %d jobs processed.",
+		jobCount)
 }
