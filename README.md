@@ -1,4 +1,5 @@
 # Hornet
+
 Hornet is a nearline data processing engine written in Go.  Its purpose
 is to provide rapid feedback about the content of data that is being produced
 by a triggered DAQ system such as the Tektronix RSA.  
