@@ -22,6 +22,9 @@ func Watcher(context Context, config Config) {
 
 	inot, inotErr := inotify.NewWatcher()
 	if inotErr != nil {
+		// TODO: We should send a message back to the main
+		// thread informing it that we have terminated, and that
+		// execution cannot continue.
 		log.Fatal("error creating watcher!", inotErr)
 	} else {
 		inot.AddWatch(config.WatchDirPath, watchFlags)
@@ -43,6 +46,10 @@ runLoop:
 			fname := inotEvt.Name
 			context.FilePipeline <- fname
 		case inotErr = <-inot.Error:
+			// TODO: Here's an interesting case.  If the watcher
+			// can't continue, we should actually send a message 
+			// back to the main thread, informing it that we should 
+			// terminate.
 			log.Printf("inotify error! %v", inotErr)
 		}
 	}
