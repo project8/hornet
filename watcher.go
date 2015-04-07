@@ -29,10 +29,8 @@ func Watcher(context Context, config Config) {
 
 	inot, inotErr := inotify.NewWatcher()
 	if inotErr != nil {
-		// TODO: We should send a message back to the main
-		// thread informing it that we have terminated, and that
-		// execution cannot continue.
-		log.Fatal("error creating watcher!", inotErr)
+		log.Printf("(watcher) error creating watcher! %v", inotErr)
+		context.Control <- ThreadCannotContinue
 	} else {
 		inot.AddWatch(config.WatchDirPath, watchFlags)
 	}
@@ -46,7 +44,7 @@ runLoop:
 		// First check for any control messages.
 		case control := <-context.Control:
 			if control == StopExecution {
-				log.Print("stop requested.  watcher stopping...")
+				log.Print("watcher stopping on interrupt.")
 				break runLoop
 			}
 		case inotEvt := <-inot.Event:
@@ -55,7 +53,7 @@ runLoop:
 				context.FilePipeline <- fname
 			}
 		case inotErr = <-inot.Error:
-			log.Printf("inotify error! %v", inotErr)
+			log.Printf("(watcher) inotify error! %v", inotErr)
 			context.Control <- ThreadCannotContinue
 			break runLoop
 		}
