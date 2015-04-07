@@ -8,8 +8,15 @@ package main
 
 import (
 	"golang.org/x/exp/inotify"
+	"strings"
 	"log"
 )
+
+// isTargetFile returns true if the file should be passed along to a worker
+// thread for processing.
+func isTargetFile(s string) bool {
+	return strings.HasSuffix(s, ".MAT")
+}
 
 // Inotify flags.  We only monitor for file close events, i.e. the data in the
 // file is fixed.
@@ -44,13 +51,14 @@ runLoop:
 			}
 		case inotEvt := <-inot.Event:
 			fname := inotEvt.Name
-			context.FilePipeline <- fname
+			if isTargetFile(fname) {
+				context.FilePipeline <- fname
+			}
 		case inotErr = <-inot.Error:
-			// TODO: Here's an interesting case.  If the watcher
-			// can't continue, we should actually send a message 
-			// back to the main thread, informing it that we should 
-			// terminate.
 			log.Printf("inotify error! %v", inotErr)
+			context.Control <- ThreadCannotContinue
+			break runLoop
 		}
 	}
+	close(context.FilePipeline)
 }
