@@ -3,13 +3,13 @@
 *
 * watcher is responsible for monitoring changes to the filesystem and sending
 * those changes to workers.
-*/
+ */
 package main
 
 import (
 	"golang.org/x/exp/inotify"
-	"strings"
 	"log"
+	"strings"
 )
 
 // isTargetFile returns true if the file should be passed along to a worker
