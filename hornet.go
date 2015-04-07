@@ -46,8 +46,8 @@ const (
 	// and return gracefully.
 	StopExecution = 0
 
-	// In the event that a thread cannot continue what it's doing due to 
-	// an error, the main thread should shut hornet down.
+	// ThreadCannotContinue signals that the sending thread cannot continue
+	// executing due to an error, and hornet should shut down.
 	ThreadCannotContinue = 1
 )
 
@@ -165,6 +165,8 @@ func main() {
 		Control:      make(chan ControlMessage),
 	}
 
+	// Build the work pool.  This is PoolSize worker threads, plus one
+	// watcher thread which fills the queue of the workers.
 	for i := uint(0); i < conf.PoolSize; i++ {
 		ctx.Pool.Add(1)
 		go Worker(ctx, conf, WorkerID(i))
@@ -181,11 +183,11 @@ func main() {
 stopLoop:
 	for {
 		select {
-		case <- sigChan:
+		case <-sigChan:
 			log.Printf("termination requested...\n")
 			break stopLoop
-			
-		case threadMsg := <- ctx.Control:
+
+		case threadMsg := <-ctx.Control:
 			if threadMsg == ThreadCannotContinue {
 				log.Print("thread error!  cannot continue...")
 				break stopLoop
@@ -193,9 +195,8 @@ stopLoop:
 		}
 	}
 
-	// Close everybody gracefully
+	// Close all of the worker threads gracefully
 	ctx.Control <- StopExecution
-	close(ctx.FilePipeline)
 	ctx.Pool.Wait()
 
 	log.Print("All goroutines finished.  terminating...")
