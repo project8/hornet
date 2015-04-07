@@ -27,13 +27,25 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-	"strings"
+	"os/signal"
 	"sync"
+	"syscall"
 )
 
 // Global config
 var (
 	MaxPoolSize uint = 25
+)
+
+// A ControlMessage is sent from the main thread to all of the worker threads
+// to indicate system events (such as termination) that the worker threads must
+// respond to.
+type ControlMessage uint
+
+const (
+	// StopExecution asks the worker threads to finish what they are doing
+	// and return gracefully.
+	StopExecution = 0
 )
 
 // Config represents the user-specified configuration data of hornet
@@ -91,6 +103,7 @@ func (c Config) Validate() (e error) {
 type Context struct {
 	Pool         *sync.WaitGroup
 	FilePipeline chan string
+	Control      chan ControlMessage
 }
 
 func main() {
@@ -141,11 +154,12 @@ func main() {
 	// already know about the file in question.  if not, and it is a
 	// data file, we'll enqueue it to get chewed on by the next available
 	// worker thread.
-	// we use IN_CLOSE_WRITE | IN_CLOSE_ONESHOT here
+	// we use IN_CLOSE_WRITE here, we only care about file close events
 	var pool sync.WaitGroup
 	ctx := Context{
 		FilePipeline: make(chan string),
 		Pool:         &pool,
+		Control:      make(chan ControlMessage),
 	}
 
 	for i := uint(0); i < conf.PoolSize; i++ {
@@ -153,22 +167,21 @@ func main() {
 		go Worker(ctx, conf, WorkerID(i))
 	}
 
-	wd, wdErr := os.Open(conf.WatchDirPath)
-	if wdErr != nil {
-		log.Fatal("couldn't open working directory!")
-	}
+	ctx.Pool.Add(1)
+	go Watcher(ctx, conf)
 
-	fnames, _ := wd.Readdirnames(0)
-	for _, fname := range fnames {
-		// FIXME: strings.join may be inefficient, probably should use
-		// bytes.Buffer instead.  we're also building a slice every time
-		// we get a new file, which is silly.
-		if strings.HasSuffix(fname, ".MAT") {
-			ctx.FilePipeline <- strings.Join([]string{conf.WatchDirPath, fname}, "/")
-		}
-	}
+	// now just wait for the signal to stop.  this is either a ctrl+c
+	// or a SIGTERM.
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, os.Interrupt)
+	signal.Notify(sigChan, syscall.SIGTERM)
+	<-sigChan
+	log.Printf("termination requested.  stopping workers gracefully...\n")
 
+	// Close everybody gracefully
+	ctx.Control <- StopExecution
 	close(ctx.FilePipeline)
 	ctx.Pool.Wait()
+
 	log.Print("All goroutines finished.  terminating...")
 }
