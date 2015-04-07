@@ -4,11 +4,11 @@
 package main
 
 import (
+	"fmt"
 	"io/ioutil"
 	"log"
 	"os/exec"
 	"time"
-	"fmt"
 )
 
 // WorkerID is an identifier for a particular worker goroutine.
@@ -29,14 +29,15 @@ func Worker(context Context, config Config, id WorkerID) {
 	localLog := func(job JobID, format string, args ...interface{}) {
 		workerLog(format, id, job, args...)
 	}
-	
+	log.Printf("worker (%d) started.  waiting for work...\n", id)
+
 	// Put off being done until there's nothing left in the channel
 	// to process
 	defer context.Pool.Done()
 
 	// a little helpful closure over the variables we already know
 	buildCmd := func(fname string, job JobID) *exec.Cmd {
-		outFilename := fmt.Sprintf("%d_%d.h5", id, job) 
+		outFilename := fmt.Sprintf("%d_%d.h5", id, job)
 		return exec.Command(config.KatydidPath,
 			"-c",
 			config.KatydidConfPath,
@@ -45,8 +46,8 @@ func Worker(context Context, config Config, id WorkerID) {
 			"--hdf5-file",
 			outFilename)
 	}
-	
-	var jobCount JobID = 0
+
+	var jobCount JobID 
 	for f := range context.FilePipeline {
 		// build the command, using the new filename.
 		// FIXME: this will allocate some memory, can we avoid that?
@@ -57,7 +58,7 @@ func Worker(context Context, config Config, id WorkerID) {
 		if stdout, stdoutErr := cmd.StdoutPipe(); stdoutErr == nil {
 			var startTime time.Time
 			if procErr := cmd.Start(); procErr != nil {
-				localLog(jobCount, 
+				localLog(jobCount,
 					"couldn't start command: %v", procErr)
 			} else {
 				startTime = time.Now()
@@ -74,7 +75,7 @@ func Worker(context Context, config Config, id WorkerID) {
 				time.Since(startTime))
 
 		} else {
-			localLog(jobCount,"error opening stdout: %v", stdoutErr)
+			localLog(jobCount, "error opening stdout: %v", stdoutErr)
 		}
 		jobCount++
 	}
