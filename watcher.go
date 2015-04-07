@@ -40,9 +40,6 @@ func Watcher(context Context, config Config) {
 				break
 			}
 		case inotEvt := <-inot.Event:
-			// FIXME: strings.join may be inefficient, probably should
-			// use bytes.Buffer instead.  we're also building a
-			// slice every time we get a new file, which is silly.
 			fname := inotEvt.Name
 			context.FilePipeline <- fname
 		case inotErr = <-inot.Error:
