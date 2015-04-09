@@ -1,9 +1,9 @@
 /*
 * mover.go
-* 
+*
 * the mover thread moves files from a source location to a destination.
 * it can batch files for moving if requested.
-*/
+ */
 package main
 
 import (
@@ -17,19 +17,24 @@ import (
 // to shut down.
 func Mover(context Context, config Config) {
 	defer context.Pool.Done()
-	
+
 moveLoop:
 	for {
 		select {
-			// the control messages can stop execution
-			// TODO: should finish pending jobs before dying.
+		// the control messages can stop execution
+		// TODO: should finish pending jobs before dying.
 		case controlMsg := <- context.Control:
 			if controlMsg == StopExecution {
 				log.Print("mover stopping on interrupt.")
 				break moveLoop
 			}
+		case newFile := <- context.OutputFileStream:
+			log.Printf("got file to move: %s\n", newFile)
 		}
+		
 	}
+
+	// Finish any pending move jobs.
 
 	log.Print("mover finished.")
 }
