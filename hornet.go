@@ -172,8 +172,9 @@ func main() {
 		go Worker(ctx, conf, WorkerID(i))
 	}
 
-	ctx.Pool.Add(1)
+	ctx.Pool.Add(2)
 	go Watcher(ctx, conf)
+	go Mover(ctx, conf)
 
 	// now just wait for the signal to stop.  this is either a ctrl+c
 	// or a SIGTERM.
@@ -196,7 +197,9 @@ stopLoop:
 	}
 
 	// Close all of the worker threads gracefully
-	ctx.Control <- StopExecution
+	for i := 0; i < 2; i++ {
+		ctx.Control <- StopExecution
+	}
 	ctx.Pool.Wait()
 
 	log.Print("All goroutines finished.  terminating...")
