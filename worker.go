@@ -50,7 +50,7 @@ func Worker(context Context, config Config, id WorkerID) {
 	outFnamePos := len(cmd.Args) - 1
 
 	var jobCount JobID
-	for f := range context.FilePipeline {
+	for f := range context.InputFileStream {
 		cmd.Args[inFnamePos] = f
 		cmd.Args[outFnamePos] = fmt.Sprintf("%s_%d_%d.h5", f, id, jobCount)
 
@@ -73,6 +73,7 @@ func Worker(context Context, config Config, id WorkerID) {
 			localLog(jobCount,
 				"Execution finished.  Elapsed time: %v",
 				time.Since(startTime))
+			context.OutputFileStream <- f
 
 		} else {
 			localLog(jobCount, "error opening stdout: %v", stdoutErr)
