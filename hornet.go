@@ -55,6 +55,7 @@ const (
 type Config struct {
 	PoolSize        uint
 	WatchDirPath    string
+	DestDirPath string
 	KatydidPath     string
 	KatydidConfPath string
 }
@@ -99,6 +100,15 @@ func (c Config) Validate() (e error) {
 			wdErr)
 	}
 
+	if destInfo, destErr := os.Stat(c.WatchDirPath); destErr == nil {
+		if destInfo.IsDir() == false {
+			e = fmt.Errorf("destination directory must be a directory")
+		}
+	} else {
+		e = fmt.Errorf("Problem opening destination directory: %v",
+			destErr)
+	}
+
 	return
 }
 
@@ -139,6 +149,10 @@ func main() {
 		"watch-dir",
 		"REQUIRED",
 		"directory to watch for new data files")
+	flag.StringVar(&conf.DestDirPath,
+		"dest-dir",
+		"REQUIRED",
+		"directory to move files to when finished")
 	flag.Parse()
 
 	if needHelp {
