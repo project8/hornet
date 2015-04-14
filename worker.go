@@ -35,24 +35,15 @@ func Worker(context Context, config Config, id WorkerID) {
 	// to process
 	defer context.Pool.Done()
 
-	// the base command we're going to run.  everything is fixed at build time
-	// except for the input and output names.  we mutate the array in place
-	// we get events, so we keep the indices to those elements in the argument
-	// array.
-	cmd := exec.Command(config.KatydidPath,
-		"-c",
-		config.KatydidConfPath,
-		"-e",
-		"dummyInName",
-		"--hdf5-file",
-		"dummyOutName")
-	inFnamePos := len(cmd.Args) - 3
-	outFnamePos := len(cmd.Args) - 1
-
 	var jobCount JobID
 	for f := range context.InputFileStream {
-		cmd.Args[inFnamePos] = f
-		cmd.Args[outFnamePos] = fmt.Sprintf("%s_%d_%d.h5", f, id, jobCount)
+		cmd := exec.Command(config.KatydidPath,
+			"-c",
+			config.KatydidConfPath,
+			"-e",
+			f,
+			"--hdf5-file",
+			fmt.Sprintf("%s_%d_%d.h5", f, id, jobCount))
 
 		// run the process
 		if stdout, stdoutErr := cmd.StdoutPipe(); stdoutErr == nil {
