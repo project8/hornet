@@ -8,7 +8,23 @@ package main
 
 import (
 	"log"
+	"strings"
+	"syscall"
 )
+
+func MovedFilePath(orig, newdir string) (newpath string) {
+	var namepos int
+	var sep string = ""
+	if namepos = strings.LastIndex(orig, "/"); namepos == -1 {
+		namepos = 0
+		if strings.HasSuffix(newdir, "/") == false {
+			sep = "/"
+		}
+	} 
+	newpath = strings.Join([]string{newdir, orig[namepos:]},sep)
+	
+	return
+}
 
 // Mover receives filenames over an unbuffered channel, and moves them from
 // their current place on the filesystem to a destination.  If so configured
@@ -29,7 +45,11 @@ moveLoop:
 				break moveLoop
 			}
 		case newFile := <- context.OutputFileStream:
-			log.Printf("got file to move: %s\n", newFile)
+			destName := MovedFilePath(newFile, config.DestDirPath)
+			if moveErr := syscall.Rename(newFile, destName); moveErr != nil {
+				log.Printf("file move failed! (%v -> %v)\n",
+					newFile, destName)
+			}
 		}
 		
 	}
