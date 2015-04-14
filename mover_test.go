@@ -84,5 +84,8 @@ func TestMover(t *testing.T) {
 		t.Fail()
 	}
 
+	// clean up.
+	os.RemoveAll(tempInDir)
+	os.RemoveAll(tempOutDir)
 
 }
