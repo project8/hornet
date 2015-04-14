@@ -8,8 +8,7 @@ package main
 import (
 	"testing"
 	"sync"
-	"syscall"
-	"os"
+	"io/ioutil"
 )
 
 func TestFilenameRenamingAbsolute(t *testing.T) {
@@ -47,15 +46,10 @@ func TestMover(t *testing.T) {
 	// for now, this is going to fail.  the outline is about right 
 	// though.
 	tempName := "hornet_mover_test"
-	if _, err := syscall.Creat(tempName, 0777); err != nil {
-		fileStream <- tempName
-	} else {
-		t.Log("couldn't create temp file for test!")
-		t.Fail()
-	}
-
-	if _, mvErr := os.Stat("./testing/hornet_mover_test"); mvErr != nil {
-		t.Log("couldn't stat file after moving!")
+	tempInDir, tidErr := ioutil.TempDir("","hornet_test_in_dir")
+	tempOutDir, todErr := ioutil.TempDir("","hornet_test_out_dir")
+	if (tidErr != nil) | (todErr != nil) {
+		t.Logf("creation of temporary directories failed!\n")
 		t.Fail()
 	}
 }
