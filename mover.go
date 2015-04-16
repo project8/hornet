@@ -20,9 +20,9 @@ func MovedFilePath(orig, newdir string) (newpath string) {
 		if strings.HasSuffix(newdir, "/") == false {
 			sep = "/"
 		}
-	} 
-	newpath = strings.Join([]string{newdir, orig[namepos:]},sep)
-	
+	}
+	newpath = strings.Join([]string{newdir, orig[namepos:]}, sep)
+
 	return
 }
 
@@ -39,19 +39,19 @@ moveLoop:
 		select {
 		// the control messages can stop execution
 		// TODO: should finish pending jobs before dying.
-		case controlMsg := <- context.Control:
+		case controlMsg := <-context.Control:
 			if controlMsg == StopExecution {
 				log.Print("mover stopping on interrupt.")
 				break moveLoop
 			}
-		case newFile := <- context.OutputFileStream:
+		case newFile := <-context.OutputFileStream:
 			destName := MovedFilePath(newFile, config.DestDirPath)
 			if moveErr := syscall.Rename(newFile, destName); moveErr != nil {
-				log.Printf("file move failed! (%v -> %v)\n",
-					newFile, destName)
+				log.Printf("file move failed! (%v -> %v) [%v]\n",
+					newFile, destName, moveErr)
 			}
 		}
-		
+
 	}
 
 	// Finish any pending move jobs.
