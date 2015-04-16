@@ -55,7 +55,7 @@ const (
 type Config struct {
 	PoolSize        uint
 	WatchDirPath    string
-	DestDirPath string
+	DestDirPath     string
 	KatydidPath     string
 	KatydidConfPath string
 }
@@ -91,22 +91,12 @@ func (c Config) Validate() (e error) {
 			confErr)
 	}
 
-	if wdInfo, wdErr := os.Stat(c.WatchDirPath); wdErr == nil {
-		if wdInfo.IsDir() == false {
-			e = fmt.Errorf("watch directory must be a directory")
-		}
-	} else {
-		e = fmt.Errorf("Problem opening watch directory: %v",
-			wdErr)
+	if PathIsDirectory(c.DestDirPath) == false {
+		e = fmt.Errorf("Destination directory must exist and be a directory!")
 	}
 
-	if destInfo, destErr := os.Stat(c.WatchDirPath); destErr == nil {
-		if destInfo.IsDir() == false {
-			e = fmt.Errorf("destination directory must be a directory")
-		}
-	} else {
-		e = fmt.Errorf("Problem opening destination directory: %v",
-			destErr)
+	if PathIsDirectory(c.WatchDirPath) == false {
+		e = fmt.Errorf("Watch directory must exist and be a directory!")
 	}
 
 	return
@@ -114,10 +104,10 @@ func (c Config) Validate() (e error) {
 
 // Context is the state of hornet
 type Context struct {
-	Pool            *sync.WaitGroup
-	InputFileStream chan string
+	Pool             *sync.WaitGroup
+	InputFileStream  chan string
 	OutputFileStream chan string
-	Control         chan ControlMessage
+	Control          chan ControlMessage
 }
 
 func main() {
@@ -175,10 +165,10 @@ func main() {
 	// we use IN_CLOSE_WRITE here, we only care about file close events
 	var pool sync.WaitGroup
 	ctx := Context{
-		InputFileStream: make(chan string, conf.PoolSize*3),
+		InputFileStream:  make(chan string, conf.PoolSize*3),
 		OutputFileStream: make(chan string, conf.PoolSize*3),
-		Pool:            &pool,
-		Control:         make(chan ControlMessage),
+		Pool:             &pool,
+		Control:          make(chan ControlMessage),
 	}
 
 	// Build the work pool.  This is PoolSize worker threads, plus one
