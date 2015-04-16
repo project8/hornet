@@ -7,10 +7,10 @@
 package main
 
 import (
+	"io"
 	"log"
 	"os"
 	"strings"
-	"syscall"
 )
 
 // MovedFilePath takes a path to a file as its argument, and the directory to
@@ -34,19 +34,23 @@ func MovedFilePath(orig, newdir string) (newpath string) {
 // strings i.e. paths to the original and the desired destination.  if something
 // goes wrong, it returns an error.
 func copy(source, destination string) error {
-	if src, srcErr := os.Open(source); srcErr != nil {
+	src, srcErr := os.Open(source)
+	if srcErr != nil {
 		return srcErr
 	}
 	defer src.Close()
 
-	if dst, dstErr := os.Create(destination); dstErr != nil {
+	dst, dstErr := os.Create(destination)
+	if dstErr != nil {
 		return dstErr
 	}
 	defer dst.Close()
 
-	if n, cpyErr := io.Copy(dst, src); cpyErr != nil {
+	if _, cpyErr := io.Copy(dst, src); cpyErr != nil {
 		return cpyErr
 	}
+
+	return nil
 }
 
 // Mover receives filenames over an unbuffered channel, and moves them from
@@ -71,7 +75,7 @@ moveLoop:
 			destName := MovedFilePath(newFile, config.DestDirPath)
 			if copyErr := copy(newFile, destName); copyErr != nil {
 				log.Printf("file copy failed! (%v -> %v) [%v]\n",
-					newFile, destName, moveErr)
+					newFile, destName, copyErr)
 			}
 		}
 
