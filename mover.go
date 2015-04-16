@@ -8,13 +8,17 @@ package main
 
 import (
 	"log"
+	"os"
 	"strings"
 	"syscall"
 )
 
+// MovedFilePath takes a path to a file as its argument, and the directory to
+// which that file is to be moved.  It returns the new path as a string e.g.
+// MovedFilePath("/abc/def.xxx","/ghi") -> "/ghi/def.xxx"
 func MovedFilePath(orig, newdir string) (newpath string) {
 	var namepos int
-	var sep string = ""
+	var sep string
 	if namepos = strings.LastIndex(orig, "/"); namepos == -1 {
 		namepos = 0
 		if strings.HasSuffix(newdir, "/") == false {
@@ -24,6 +28,25 @@ func MovedFilePath(orig, newdir string) (newpath string) {
 	newpath = strings.Join([]string{newdir, orig[namepos:]}, sep)
 
 	return
+}
+
+// copy will copy the contents of one file to another.  the arguments are both
+// strings i.e. paths to the original and the desired destination.  if something
+// goes wrong, it returns an error.
+func copy(source, destination string) error {
+	if src, srcErr := os.Open(source); srcErr != nil {
+		return srcErr
+	}
+	defer src.Close()
+
+	if dst, dstErr := os.Create(destination); dstErr != nil {
+		return dstErr
+	}
+	defer dst.Close()
+
+	if n, cpyErr := io.Copy(dst, src); cpyErr != nil {
+		return cpyErr
+	}
 }
 
 // Mover receives filenames over an unbuffered channel, and moves them from
@@ -46,8 +69,8 @@ moveLoop:
 			}
 		case newFile := <-context.OutputFileStream:
 			destName := MovedFilePath(newFile, config.DestDirPath)
-			if moveErr := syscall.Rename(newFile, destName); moveErr != nil {
-				log.Printf("file move failed! (%v -> %v) [%v]\n",
+			if copyErr := copy(newFile, destName); copyErr != nil {
+				log.Printf("file copy failed! (%v -> %v) [%v]\n",
 					newFile, destName, moveErr)
 			}
 		}
