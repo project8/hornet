@@ -3,6 +3,7 @@ package main
 
 import (
 	"os"
+	"strings"
 )
 
 // PathIsDirectory returns true if the string argument is a path to a
@@ -17,4 +18,21 @@ func PathIsDirectory(path string) bool {
 
 	return false
 
+}
+
+// MovedFilePath takes a path to a file as its argument, and the directory to
+// which that file is to be moved.  It returns the new path as a string e.g.
+// MovedFilePath("/abc/def.xxx","/ghi") -> "/ghi/def.xxx"
+func MovedFilePath(orig, newdir string) (newpath string) {
+	var namepos int
+	var sep string
+	if namepos = strings.LastIndex(orig, "/"); namepos == -1 {
+		namepos = 0
+		if strings.HasSuffix(newdir, "/") == false {
+			sep = "/"
+		}
+	}
+	newpath = strings.Join([]string{newdir, orig[namepos:]}, sep)
+
+	return
 }
