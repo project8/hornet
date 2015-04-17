@@ -37,11 +37,12 @@ func Worker(context Context, config Config, id WorkerID) {
 
 	var jobCount JobID
 	for f := range context.InputFileStream {
+		outputPath := MovedFilePath(f, config.DestDirPath)
 		cmd := exec.Command(config.KatydidPath,
 			"-c",
 			config.KatydidConfPath,
 			"-e",
-			f,
+			outputPath,
 			"--hdf5-file",
 			fmt.Sprintf("%s_%d_%d.h5", f, id, jobCount))
 
