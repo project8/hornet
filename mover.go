@@ -10,25 +10,7 @@ import (
 	"io"
 	"log"
 	"os"
-	"strings"
 )
-
-// MovedFilePath takes a path to a file as its argument, and the directory to
-// which that file is to be moved.  It returns the new path as a string e.g.
-// MovedFilePath("/abc/def.xxx","/ghi") -> "/ghi/def.xxx"
-func MovedFilePath(orig, newdir string) (newpath string) {
-	var namepos int
-	var sep string
-	if namepos = strings.LastIndex(orig, "/"); namepos == -1 {
-		namepos = 0
-		if strings.HasSuffix(newdir, "/") == false {
-			sep = "/"
-		}
-	}
-	newpath = strings.Join([]string{newdir, orig[namepos:]}, sep)
-
-	return
-}
 
 // copy will copy the contents of one file to another.  the arguments are both
 // strings i.e. paths to the original and the desired destination.  if something
@@ -76,6 +58,12 @@ moveLoop:
 			if copyErr := copy(newFile, destName); copyErr != nil {
 				log.Printf("file copy failed! (%v -> %v) [%v]\n",
 					newFile, destName, copyErr)
+			} else {
+				if rmErr := os.Remove(newFile); rmErr != nil {
+					log.Printf("file rm failed! (%v) [%v]\n",
+						newFile,
+						rmErr)
+				}
 			}
 		}
 
