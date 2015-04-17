@@ -36,7 +36,7 @@ func Worker(context Context, config Config, id WorkerID) {
 	defer context.Pool.Done()
 
 	var jobCount JobID
-	for f := range context.InputFileStream {
+	for f := range context.NewFileStream {
 		outputPath := MovedFilePath(f, config.DestDirPath)
 		cmd := exec.Command(config.KatydidPath,
 			"-c",
@@ -65,7 +65,7 @@ func Worker(context Context, config Config, id WorkerID) {
 			localLog(jobCount,
 				"Execution finished.  Elapsed time: %v",
 				time.Since(startTime))
-			context.OutputFileStream <- f
+			context.FinishedFileStream <- f
 
 		} else {
 			localLog(jobCount, "error opening stdout: %v", stdoutErr)

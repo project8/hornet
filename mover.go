@@ -53,7 +53,7 @@ moveLoop:
 				log.Print("mover stopping on interrupt.")
 				break moveLoop
 			}
-		case newFile := <-context.OutputFileStream:
+		case newFile := <-context.FinishedFileStream:
 			destName := MovedFilePath(newFile, config.DestDirPath)
 			if copyErr := copy(newFile, destName); copyErr != nil {
 				log.Printf("file copy failed! (%v -> %v) [%v]\n",

@@ -50,7 +50,7 @@ runLoop:
 		case inotEvt := <-inot.Event:
 			fname := inotEvt.Name
 			if isTargetFile(fname) {
-				context.InputFileStream <- fname
+				context.NewFileStream <- fname
 			}
 		case inotErr = <-inot.Error:
 			log.Printf("(watcher) inotify error! %v", inotErr)
@@ -58,5 +58,5 @@ runLoop:
 			break runLoop
 		}
 	}
-	close(context.InputFileStream)
+	close(context.NewFileStream)
 }

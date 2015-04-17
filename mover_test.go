@@ -60,10 +60,10 @@ func (s *HornetSuite) SetUpSuite(c *C) {
 	}
 
 	s.cxt = Context{
-		Control:          make(chan ControlMessage),
-		InputFileStream:  make(chan string, 3),
-		Pool:             &wg,
-		OutputFileStream: make(chan string, 3),
+		Control:            make(chan ControlMessage),
+		NewFileStream:      make(chan string, 3),
+		Pool:               &wg,
+		FinishedFileStream: make(chan string, 3),
 	}
 
 	s.cxt.Pool.Add(1)
@@ -98,7 +98,7 @@ func (s *HornetSuite) TestMoveWorks(c *C) {
 	}
 	tempFile.Close()
 
-	s.cxt.OutputFileStream <- tempFileName
+	s.cxt.FinishedFileStream <- tempFileName
 	tempExpectedOut := MovedFilePath(tempFileName, s.cfg.DestDirPath)
 
 	time.Sleep(100 * time.Millisecond)
