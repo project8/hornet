@@ -2,6 +2,7 @@
 package main
 
 import (
+	"errors"
 	"os"
 	"strings"
 )
@@ -34,5 +35,26 @@ func MovedFilePath(orig, newdir string) (newpath string) {
 	}
 	newpath = strings.Join([]string{newdir, orig[namepos:]}, sep)
 
+	return
+}
+
+// RenamePathRelativeTo takes a base path, a target path, and a filename which
+// has as part of it the base path.  It then renames the file, respecting its
+// base path and maintaining any subdirectory structure that the filename may
+// have: e.g. RenamePathRelativeTo("/abc/def/foo.bar", "/abc", "/ghi") ->
+// "/ghi/def/foo.bar".  If base is not a prefix of filename, the function call
+// is considered an error.
+func RenamePathRelativeTo(filename, base, dest string) (s string, e error) {
+	if strings.HasPrefix(filename, base) == false {
+		e = errors.New("filename does not contain base as a prefix")
+		return
+	}
+
+	sep := "/"
+	relPath := strings.TrimPrefix(filename, base)
+	if strings.HasPrefix(relPath, sep) {
+		sep = ""
+	}
+	s = strings.Join([]string{dest, relPath}, sep)
 	return
 }
