@@ -104,10 +104,10 @@ func (c Config) Validate() (e error) {
 
 // Context is the state of hornet
 type Context struct {
-	Pool             *sync.WaitGroup
-	InputFileStream  chan string
-	OutputFileStream chan string
-	Control          chan ControlMessage
+	Pool               *sync.WaitGroup
+	NewFileStream      chan string
+	FinishedFileStream chan string
+	Control            chan ControlMessage
 }
 
 func main() {
@@ -165,10 +165,10 @@ func main() {
 	// we use IN_CLOSE_WRITE here, we only care about file close events
 	var pool sync.WaitGroup
 	ctx := Context{
-		InputFileStream:  make(chan string, conf.PoolSize*3),
-		OutputFileStream: make(chan string, conf.PoolSize*3),
-		Pool:             &pool,
-		Control:          make(chan ControlMessage),
+		NewFileStream:      make(chan string, conf.PoolSize*3),
+		FinishedFileStream: make(chan string, conf.PoolSize*3),
+		Pool:               &pool,
+		Control:            make(chan ControlMessage),
 	}
 
 	// Build the work pool.  This is PoolSize worker threads, plus one
