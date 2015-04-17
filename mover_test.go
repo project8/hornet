@@ -34,16 +34,16 @@ func TestFilenameRenamingRelative(t *testing.T) {
 
 func TestGoCheck(t *testing.T) { TestingT(t) }
 
-type HornetSuite struct {
+type HornetMoverSuite struct {
 	cfg Config
 	cxt Context
 }
 
-var _ = Suite(&HornetSuite{})
+var _ = Suite(&HornetMoverSuite{})
 
 // create all the necessary directories and what have you, and start the
 // mover thread.
-func (s *HornetSuite) SetUpSuite(c *C) {
+func (s *HornetMoverSuite) SetUpSuite(c *C) {
 	// waitgroup for just the mover
 	var wg sync.WaitGroup
 
@@ -71,7 +71,7 @@ func (s *HornetSuite) SetUpSuite(c *C) {
 }
 
 // stop the mover thread and delete all temporary directories and shit.
-func (s *HornetSuite) TearDownSuite(c *C) {
+func (s *HornetMoverSuite) TearDownSuite(c *C) {
 	s.cxt.Control <- StopExecution
 	s.cxt.Pool.Wait()
 
@@ -81,7 +81,7 @@ func (s *HornetSuite) TearDownSuite(c *C) {
 
 // test that simply moving a file works correctly - the file moves and is no
 // no longer in its original place.
-func (s *HornetSuite) TestMoveWorks(c *C) {
+func (s *HornetMoverSuite) TestMoveWorks(c *C) {
 
 	tempFile, fileErr := ioutil.TempFile(s.cfg.WatchDirPath, "hornet_mover_test")
 	if fileErr != nil {
