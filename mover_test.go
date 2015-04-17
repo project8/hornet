@@ -1,15 +1,17 @@
 /*
 * mover_test.go
-* 
+*
 * a test suite for the hornet mover
-*/
+ */
 package main
 
 import (
-	"testing"
-	"sync"
-	"os"
+	. "gopkg.in/check.v1"
 	"io/ioutil"
+	"os"
+	"sync"
+	"testing"
+	"time"
 )
 
 func TestFilenameRenamingAbsolute(t *testing.T) {
@@ -30,62 +32,84 @@ func TestFilenameRenamingRelative(t *testing.T) {
 	}
 }
 
-// Test that a temporary file gets correctly moved by the mover thread
-// when its name is sent through the output channel.
-func TestMover(t *testing.T) {
+func TestGoCheck(t *testing.T) { TestingT(t) }
+
+type HornetSuite struct {
+	cfg Config
+	cxt Context
+}
+
+var _ = Suite(&HornetSuite{})
+
+// create all the necessary directories and what have you, and start the
+// mover thread.
+func (s *HornetSuite) SetUpSuite(c *C) {
+	// waitgroup for just the mover
 	var wg sync.WaitGroup
-	fileStream := make(chan string)
-	control := make(chan ControlMessage)
-	
-	// TODO: should use actual temporary facilities here, but I'm not
-	// paying 30$ to get on the in-flight internet to check the API.
-	// for now, this is going to fail.  the outline is about right 
-	// though.
-	tempInDir, tidErr := ioutil.TempDir("","hornet_test_in_dir")
-	tempOutDir, todErr := ioutil.TempDir("","hornet_test_out_dir")
+
+	// temporary input and output directories
+	tempInDir, tidErr := ioutil.TempDir("", "hornet_test_in_dir")
+	tempOutDir, todErr := ioutil.TempDir("", "hornet_test_out_dir")
 	if (tidErr != nil) || (todErr != nil) {
-		t.Logf("creation of temporary directories failed!\n")
-		t.Fail()
+		panic("creation of temporary directories failed!\n")
 	}
 
-	// create a temporary file to work with
-	tempFile, fileErr := ioutil.TempFile(tempInDir, "hornet_mover_test")
+	s.cfg = Config{
+		WatchDirPath: tempInDir,
+		DestDirPath:  tempOutDir,
+	}
+
+	s.cxt = Context{
+		Control:          make(chan ControlMessage),
+		InputFileStream:  make(chan string, 3),
+		Pool:             &wg,
+		OutputFileStream: make(chan string, 3),
+	}
+
+	s.cxt.Pool.Add(1)
+	go Mover(s.cxt, s.cfg)
+}
+
+// stop the mover thread and delete all temporary directories and shit.
+func (s *HornetSuite) TearDownSuite(c *C) {
+	s.cxt.Control <- StopExecution
+	s.cxt.Pool.Wait()
+
+	//os.RemoveAll(s.cfg.DestDirPath)
+	//os.RemoveAll(s.cfg.WatchDirPath)
+}
+
+// test that simply moving a file works correctly - the file moves and is no
+// no longer in its original place.
+func (s *HornetSuite) TestMoveWorks(c *C) {
+
+	tempFile, fileErr := ioutil.TempFile(s.cfg.WatchDirPath, "hornet_mover_test")
 	if fileErr != nil {
-		t.Logf("couldn't create temporary file!\n")
-		t.Fail()
+		c.Logf("couldn't create temporary file!\n")
+		c.Fail()
 	}
-	t.Logf("created file at %s\n", tempFile.Name())
+	c.Logf("created file at %s\n", tempFile.Name())
 
-	// write a tiny amount of data to the file
 	_, wErr := tempFile.WriteString("this is a test file created by hornet.")
 	tempFileName := tempFile.Name()
 	if wErr != nil {
-		t.Logf("couldn't write to temporary file!\n")
-		t.Fail()
+		c.Logf("couldn't write to temporary file!\n")
+		c.Fail()
 	}
 	tempFile.Close()
 
-	// alright, now we need to know both where we expect to find the file
-	// to begin with and where we expect it to wind up...
-	tempOutPath := MovedFilePath(tempFileName, tempOutDir)
+	s.cxt.OutputFileStream <- tempFileName
+	tempExpectedOut := MovedFilePath(tempFileName, s.cfg.DestDirPath)
 
-	cfg := Config{DestDirPath: tempOutDir}
-	cxt := Context{Pool: &wg, 
-		OutputFileStream: fileStream,
-		Control: control,}
-	go Mover(cxt, cfg)
+	time.Sleep(100 * time.Millisecond)
 
-	// now send the file to the mover.
-	fileStream <- tempFileName
-
-	// now look to see that the mover actually moved it.
-	if _, movedErr := os.Stat(tempOutPath); movedErr != nil {
-		t.Logf("file does not appear to have moved!")
-		t.Fail()
+	if _, srcErr := os.Stat(tempFileName); srcErr == nil {
+		c.Logf("temp file still in original location!")
+		c.Fail()
 	}
 
-	// clean up.
-	os.RemoveAll(tempInDir)
-	os.RemoveAll(tempOutDir)
-
+	if _, movedErr := os.Stat(tempExpectedOut); movedErr != nil {
+		c.Logf("file does not appear to have moved!")
+		c.Fail()
+	}
 }
