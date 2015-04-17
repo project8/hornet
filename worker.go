@@ -42,9 +42,9 @@ func Worker(context Context, config Config, id WorkerID) {
 			"-c",
 			config.KatydidConfPath,
 			"-e",
-			outputPath,
+			f,
 			"--hdf5-file",
-			fmt.Sprintf("%s_%d_%d.h5", f, id, jobCount))
+			fmt.Sprintf("%s_%d_%d.h5", outputPath, id, jobCount))
 
 		// run the process
 		if stdout, stdoutErr := cmd.StdoutPipe(); stdoutErr == nil {
