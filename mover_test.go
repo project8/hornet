@@ -57,8 +57,8 @@ func (s *HornetMoverSuite) TearDownSuite(c *C) {
 	s.cxt.Control <- StopExecution
 	s.cxt.Pool.Wait()
 
-	//os.RemoveAll(s.cfg.DestDirPath)
-	//os.RemoveAll(s.cfg.WatchDirPath)
+	os.RemoveAll(s.cfg.DestDirPath)
+	os.RemoveAll(s.cfg.WatchDirPath)
 }
 
 // test that simply moving a file works correctly - the file moves and is no
@@ -92,6 +92,44 @@ func (s *HornetMoverSuite) TestMoveWorks(c *C) {
 
 	if _, movedErr := os.Stat(tempExpectedOut); movedErr != nil {
 		c.Logf("file does not appear to have moved!")
+		c.Fail()
+	}
+}
+
+// test that moving in a subdir works correctly - i.e. if i send it a file in
+// a subdirectory to move, it can move the file corectly.
+func (s *HornetMoverSuite) TestSubdirMoveWorks(c *C) {
+	tempSubD, tempSubErr := ioutil.TempDir(s.cfg.WatchDirPath, "sub_mv_test")
+	if tempSubErr != nil {
+		c.Logf("couldn't create subdirectory %v", tempSubD)
+		c.Fail()
+	}
+
+	tempFile, tempFileErr := ioutil.TempFile(tempSubD, "sub_mv_test_file")
+	if tempFileErr != nil {
+		c.Logf("couldn't create temporary file in subdir %v", tempFile)
+	}
+	_, wErr := tempFile.WriteString("this is a test file created by hornet.")
+	if wErr != nil {
+		c.Logf("couldn't write to temporary file")
+		c.Fail()
+	}
+	tempFileName := tempFile.Name()
+	tempFile.Close()
+
+	s.cxt.FinishedFileStream <- tempFileName
+	tempExpectedOut, _ := RenamePathRelativeTo(tempFileName,
+		s.cfg.WatchDirPath, s.cfg.DestDirPath)
+
+	time.Sleep(100 * time.Millisecond)
+
+	if _, srcErr := os.Stat(tempFileName); srcErr == nil {
+		c.Logf("temp file still in original location %s", tempFileName)
+		c.Fail()
+	}
+
+	if _, movedErr := os.Stat(tempExpectedOut); movedErr != nil {
+		c.Logf("no moved file at %s", tempExpectedOut)
 		c.Fail()
 	}
 }
