@@ -104,6 +104,7 @@ runLoop:
 						dirname)
 				}
 			} else if shouldRemoveWatch(newSubDirEvt) {
+				log.Printf("removing watch on %s...", dirname)
 				if err := fileWatch.RemoveWatch(dirname); err != nil {
 					log.Printf("Can't remove watch on %s [%v]...", dirname, err)
 				}
