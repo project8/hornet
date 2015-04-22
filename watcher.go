@@ -40,6 +40,11 @@ func shouldRemoveWatch(evt *inotify.Event) bool {
 	return wasDeleted || wasMovedFrom
 }
 
+// isEintr is exactly what it sounds like.
+func isEintr(e error) bool {
+	return strings.Contains(e.Error(), "interrupted system call")
+}
+
 // Inotify flags.  We only monitor for file close events, i.e. the data in the
 // file is fixed.
 const fileWatchFlags = inotify.IN_CLOSE_WRITE
@@ -113,14 +118,19 @@ runLoop:
 			//	if either of the filesystem watchers gets an error, die
 			//	as gracefully as possible.
 		case fileWatchErr = <-fileWatch.Error:
-			log.Printf("(file watcher) inotify error! %v", fileWatchErr)
-			context.Control <- ThreadCannotContinue
-			break runLoop
+			if isEintr(fileWatchErr) == false {
+				log.Printf("(file watcher) inotify error! %v", fileWatchErr)
+				context.Control <- ThreadCannotContinue
+				break runLoop
+			}
 
 		case subdWatchErr = <-subdWatch.Error:
-			log.Printf("(subdir watcher) inotify error! %v", subdWatchErr)
-			context.Control <- ThreadCannotContinue
-			break runLoop
+			if isEintr(fileWatchErr) == false {
+				log.Printf("(subdir watcher) inotify error! %v", subdWatchErr)
+				context.Control <- ThreadCannotContinue
+				break runLoop
+			}
+
 		}
 	}
 	close(context.NewFileStream)
