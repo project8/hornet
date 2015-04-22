@@ -91,7 +91,7 @@ moveLoop:
 				// check if we already know about the destdir
 				newDir := filepath.Dir(destName)
 				if ds[newDir] == false {
-					if mkErr := os.MkdirAll(newDir, os.ModeDir); mkErr != nil {
+					if mkErr := os.MkdirAll(newDir, os.ModeDir|os.ModePerm); mkErr != nil {
 						log.Printf("couldn't make directory %v: [%v]",
 							newDir, mkErr)
 					}
