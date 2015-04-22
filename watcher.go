@@ -94,7 +94,6 @@ runLoop:
 		// directory getting moved-to, watch it.
 		case newSubDirEvt := <-subdWatch.Event:
 			dirname := newSubDirEvt.Name
-			log.Printf("i see %v", dirname)
 			if shouldAddWatch(newSubDirEvt) {
 				if err := fileWatch.AddWatch(dirname, fileWatchFlags); err != nil {
 					log.Printf("couldn't add subdir watch! [%v]", err)
