@@ -53,6 +53,8 @@ func Worker(context Context, config Config, id WorkerID) {
 			fmt.Sprintf("%s_%d_%d.h5", outputPath, id, jobCount))
 
 		// run the process
+		var outputBytes []byte
+		var outputError error
 		if stdout, stdoutErr := cmd.StdoutPipe(); stdoutErr == nil {
 			var startTime time.Time
 			if procErr := cmd.Start(); procErr != nil {
@@ -60,14 +62,20 @@ func Worker(context Context, config Config, id WorkerID) {
 					"couldn't start command: %v", procErr)
 			} else {
 				startTime = time.Now()
-				output, readErr := ioutil.ReadAll(stdout)
-				if readErr != nil {
+				outputBytes, outputError = ioutil.ReadAll(stdout)
+				if outputError != nil {
 					localLog(jobCount,
 						"Error running process: %v",
-						string(output[:]))
+						string(outputBytes[:]))
 				}
 			}
-			cmd.Wait()
+			if runErr := cmd.Wait(); runErr != nil {
+				if exitErr, ok := runErr.(*exec.ExitError); !ok {
+					log.Printf("Nonzero exit status on process [%v].  Log: %v",
+						exitErr,
+						string(outputBytes[:]))
+				}
+			}
 			localLog(jobCount,
 				"Execution finished.  Elapsed time: %v",
 				time.Since(startTime))
