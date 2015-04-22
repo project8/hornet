@@ -37,7 +37,13 @@ func Worker(context Context, config Config, id WorkerID) {
 
 	var jobCount JobID
 	for f := range context.NewFileStream {
-		outputPath := MovedFilePath(f, config.DestDirPath)
+		outputPath, destErr := RenamePathRelativeTo(f,
+			config.WatchDirPath,
+			config.DestDirPath)
+		if destErr != nil {
+			log.Printf("bad rename request [%s -> %s] [%v]",
+				config.WatchDirPath, config.DestDirPath, destErr)
+		}
 		cmd := exec.Command(config.KatydidPath,
 			"-c",
 			config.KatydidConfPath,
