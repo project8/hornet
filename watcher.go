@@ -12,16 +12,38 @@ import (
 	"strings"
 )
 
+const (
+	dirCreatedMask   = inotify.IN_ISDIR | inotify.IN_CREATE
+	dirMovedToMask   = inotify.IN_ISDIR | inotify.IN_MOVED_TO
+	dirMovedFromMask = inotify.IN_ISDIR | inotify.IN_MOVED_FROM
+	dirDeletedMask   = inotify.IN_ISDIR | inotify.IN_DELETE
+)
+
 // isTargetFile returns true if the file should be passed along to a worker
 // thread for processing.
 func isTargetFile(s string) bool {
 	return strings.HasSuffix(s, ".MAT")
 }
 
+// shouldAddWatch tests to see if this is a new directory or if this directory
+// was moved to a place where it should be watched.
+func shouldAddWatch(evt *inotify.Event) bool {
+	newCreated := (evt.Mask & dirCreatedMask) == dirCreatedMask
+	wasMovedTo := (evt.Mask & dirMovedToMask) == dirMovedToMask
+	return newCreated || wasMovedTo
+}
+
+// shouldRemoveWatch tests to see if a directory is no longer of interest.
+func shouldRemoveWatch(evt *inotify.Event) bool {
+	wasDeleted := (evt.Mask & dirDeletedMask) == dirDeletedMask
+	wasMovedFrom := (evt.Mask & dirMovedFromMask) == dirMovedFromMask
+	return wasDeleted || wasMovedFrom
+}
+
 // Inotify flags.  We only monitor for file close events, i.e. the data in the
 // file is fixed.
 const fileWatchFlags = inotify.IN_CLOSE_WRITE
-const subdWatchFlags = inotify.IN_ONLYDIR | inotify.IN_CREATE
+const subdWatchFlags = inotify.IN_ONLYDIR | inotify.IN_CREATE | inotify.IN_MOVED_TO | inotify.IN_DELETE | inotify.IN_MOVED_FROM
 
 // Watcher uses inotify to monitor changes to a specific path.
 func Watcher(context Context, config Config) {
@@ -66,18 +88,26 @@ runLoop:
 				context.NewFileStream <- fname
 			}
 
-		// in the event a new subdirectory has been created in the base watch
-		// directory, add that directory to the list of watched locations that
-		// the file watcher is looking at.
-		case newSubDir := <-subdWatch.Event:
-			dirname := newSubDir.Name
-			if err := fileWatch.AddWatch(dirname, fileWatchFlags); err != nil {
-				log.Printf("couldn't add subdir watch! [%v]", err)
-				context.Control <- ThreadCannotContinue
-				break runLoop
-			} else {
-				log.Printf("(subdir watcher) added subdirectory to watch [%v]",
-					dirname)
+		// directories are a little more complicated.  if it's a new directory,
+		// watch it.  if it's a directory getting moved-from, delete the watch.
+		// if it's a directory getting deleted, delete the watch.  if it's a
+		// directory getting moved-to, watch it.
+		case newSubDirEvt := <-subdWatch.Event:
+			dirname := newSubDirEvt.Name
+			log.Printf("i see %v", dirname)
+			if shouldAddWatch(newSubDirEvt) {
+				if err := fileWatch.AddWatch(dirname, fileWatchFlags); err != nil {
+					log.Printf("couldn't add subdir watch! [%v]", err)
+					context.Control <- ThreadCannotContinue
+					break runLoop
+				} else {
+					log.Printf("(subdir watcher) added subdirectory to watch [%v]",
+						dirname)
+				}
+			} else if shouldRemoveWatch(newSubDirEvt) {
+				if err := fileWatch.RemoveWatch(dirname); err != nil {
+					log.Printf("Can't remove watch on %s [%v]...", dirname, err)
+				}
 			}
 
 			//	if either of the filesystem watchers gets an error, die
