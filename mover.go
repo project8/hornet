@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 )
 
+// A DirectorySet is just a simple Set type for directories.
 type DirectorySet map[string]bool
 
 // copy will copy the contents of one file to another.  the arguments are both
