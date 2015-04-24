@@ -44,12 +44,12 @@ func copy(source, destination string) error {
 // copy-and-delete.
 func Move(src, dest string) (e error) {
 	if copyErr := copy(src, dest); copyErr != nil {
-		log.Printf("file copy failed! (%v -> %v) [%v]\n",
+		log.Printf("[mover] file copy failed! (%v -> %v) [%v]\n",
 			src, dest, copyErr)
 		e = errors.New("failed to copy file")
 	} else {
 		if rmErr := os.Remove(src); rmErr != nil {
-			log.Printf("file rm failed! (%v) [%v]\n",
+			log.Printf("[mover] file rm failed! (%v) [%v]\n",
 				src,
 				rmErr)
 			e = errors.New("failed to remove old file")
@@ -77,7 +77,7 @@ moveLoop:
 		// TODO: should finish pending jobs before dying.
 		case controlMsg := <-context.Control:
 			if controlMsg == StopExecution {
-				log.Print("mover stopping on interrupt.")
+				log.Print("[mover] mover stopping on interrupt.")
 				break moveLoop
 			}
 		case newFile := <-context.FinishedFileStream:
@@ -85,7 +85,7 @@ moveLoop:
 				config.WatchDirPath,
 				config.DestDirPath)
 			if destErr != nil {
-				log.Printf("bad rename request: %s -> %s w.r.t %s\n",
+				log.Printf("[mover] bad rename request: %s -> %s w.r.t %s\n",
 					newFile, config.DestDirPath, config.WatchDirPath)
 			} else {
 				// check if we already know about the destdir
@@ -99,9 +99,8 @@ moveLoop:
 						ds[newDir] = true
 					}
 				}
-				copy(newFile, destName)
 				if moveErr := Move(newFile, destName); moveErr != nil {
-					log.Printf("error moving (%v -> %v) [%v]",
+					log.Printf("[mover] error moving (%v -> %v) [%v]",
 						newFile, destName, moveErr)
 				}
 			}
