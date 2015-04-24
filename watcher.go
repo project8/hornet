@@ -25,6 +25,12 @@ func isTargetFile(s string) bool {
 	return strings.HasSuffix(s, ".MAT")
 }
 
+// isSetupFile returns true is the file is a setup file created on the RSA,
+// which should be transferred but should not be processed.
+func isSetupFile(s string) bool {
+	return strings.HasSuffix(s, ".Setup")
+}
+
 // shouldAddWatch tests to see if this is a new directory or if this directory
 // was moved to a place where it should be watched.
 func shouldAddWatch(evt *inotify.Event) bool {
@@ -57,7 +63,7 @@ func Watcher(context Context, config Config) {
 
 	fileWatch, fileWatchErr := inotify.NewWatcher()
 	if fileWatchErr != nil {
-		log.Printf("(watcher) error creating file watcher! %v", fileWatchErr)
+		log.Printf("[watcher] error creating file watcher! %v", fileWatchErr)
 		context.Control <- ThreadCannotContinue
 	} else {
 		fileWatch.AddWatch(config.WatchDirPath, fileWatchFlags)
@@ -66,14 +72,14 @@ func Watcher(context Context, config Config) {
 
 	subdWatch, subdWatchErr := inotify.NewWatcher()
 	if subdWatchErr != nil {
-		log.Printf("(watcher) error creating subdir watcher! %v", subdWatchErr)
+		log.Printf("[watcher] error creating subdir watcher! %v", subdWatchErr)
 		context.Control <- ThreadCannotContinue
 	} else {
 		subdWatch.AddWatch(config.WatchDirPath, subdWatchFlags)
 	}
 	defer subdWatch.Close()
 
-	log.Print("watcher started successfully.  waiting for events...")
+	log.Print("[watcher] started successfully.  waiting for events...")
 
 runLoop:
 	for {
@@ -81,7 +87,7 @@ runLoop:
 		// First check for any control messages.
 		case control := <-context.Control:
 			if control == StopExecution {
-				log.Print("watcher stopping on interrupt.")
+				log.Print("[watcher] stopping on interrupt.")
 				break runLoop
 			}
 
@@ -91,6 +97,8 @@ runLoop:
 			fname := fileCloseEvt.Name
 			if isTargetFile(fname) {
 				context.NewFileStream <- fname
+			} else if isSetupFile(fname) {
+				context.FinishedFileStream <- fname
 			}
 
 		// directories are a little more complicated.  if it's a new directory,
@@ -101,17 +109,18 @@ runLoop:
 			dirname := newSubDirEvt.Name
 			if shouldAddWatch(newSubDirEvt) {
 				if err := fileWatch.AddWatch(dirname, fileWatchFlags); err != nil {
-					log.Printf("couldn't add subdir watch! [%v]", err)
+					log.Printf("[watcher] couldn't add subdir watch [%v]", err)
 					context.Control <- ThreadCannotContinue
 					break runLoop
 				} else {
-					log.Printf("(subdir watcher) added subdirectory to watch [%v]",
+					log.Printf("[watcher] added subdirectory to watch [%v]",
 						dirname)
 				}
 			} else if shouldRemoveWatch(newSubDirEvt) {
-				log.Printf("removing watch on %s...", dirname)
+				log.Printf("[watcher] removing watch on %s...", dirname)
 				if err := fileWatch.RemoveWatch(dirname); err != nil {
-					log.Printf("Can't remove watch on %s [%v]...", dirname, err)
+					log.Printf("[watcher] can't remove watch on %s [%v]",
+						dirname, err)
 				}
 			}
 
@@ -119,14 +128,16 @@ runLoop:
 			//	as gracefully as possible.
 		case fileWatchErr = <-fileWatch.Error:
 			if isEintr(fileWatchErr) == false {
-				log.Printf("(file watcher) inotify error! %v", fileWatchErr)
+				log.Printf("[watcher] inotify error on file watch %v",
+					fileWatchErr)
 				context.Control <- ThreadCannotContinue
 				break runLoop
 			}
 
 		case subdWatchErr = <-subdWatch.Error:
 			if isEintr(fileWatchErr) == false {
-				log.Printf("(subdir watcher) inotify error! %v", subdWatchErr)
+				log.Printf("[watcher] inotify error on directory watch %v",
+					subdWatchErr)
 				context.Control <- ThreadCannotContinue
 				break runLoop
 			}
