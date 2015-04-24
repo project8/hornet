@@ -85,3 +85,39 @@ func (s *HornetWatcherSuite) TestWatcherNotifyOnSubdir(c *C) {
 		c.Fail()
 	}
 }
+
+// Test that .Setup files are copied
+func (s *HornetWatcherSuite) TestWatcherSetupTransfer(c *C) {
+	// create a subdirectory in the watched base directory.  create a fake
+	// file there that should trigger the watcher to send the filename into
+	// the FinishedFileStream, i.e. is a setup file.  make sure it comes down
+	// the right pipe.
+	tmpSubDir, tmpErr := ioutil.TempDir(s.cfg.WatchDirPath, "watch_subdir_test")
+	if tmpErr != nil {
+		c.Logf("couldn't create subdir for testing! [%v]", tmpErr)
+		c.Fail()
+	}
+
+	time.Sleep(10 * time.Millisecond)
+
+	tmpFileName := strings.Join([]string{tmpSubDir, "setup_file.Setup"}, "/")
+	tmpFile, tmpFileErr := os.Create(tmpFileName)
+	if tmpFileErr != nil {
+		c.Logf("couldn't create temporary file for testing! [%v]", tmpFileErr)
+		c.Fail()
+	}
+	tmpFile.WriteString("hornet watcher test setup file")
+	tmpFile.Close()
+
+	time.Sleep(10 * time.Millisecond)
+
+	select {
+	case fname := <-s.cxt.FinishedFileStream:
+		if fname != tmpFileName {
+			c.Fail()
+		}
+	default:
+		c.Log("no message available from watcher!")
+		c.Fail()
+	}
+}
