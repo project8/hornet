@@ -42,7 +42,7 @@ func shouldRemoveWatch(evt *inotify.Event) bool {
 
 // isEintr is exactly what it sounds like.
 func isEintr(e error) bool {
-	return strings.Contains(e.Error(), "interrupted system call")
+	return e != nil && strings.Contains(e.Error(), "interrupted system call")
 }
 
 // Inotify flags.  We only monitor for file close events, i.e. the data in the
