@@ -19,7 +19,7 @@ type JobID uint
 
 func workerLog(format string, id WorkerID, job JobID, args ...interface{}) {
 	s := fmt.Sprintf(format, args)
-	log.Printf("[%d.%d] %s\n", id, job, s)
+	log.Printf("[worker %d.%d] %s\n", id, job, s)
 }
 
 // Worker waits for strings on a channel, and launches a Katydid process for
@@ -29,7 +29,7 @@ func Worker(context Context, config Config, id WorkerID) {
 	localLog := func(job JobID, format string, args ...interface{}) {
 		workerLog(format, id, job, args...)
 	}
-	log.Printf("worker (%d) started.  waiting for work...\n", id)
+	log.Printf("[worker] worker (%d) started.  waiting for work...\n", id)
 
 	// Put off being done until there's nothing left in the channel
 	// to process
@@ -41,7 +41,7 @@ func Worker(context Context, config Config, id WorkerID) {
 			config.WatchDirPath,
 			config.DestDirPath)
 		if destErr != nil {
-			log.Printf("bad rename request [%s -> %s] [%v]",
+			log.Printf("[worker] bad rename request [%s -> %s] [%v]",
 				config.WatchDirPath, config.DestDirPath, destErr)
 		}
 		cmd := exec.Command(config.KatydidPath,
@@ -71,7 +71,8 @@ func Worker(context Context, config Config, id WorkerID) {
 			}
 			if runErr := cmd.Wait(); runErr != nil {
 				if exitErr, ok := runErr.(*exec.ExitError); !ok {
-					log.Printf("Nonzero exit status on process [%v].  Log: %v",
+					localLog(jobCount,
+						"Nonzero exit status on process [%v].  Log: %v",
 						exitErr,
 						string(outputBytes[:]))
 				}
