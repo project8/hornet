@@ -191,12 +191,12 @@ stopLoop:
 	for {
 		select {
 		case <-sigChan:
-			log.Printf("termination requested...\n")
+			log.Printf("[hornet] termination requested...\n")
 			break stopLoop
 
 		case threadMsg := <-ctx.Control:
 			if threadMsg == ThreadCannotContinue {
-				log.Print("thread error!  cannot continue...")
+				log.Print("[hornet] thread error!  cannot continue...")
 				break stopLoop
 			}
 		}
@@ -208,5 +208,5 @@ stopLoop:
 	}
 	ctx.Pool.Wait()
 
-	log.Print("All goroutines finished.  terminating...")
+	log.Print("[hornet] All goroutines finished.  terminating...")
 }
