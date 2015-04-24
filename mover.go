@@ -60,9 +60,8 @@ func Move(src, dest string) (e error) {
 }
 
 // Mover receives filenames over an unbuffered channel, and moves them from
-// their current place on the filesystem to a destination.  If so configured
-// it will wait (up to a timeout) until it has some number of files to move
-// in a batch.  It is stopped when it receives a message from the main thread
+// their current place on the filesystem to a destination.
+// It is stopped when it receives a message from the main thread
 // to shut down.
 func Mover(context Context, config Config) {
 	// decrement the wg counter at the end
@@ -92,12 +91,15 @@ moveLoop:
 				// check if we already know about the destdir
 				newDir := filepath.Dir(destName)
 				if ds[newDir] == false {
+					log.Printf("[mover] creating directory %s\n", newDir)
 					if mkErr := os.MkdirAll(newDir, os.ModeDir|os.ModePerm); mkErr != nil {
 						log.Printf("couldn't make directory %v: [%v]",
 							newDir, mkErr)
+					} else {
+						ds[newDir] = true
 					}
-					copy(newFile, destName)
 				}
+				copy(newFile, destName)
 				if moveErr := Move(newFile, destName); moveErr != nil {
 					log.Printf("error moving (%v -> %v) [%v]",
 						newFile, destName, moveErr)
