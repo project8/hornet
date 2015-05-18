@@ -1,7 +1,7 @@
 /*
 * hornet - a tool for nearline processing of Project 8 triggered data
 *
-*  https://github.com/kofron/hornet
+*  https://github.com/project8/hornet
 *
 * hornet uses inotify to start the processing of triggered data from the
 * tektronix RSA.  it tries to stay out of the way by doing one job and
@@ -118,11 +118,19 @@ func main() {
 	// command line options.
 	conf := Config{}
 
+        // configuration file
+        var configFile string
+
 	// set up flag to point at conf, parse arguments and then verify
 	flag.BoolVar(&needHelp,
 		"help",
 		false,
 		"display this dialog")
+        flag.StringVar(&configFile,
+                "config",
+                "REQUIRED",
+                "JSON configuration file")
+/*
 	flag.UintVar(&conf.PoolSize,
 		"pool-size",
 		20,
@@ -143,17 +151,38 @@ func main() {
 		"dest-dir",
 		"REQUIRED",
 		"directory to move files to when finished")
+*/
 	flag.Parse()
 
 	if needHelp {
 		flag.Usage()
 		os.Exit(1)
 	} else {
-		if configErr := conf.Validate(); configErr != nil {
-			flag.Usage()
-			log.Fatal("(FATAL) ", configErr)
-		}
+		//if configErr := conf.Validate(); configErr != nil {
+		//	flag.Usage()
+		//	log.Fatal("(FATAL) ", configErr)
+		//}
 	}
+        
+        fmt.Println("config has value ", configFile)
+
+        fmt.Println("reading file")
+        configBytes, confReadErr := ioutil.ReadFile(configFile)
+
+        if confReadErr != nil {
+                log.Fatal("(FATAL) ", confReadErr)
+        }
+
+        var configValues interface{}
+        jsonErr := json.Unmarshal(configBytes, &configValues)
+
+        if jsonErr != nil {
+                log.Fatal("(FATAL) ", jsonErr)
+        }
+
+        fmt.Println("exiting normally")
+
+        os.Exit(0)
 
 	// if we've made it this far, it's time to get down to business.
 	// we'll start an inotify Notify request for the working directory.
