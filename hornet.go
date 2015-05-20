@@ -1,7 +1,7 @@
 /*
 * hornet - a tool for nearline processing of Project 8 triggered data
 *
-*  https://github.com/kofron/hornet
+*  https://github.com/project8/hornet
 *
 * hornet uses inotify to start the processing of triggered data from the
 * tektronix RSA.  it tries to stay out of the way by doing one job and
@@ -66,6 +66,12 @@ type Config struct {
 //   3) the provided config file is parsable json
 //   4) the provided watch directory is indeed a directory
 func (c Config) Validate() (e error) {
+        fmt.Println("Watcher directory:", c.WatchDirPath)
+        fmt.Println("Pool size:", c.PoolSize)
+        fmt.Println("Katydid path:", c.KatydidPath)
+        fmt.Println("Katydid config path:", c.KatydidConfPath)
+        fmt.Println("Destination directory:", c.DestDirPath)
+
 	if c.PoolSize > MaxPoolSize {
 		e = fmt.Errorf("Size of thread pool cannot exceed %d", MaxPoolSize)
 	}
@@ -116,32 +122,39 @@ func main() {
 
 	// default configuration parameters.  these may be changed by
 	// command line options.
-	conf := Config{}
+	config := Config{}
+
+        // configuration file
+        var configFile string
 
 	// set up flag to point at conf, parse arguments and then verify
 	flag.BoolVar(&needHelp,
 		"help",
 		false,
 		"display this dialog")
-	flag.UintVar(&conf.PoolSize,
+        flag.StringVar(&configFile,
+                "config",
+                "",
+                "JSON configuration file")
+	flag.UintVar(&config.PoolSize,
 		"pool-size",
-		20,
+		0,
 		"size of worker pool")
-	flag.StringVar(&conf.KatydidPath,
+	flag.StringVar(&config.KatydidPath,
 		"katydid-path",
-		"REQUIRED",
+		"",
 		"full path to Katydid executable")
-	flag.StringVar(&conf.KatydidConfPath,
+	flag.StringVar(&config.KatydidConfPath,
 		"katydid-conf",
-		"REQUIRED",
+		"",
 		"full path to Katydid config file to use when processing")
-	flag.StringVar(&conf.WatchDirPath,
+	flag.StringVar(&config.WatchDirPath,
 		"watch-dir",
-		"REQUIRED",
+		"",
 		"directory to watch for new data files")
-	flag.StringVar(&conf.DestDirPath,
+	flag.StringVar(&config.DestDirPath,
 		"dest-dir",
-		"REQUIRED",
+		"",
 		"directory to move files to when finished")
 	flag.Parse()
 
@@ -149,11 +162,65 @@ func main() {
 		flag.Usage()
 		os.Exit(1)
 	} else {
-		if configErr := conf.Validate(); configErr != nil {
-			flag.Usage()
-			log.Fatal("(FATAL) ", configErr)
-		}
 	}
+        
+        // Parse the config file if one has been supplied
+        // Then, check for each section of the config file and use the values if 
+        // the corresponding information was not provided on the CLI
+        if len(configFile) != 0 {
+                fmt.Println("config has value ", configFile)
+
+                fmt.Println("reading file")
+                configBytes, confReadErr := ioutil.ReadFile(configFile)
+
+                if confReadErr != nil {
+                        log.Fatal("(FATAL) ", confReadErr)
+                }
+
+                var configValues interface{}
+                jsonErr := json.Unmarshal(configBytes, &configValues)
+                if jsonErr != nil {
+                        log.Fatal("(FATAL) ", jsonErr)
+                }
+
+                configMap := configValues.(map[string]interface{})
+
+                watcherValues, watchValsFound := configMap["watcher"]
+                if watchValsFound {
+                        watcherMap := watcherValues.(map[string]interface{})
+                        if value, valueFound := watcherMap["dir"]; valueFound && len(config.WatchDirPath) == 0 {
+                                config.WatchDirPath = value.(string)
+                        }
+                }
+
+                workerValues, workValsFound := configMap["workers"]
+                if workValsFound {
+                        workerMap := workerValues.(map[string]interface{})
+                        if value, valueFound := workerMap["pool-size"]; valueFound && config.PoolSize == 0 {
+                                config.PoolSize = uint(value.(float64))
+                        }
+                        if value, valueFound := workerMap["katydid-path"]; valueFound && len(config.KatydidPath) == 0 {
+                                config.KatydidPath = value.(string)
+                        }
+                        if value, valueFound := workerMap["katydid-config"]; valueFound && len(config.KatydidConfPath) == 0 {
+                                config.KatydidConfPath = value.(string)
+                        }
+                }
+
+                moverValues, moveValsFound := configMap["mover"]
+                if moveValsFound {
+                        moverMap := moverValues.(map[string]interface{})
+                        if  value, valueFound := moverMap["dest"]; valueFound && len(config.DestDirPath) == 0 {
+                                config.DestDirPath = value.(string)
+                        }
+                }
+        }
+                        
+	if configErr := config.Validate(); configErr != nil {
+               	flag.Usage()
+		log.Fatal("(FATAL) ", configErr)
+	}
+
 
 	// if we've made it this far, it's time to get down to business.
 	// we'll start an inotify Notify request for the working directory.
@@ -165,22 +232,29 @@ func main() {
 	// we use IN_CLOSE_WRITE here, we only care about file close events
 	var pool sync.WaitGroup
 	ctx := Context{
-		NewFileStream:      make(chan string, conf.PoolSize*3),
-		FinishedFileStream: make(chan string, conf.PoolSize*3),
+		NewFileStream:      make(chan string, config.PoolSize*3),
+		FinishedFileStream: make(chan string, config.PoolSize*3),
 		Pool:               &pool,
 		Control:            make(chan ControlMessage),
 	}
 
+        // check to see if any files are being scheduled via the command line
+        for iFile := 0; iFile < flag.NArg(); iFile++ {
+                fmt.Println("Scheduling", flag.Arg(iFile))
+                ctx.NewFileStream <- flag.Arg(iFile)
+        }
+
+
 	// Build the work pool.  This is PoolSize worker threads, plus one
 	// watcher thread which fills the queue of the workers.
-	for i := uint(0); i < conf.PoolSize; i++ {
+	for i := uint(0); i < config.PoolSize; i++ {
 		ctx.Pool.Add(1)
-		go Worker(ctx, conf, WorkerID(i))
+		go Worker(ctx, config, WorkerID(i))
 	}
 
 	ctx.Pool.Add(2)
-	go Watcher(ctx, conf)
-	go Mover(ctx, conf)
+	go Watcher(ctx, config)
+	go Mover(ctx, config)
 
 	// now just wait for the signal to stop.  this is either a ctrl+c
 	// or a SIGTERM.
