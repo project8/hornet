@@ -111,5 +111,5 @@ moveLoop:
 
 	// Finish any pending move jobs.
 
-	log.Print("mover finished.")
+	log.Print("[mover] finished.")
 }
