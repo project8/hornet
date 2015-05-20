@@ -238,6 +238,13 @@ func main() {
 		Control:            make(chan ControlMessage),
 	}
 
+        // check to see if any files are being scheduled via the command line
+        for iFile := 0; iFile < flag.NArg(); iFile++ {
+                fmt.Println("Scheduling", flag.Arg(iFile))
+                ctx.NewFileStream <- flag.Arg(iFile)
+        }
+
+
 	// Build the work pool.  This is PoolSize worker threads, plus one
 	// watcher thread which fills the queue of the workers.
 	for i := uint(0); i < config.PoolSize; i++ {
