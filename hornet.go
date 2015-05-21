@@ -53,11 +53,12 @@ const (
 
 // Config represents the user-specified configuration data of hornet
 type Config struct {
-	PoolSize        uint
-	WatchDirPath    string
-	DestDirPath     string
-	KatydidPath     string
-	KatydidConfPath string
+        ScheduleQueueSize  uint
+	PoolSize           uint
+	WatchDirPath       string
+	DestDirPath        string
+	KatydidPath        string
+	KatydidConfPath    string
 }
 
 // Validate checks the sanity of a Config instance
@@ -66,14 +67,19 @@ type Config struct {
 //   3) the provided config file is parsable json
 //   4) the provided watch directory is indeed a directory
 func (c Config) Validate() (e error) {
-        fmt.Println("Watcher directory:", c.WatchDirPath)
-        fmt.Println("Pool size:", c.PoolSize)
-        fmt.Println("Katydid path:", c.KatydidPath)
-        fmt.Println("Katydid config path:", c.KatydidConfPath)
-        fmt.Println("Destination directory:", c.DestDirPath)
+        fmt.Println("[hornet] Scheduler queue size:", c.ScheduleQueueSize)
+        fmt.Println("[hornet] Watcher directory:", c.WatchDirPath)
+        fmt.Println("[hornet] Pool size:", c.PoolSize)
+        fmt.Println("[hornet] Katydid path:", c.KatydidPath)
+        fmt.Println("[hornet] Katydid config path:", c.KatydidConfPath)
+        fmt.Println("[hornet] Destination directory:", c.DestDirPath)
 
-	if c.PoolSize > MaxPoolSize {
-		e = fmt.Errorf("Size of thread pool cannot exceed %d", MaxPoolSize)
+        if c.ScheduleQueueSize == 0 {
+                e = fmt.Errorf("Scheduler queue must be greater than 0")
+        }
+
+	if c.PoolSize > MaxPoolSize || c.PoolSize == 0 {
+		e = fmt.Errorf("Size of thread pool must be greater than 0 and cannot exceed %d", MaxPoolSize)
 	}
 
 	if execInfo, execErr := os.Stat(c.KatydidPath); execErr == nil {
@@ -108,14 +114,6 @@ func (c Config) Validate() (e error) {
 	return
 }
 
-// Context is the state of hornet
-type Context struct {
-	Pool               *sync.WaitGroup
-	NewFileStream      chan string
-	FinishedFileStream chan string
-	Control            chan ControlMessage
-}
-
 func main() {
 	// user needs help
 	var needHelp bool
@@ -136,6 +134,10 @@ func main() {
                 "config",
                 "",
                 "JSON configuration file")
+        flag.UintVar(&config.ScheduleQueueSize,
+                "schedule-queue",
+                0,
+                "size of the scheduler queue")
 	flag.UintVar(&config.PoolSize,
 		"pool-size",
 		0,
@@ -161,16 +163,12 @@ func main() {
 	if needHelp {
 		flag.Usage()
 		os.Exit(1)
-	} else {
-	}
+	} 
         
         // Parse the config file if one has been supplied
         // Then, check for each section of the config file and use the values if 
         // the corresponding information was not provided on the CLI
         if len(configFile) != 0 {
-                fmt.Println("config has value ", configFile)
-
-                fmt.Println("reading file")
                 configBytes, confReadErr := ioutil.ReadFile(configFile)
 
                 if confReadErr != nil {
@@ -184,6 +182,14 @@ func main() {
                 }
 
                 configMap := configValues.(map[string]interface{})
+
+                schedulerValues, schedValsFound := configMap["scheduler"]
+                if schedValsFound {
+                        schedulerMap := schedulerValues.(map[string]interface{})
+                        if value, valueFound := schedulerMap["queue"]; valueFound && config.ScheduleQueueSize == 0 {
+                                config.ScheduleQueueSize = uint(value.(float64))
+                        }
+                }
 
                 watcherValues, watchValsFound := configMap["watcher"]
                 if watchValsFound {
@@ -223,38 +229,21 @@ func main() {
 
 
 	// if we've made it this far, it's time to get down to business.
-	// we'll start an inotify Notify request for the working directory.
-	// then we have a single channel that we use to communicate with the
-	// worker pool.  as we get file closed events, we check to see if we
-	// already know about the file in question.  if not, and it is a
-	// data file, we'll enqueue it to get chewed on by the next available
-	// worker thread.
-	// we use IN_CLOSE_WRITE here, we only care about file close events
+
 	var pool sync.WaitGroup
-	ctx := Context{
-		NewFileStream:      make(chan string, config.PoolSize*3),
-		FinishedFileStream: make(chan string, config.PoolSize*3),
-		Pool:               &pool,
-		Control:            make(chan ControlMessage),
-	}
+
+        schedulingQueue := make(chan string, 100)
+        controlQueue := make(chan ControlMessage)
+        requestQueue := make(chan ControlMessage)
 
         // check to see if any files are being scheduled via the command line
         for iFile := 0; iFile < flag.NArg(); iFile++ {
                 fmt.Println("Scheduling", flag.Arg(iFile))
-                ctx.NewFileStream <- flag.Arg(iFile)
+                schedulingQueue <- flag.Arg(iFile)
         }
 
-
-	// Build the work pool.  This is PoolSize worker threads, plus one
-	// watcher thread which fills the queue of the workers.
-	for i := uint(0); i < config.PoolSize; i++ {
-		ctx.Pool.Add(1)
-		go Worker(ctx, config, WorkerID(i))
-	}
-
-	ctx.Pool.Add(2)
-	go Watcher(ctx, config)
-	go Mover(ctx, config)
+        pool.Add(1)
+        go Scheduler(schedulingQueue, controlQueue, requestQueue, config.PoolSize, &pool, config)
 
 	// now just wait for the signal to stop.  this is either a ctrl+c
 	// or a SIGTERM.
@@ -268,7 +257,7 @@ stopLoop:
 			log.Printf("[hornet] termination requested...\n")
 			break stopLoop
 
-		case threadMsg := <-ctx.Control:
+		case threadMsg := <-requestQueue:
 			if threadMsg == ThreadCannotContinue {
 				log.Print("[hornet] thread error!  cannot continue...")
 				break stopLoop
@@ -277,10 +266,10 @@ stopLoop:
 	}
 
 	// Close all of the worker threads gracefully
-	for i := 0; i < 2; i++ {
-		ctx.Control <- StopExecution
+	for i := 0; i < 3; i++ {
+		controlQueue <- StopExecution
 	}
-	ctx.Pool.Wait()
+	pool.Wait()
 
 	log.Print("[hornet] All goroutines finished.  terminating...")
 }
