@@ -12,6 +12,8 @@ import (
         "fmt"
         "log"
         "sync"
+
+        "github.com/spf13/viper"
 )
 
 
@@ -31,14 +33,17 @@ type OperatorContext struct {
 }
 
 
-func Scheduler(schQueue chan string, ctrlQueue chan ControlMessage, reqQueue chan ControlMessage, poolSize uint, poolCount *sync.WaitGroup, config Config) {
+func Scheduler(schQueue chan string, ctrlQueue chan ControlMessage, reqQueue chan ControlMessage, poolCount *sync.WaitGroup) {
 	// Decrement the waitgroup counter when done
 	defer poolCount.Done()
+
+        poolSize := viper.GetInt("workers.pool-size")
+        log.Print("[scheduler] Worker pool size is ", poolSize)
 
         // create the file queues
         moverQueue    := make(chan string, 3 * poolSize)
         workerQueue   := make(chan string, 3 * poolSize)
-        //shipperQueue  := make(chan string, 3 * poolSize)
+        shipperQueue  := make(chan string, 3 * poolSize)
         
         // create the return queues
         moverRetQueue   := make(chan OperatorReturn, 3 * poolSize)
@@ -54,7 +59,7 @@ func Scheduler(schQueue chan string, ctrlQueue chan ControlMessage, reqQueue cha
                 PoolCount:  poolCount,
         }
 	poolCount.Add(1)
-	go Mover(moverCtx, config)
+	go Mover(moverCtx)
 
         // setup the workers
         workerCtx := OperatorContext{
@@ -64,12 +69,12 @@ func Scheduler(schQueue chan string, ctrlQueue chan ControlMessage, reqQueue cha
                 ReqQueue:   reqQueue,
                 PoolCount:  poolCount,
         }
-	// build the work pool.  This is config.PoolSize worker threads
-	for i := uint(0); i < poolSize; i++ {
+	// build the work pool.
+	for i := int(0); i < poolSize; i++ {
 		poolCount.Add(1)
-		go Worker(workerCtx, config, WorkerID(i))
+		go Worker(workerCtx, WorkerID(i))
 	}
-/*
+
         // setup the shipper
         shipperCtx := OperatorContext{
                 FileStream: shipperQueue,
@@ -79,8 +84,8 @@ func Scheduler(schQueue chan string, ctrlQueue chan ControlMessage, reqQueue cha
                 PoolCount:  poolCount,
         }
 	poolCount.Add(1)
-	go Shipper(shipperCtx, config)
-*/
+	go Shipper(shipperCtx)
+
         // setup the watcher
         watcherCtx := OperatorContext{
                 FileStream: schQueue,
@@ -90,10 +95,9 @@ func Scheduler(schQueue chan string, ctrlQueue chan ControlMessage, reqQueue cha
                 PoolCount:  poolCount,
         }
 	poolCount.Add(1)
-	go Watcher(watcherCtx, config)
+	go Watcher(watcherCtx)
 
-        var workersWorking uint
-        workersWorking = 0
+        workersWorking := int(0)
 
 
 scheduleLoop:
@@ -122,9 +126,7 @@ scheduleLoop:
                                         fmt.Println("workers working:", workersWorking)
                                 } else {
                                         log.Printf("[scheduler] sending <%s> to shipper (skipping workers)", file)
-                                        // NO SHIPPER EXISTS YET, SO SKIP THE SHIPPER
-                                        //shipperQueue <- file
-                                        shipperRetQueue <- fileRet
+                                        shipperQueue <- file
                                 }
                         }
                 case fileRet := <-workerRetQueue:
@@ -134,9 +136,7 @@ scheduleLoop:
                         } else {
                                 file := fileRet.InFile // original data file is still the input file from the worker
                                 log.Printf("[scheduler] sending <%s> to the shipper", file)
-                                // NO SHIPPER EXISTS YET, SO SKIP THE SHIPPER
-                                //shipperQueue <- file
-                                shipperRetQueue <- fileRet
+                                shipperQueue <- file
                         }
                 case fileRet := <-shipperRetQueue:
                         if fileRet.Err != nil {

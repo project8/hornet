@@ -20,21 +20,20 @@
 package main
 
 import (
-	"bytes"
-	"encoding/json"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/signal"
 	"sync"
 	"syscall"
+
+        "github.com/spf13/viper"
 )
 
 // Global config
 var (
-	MaxPoolSize uint = 25
+	MaxPoolSize int = 25
 )
 
 // A ControlMessage is sent between the main thread and the worker threads
@@ -51,63 +50,30 @@ const (
 	ThreadCannotContinue = 1
 )
 
-// Config represents the user-specified configuration data of hornet
-type Config struct {
-        ScheduleQueueSize  uint
-	PoolSize           uint
-	WatchDirPath       string
-	DestDirPath        string
-	KatydidPath        string
-	KatydidConfPath    string
-}
-
 // Validate checks the sanity of a Config instance
 //   1) the number of threads is sane
-//   2) the provided path to katydid actually points at an executable
-//   3) the provided config file is parsable json
-//   4) the provided watch directory is indeed a directory
-func (c Config) Validate() (e error) {
-        fmt.Println("[hornet] Scheduler queue size:", c.ScheduleQueueSize)
-        fmt.Println("[hornet] Watcher directory:", c.WatchDirPath)
-        fmt.Println("[hornet] Pool size:", c.PoolSize)
-        fmt.Println("[hornet] Katydid path:", c.KatydidPath)
-        fmt.Println("[hornet] Katydid config path:", c.KatydidConfPath)
-        fmt.Println("[hornet] Destination directory:", c.DestDirPath)
+//   2) the provided config file is parsable json
+//   3) the provided watch directory is indeed a directory
+func ValidateConfig() (e error) {
+        fmt.Println("[hornet] Scheduler queue size:", viper.GetInt("scheduler.queue-size"))
+        fmt.Println("[hornet] Watcher directory:", viper.GetString("watcher.dir"))
+        fmt.Println("[hornet] Pool size:", viper.GetInt("workers.pool-size"))
+        fmt.Println("[hornet] Command:", viper.GetString("workers.command"))
+        fmt.Println("[hornet] Destination directory:", viper.GetString("mover.dest-dir"))
 
-        if c.ScheduleQueueSize == 0 {
+        if viper.GetInt("scheduler.queue-size") == 0 {
                 e = fmt.Errorf("Scheduler queue must be greater than 0")
         }
 
-	if c.PoolSize > MaxPoolSize || c.PoolSize == 0 {
+	if viper.GetInt("workers.pool-size") > MaxPoolSize || viper.GetInt("workers.pool-size") == 0 {
 		e = fmt.Errorf("Size of thread pool must be greater than 0 and cannot exceed %d", MaxPoolSize)
 	}
 
-	if execInfo, execErr := os.Stat(c.KatydidPath); execErr == nil {
-		if (execInfo.Mode() & 0111) == 0 {
-			e = fmt.Errorf("Katydid does not appear to be executable")
-		}
-	} else {
-		e = fmt.Errorf("error when examining Katydid executable: %v",
-			execErr)
-	}
-
-	if confBytes, confErr := ioutil.ReadFile(c.KatydidConfPath); confErr == nil {
-		v := make(map[string]interface{})
-		confDecoder := json.NewDecoder(bytes.NewReader(confBytes))
-		if decodeErr := confDecoder.Decode(&v); decodeErr != nil {
-			e = fmt.Errorf("Katydid config appears unparseable... %v",
-				decodeErr)
-		}
-	} else {
-		e = fmt.Errorf("error when opening Katydid config: %v",
-			confErr)
-	}
-
-	if PathIsDirectory(c.DestDirPath) == false {
+	if PathIsDirectory(viper.GetString("mover.dest-dir")) == false {
 		e = fmt.Errorf("Destination directory must exist and be a directory!")
 	}
 
-	if PathIsDirectory(c.WatchDirPath) == false {
+	if PathIsDirectory(viper.GetString("watcher.dir")) == false {
 		e = fmt.Errorf("Watch directory must exist and be a directory!")
 	}
 
@@ -117,10 +83,6 @@ func (c Config) Validate() (e error) {
 func main() {
 	// user needs help
 	var needHelp bool
-
-	// default configuration parameters.  these may be changed by
-	// command line options.
-	config := Config{}
 
         // configuration file
         var configFile string
@@ -134,105 +96,31 @@ func main() {
                 "config",
                 "",
                 "JSON configuration file")
-        flag.UintVar(&config.ScheduleQueueSize,
-                "schedule-queue",
-                0,
-                "size of the scheduler queue")
-	flag.UintVar(&config.PoolSize,
-		"pool-size",
-		0,
-		"size of worker pool")
-	flag.StringVar(&config.KatydidPath,
-		"katydid-path",
-		"",
-		"full path to Katydid executable")
-	flag.StringVar(&config.KatydidConfPath,
-		"katydid-conf",
-		"",
-		"full path to Katydid config file to use when processing")
-	flag.StringVar(&config.WatchDirPath,
-		"watch-dir",
-		"",
-		"directory to watch for new data files")
-	flag.StringVar(&config.DestDirPath,
-		"dest-dir",
-		"",
-		"directory to move files to when finished")
 	flag.Parse()
 
 	if needHelp {
 		flag.Usage()
 		os.Exit(1)
 	} 
-        
-        // Parse the config file if one has been supplied
-        // Then, check for each section of the config file and use the values if 
-        // the corresponding information was not provided on the CLI
-        if len(configFile) != 0 {
-                configBytes, confReadErr := ioutil.ReadFile(configFile)
 
-                if confReadErr != nil {
-                        log.Fatal("(FATAL) ", confReadErr)
-                }
-
-                var configValues interface{}
-                jsonErr := json.Unmarshal(configBytes, &configValues)
-                if jsonErr != nil {
-                        log.Fatal("(FATAL) ", jsonErr)
-                }
-
-                configMap := configValues.(map[string]interface{})
-
-                schedulerValues, schedValsFound := configMap["scheduler"]
-                if schedValsFound {
-                        schedulerMap := schedulerValues.(map[string]interface{})
-                        if value, valueFound := schedulerMap["queue"]; valueFound && config.ScheduleQueueSize == 0 {
-                                config.ScheduleQueueSize = uint(value.(float64))
-                        }
-                }
-
-                watcherValues, watchValsFound := configMap["watcher"]
-                if watchValsFound {
-                        watcherMap := watcherValues.(map[string]interface{})
-                        if value, valueFound := watcherMap["dir"]; valueFound && len(config.WatchDirPath) == 0 {
-                                config.WatchDirPath = value.(string)
-                        }
-                }
-
-                workerValues, workValsFound := configMap["workers"]
-                if workValsFound {
-                        workerMap := workerValues.(map[string]interface{})
-                        if value, valueFound := workerMap["pool-size"]; valueFound && config.PoolSize == 0 {
-                                config.PoolSize = uint(value.(float64))
-                        }
-                        if value, valueFound := workerMap["katydid-path"]; valueFound && len(config.KatydidPath) == 0 {
-                                config.KatydidPath = value.(string)
-                        }
-                        if value, valueFound := workerMap["katydid-config"]; valueFound && len(config.KatydidConfPath) == 0 {
-                                config.KatydidConfPath = value.(string)
-                        }
-                }
-
-                moverValues, moveValsFound := configMap["mover"]
-                if moveValsFound {
-                        moverMap := moverValues.(map[string]interface{})
-                        if  value, valueFound := moverMap["dest"]; valueFound && len(config.DestDirPath) == 0 {
-                                config.DestDirPath = value.(string)
-                        }
-                }
+        log.Print("[hornet] Reading config file: ", configFile)
+        viper.SetConfigFile(configFile)
+        if parseErr := viper.ReadInConfig(); parseErr != nil {
+                log.Fatal("(FATAL) ", parseErr)
         }
-                        
-	if configErr := config.Validate(); configErr != nil {
+
+        //fmt.Println(viper.AllSettings())
+
+	if configErr := ValidateConfig(); configErr != nil {
                	flag.Usage()
 		log.Fatal("(FATAL) ", configErr)
 	}
-
 
 	// if we've made it this far, it's time to get down to business.
 
 	var pool sync.WaitGroup
 
-        schedulingQueue := make(chan string, 100)
+        schedulingQueue := make(chan string, viper.GetInt("scheduler.queue-size"))
         controlQueue := make(chan ControlMessage)
         requestQueue := make(chan ControlMessage)
 
@@ -243,7 +131,7 @@ func main() {
         }
 
         pool.Add(1)
-        go Scheduler(schedulingQueue, controlQueue, requestQueue, config.PoolSize, &pool, config)
+        go Scheduler(schedulingQueue, controlQueue, requestQueue, &pool)
 
 	// now just wait for the signal to stop.  this is either a ctrl+c
 	// or a SIGTERM.
