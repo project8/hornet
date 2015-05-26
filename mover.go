@@ -88,20 +88,24 @@ moveLoop:
 				log.Print("[mover] stopping on interrupt.")
 				break moveLoop
 			}
-		case inputFile := <-context.FileStream:
+		case fileHeader := <-context.FileStream:
+                        inputFile := filepath.Join(fileHeader.HotPath, fileHeader.Filename)
                         opReturn := OperatorReturn{
                                      Operator:  "mover",
+                                     FHeader:   fileHeader
                                      InFile:    inputFile,
                                      OutFile:   "",
                                      Err:       nil,
                         }
 			outputFile, destErr := RenamePathRelativeTo(inputFile, watchDirPath, destDirPath)
-                        opReturn.OutFile = outputFile
 			if destErr != nil {
                                 opReturn.Err = fmt.Errorf("[mover] bad rename request: %s -> %s w.r.t %s\n",
 					inputFile, destDirPath, watchDirPath)
 				log.Printf(opReturn.Err.Error())
 			} else {
+                                opReturn.OutFile = outputFile
+                                outputPath, _ := filepath.Split(outputFile)
+                                opReturn.FHeader.WarmPath = outputPath
 				// check if we already know about the destdir
 				newDir := filepath.Dir(outputFile)
 				if ds[newDir] == false {

@@ -59,9 +59,11 @@ workLoop:
 				log.Print("[worker] stopping on interrupt.")
 				break workLoop
 			}
-		case inputFile := <-context.FileStream:
+		case fileHeader := <-context.FileStream:
+                        inputFile := filepath.Join(fileHeader.WarmPath, fileHeader.Filename)
                         opReturn := OperatorReturn{
                                      Operator:  fmt.Sprintf("worker_%d", id),
+                                     FHeader:   fileHeader
                                      InFile:    inputFile,
                                      OutFile:   "",
                                      Err:       nil,

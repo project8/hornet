@@ -17,15 +17,28 @@ import (
 )
 
 
+// File information header
+type FileInfo struct {
+        Filename string
+        FileType string
+        HotPath  string
+        WarmPath string
+        ColdPath string
+        DoNearline bool
+        NearlineCommand string
+        StandardCommand string
+}
+
 type OperatorReturn struct {
         Operator string
+        FHeader  FileInfo
         InFile   string
         OutFile  string
         Err      error
 }
 
 type OperatorContext struct {
-        FileStream chan string
+        FileStream chan FileInfo
         RetStream  chan OperatorReturn
         CtrlQueue  chan ControlMessage
         ReqQueue   chan ControlMessage
@@ -117,22 +130,33 @@ scheduleLoop:
                                 break scheduleLoop
                         }
                 case file := <-schQueue:
-                        log.Printf("[scheduler] sending <%s> to the mover", file)
-                        moverQueue <- file
+                        path, filename := filepath.Split(file)
+                        fileHeader := FileInfo{
+                                Filename: filename,
+                                FileType: "",
+                                HotPath: path,
+                                WarmPath: "",
+                                ColdPath: "",
+                                DoNearline: false,
+                                NearlineCommand: "",
+                                StandardCommand: "",
+                        }
+                        log.Printf("[scheduler] sending <%s> to the mover", fileHeader.Filename)
+                        moverQueue <- fileHeader
                 case fileRet := <-moverRetQueue:
                         if fileRet.Err != nil {
                                 log.Printf("[scheduler] error received from the mover: %v", fileRet.Err)
                         } else {
-                                file := fileRet.OutFile // file has been moved, so we want the output file
-                                // only send to the workers if there's a worker available
-                                if workersWorking < nWorkers {
-                                        log.Printf("[scheduler] sending <%s> to the workers", file)
+                                fileHeader := fileRet.FHeader
+                                // only send to the nearline workers if the file requests it and there's a worker available
+                                if fileHeader.DoNearline && workersWorking < nWorkers {
+                                        log.Printf("[scheduler] sending <%s> to the workers", fileHeader.Filename)
                                         workersWorking++
-                                        workerQueue <- file
+                                        workerQueue <- fileHeader
                                         fmt.Println("workers working:", workersWorking)
                                 } else {
-                                        log.Printf("[scheduler] sending <%s> to shipper (skipping workers)", file)
-                                        shipperQueue <- file
+                                        log.Printf("[scheduler] sending <%s> to shipper (skipping nearline)", fileHeader.Filename)
+                                        shipperQueue <- fileHeader
                                 }
                         }
                 case fileRet := <-workerRetQueue:
@@ -140,15 +164,15 @@ scheduleLoop:
                         if fileRet.Err != nil {
                                 log.Printf("[scheduler] error received from the workers: %v", fileRet.Err)
                         } else {
-                                file := fileRet.InFile // original data file is still the input file from the worker
-                                log.Printf("[scheduler] sending <%s> to the shipper", file)
-                                shipperQueue <- file
+                                fileHeader := fileRet.FHeader // original data file is still the input file from the worker
+                                log.Printf("[scheduler] sending <%s> to the shipper", fileHeader.Filename)
+                                shipperQueue <- fileHeader
                         }
                 case fileRet := <-shipperRetQueue:
                         if fileRet.Err != nil {
                                 log.Printf("[scheduler] error received from the shipper: %v", fileRet.Err)
                         } else {
-                                log.Printf("[scheduler] completed work on file <%s>", fileRet.InFile)
+                                log.Printf("[scheduler] completed work on file <%s>", fileRet.FHeader.Filename)
                         }
                 }
         }
