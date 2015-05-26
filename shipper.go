@@ -45,7 +45,7 @@ shipLoop:
                         _, inputFile := filepath.Split(inputFilePath)
 
 
-                        outputFilePath := destDir + inputFile
+                        outputFilePath := filepath.Join(destDir, inputFile)
                         opReturn.OutFile = outputFilePath
 		        cmd := exec.Command("rsync", "-a", inputFilePath, outputFilePath)
 
