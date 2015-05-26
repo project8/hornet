@@ -13,6 +13,8 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+
+        "github.com/spf13/viper"
 )
 
 // A DirectorySet is just a simple Set type for directories.
@@ -64,12 +66,15 @@ func Move(src, dest string) (e error) {
 // their current place on the filesystem to a destination.
 // It is stopped when it receives a message from the main thread
 // to shut down.
-func Mover(context OperatorContext, config Config) {
+func Mover(context OperatorContext) {
 	// decrement the wg counter at the end
 	defer context.PoolCount.Done()
 
 	// keep a running list of all of the directories we know about.
 	ds := make(DirectorySet)
+
+        watchDirPath := viper.GetString("watcher.dir")
+        destDirPath  := viper.GetString("mover.dest-dir")
 
 	log.Print("[mover] started successfully")
 
@@ -80,7 +85,7 @@ moveLoop:
 		// TODO: should finish pending jobs before dying.
 		case controlMsg := <-context.CtrlQueue:
 			if controlMsg == StopExecution {
-				log.Print("[mover] mover stopping on interrupt.")
+				log.Print("[mover] stopping on interrupt.")
 				break moveLoop
 			}
 		case inputFile := <-context.FileStream:
@@ -90,13 +95,11 @@ moveLoop:
                                      OutFile:   "",
                                      Err:       nil,
                         }
-			outputFile, destErr := RenamePathRelativeTo(inputFile,
-				config.WatchDirPath,
-				config.DestDirPath)
+			outputFile, destErr := RenamePathRelativeTo(inputFile, watchDirPath, destDirPath)
                         opReturn.OutFile = outputFile
 			if destErr != nil {
                                 opReturn.Err = fmt.Errorf("[mover] bad rename request: %s -> %s w.r.t %s\n",
-					inputFile, config.DestDirPath, config.WatchDirPath)
+					inputFile, destDirPath, watchDirPath)
 				log.Printf(opReturn.Err.Error())
 			} else {
 				// check if we already know about the destdir

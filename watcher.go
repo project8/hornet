@@ -10,6 +10,8 @@ import (
 	"golang.org/x/exp/inotify"
 	"log"
 	"strings"
+
+        "github.com/spf13/viper"
 )
 
 const (
@@ -57,16 +59,18 @@ const fileWatchFlags = inotify.IN_CLOSE_WRITE
 const subdWatchFlags = inotify.IN_ONLYDIR | inotify.IN_CREATE | inotify.IN_MOVED_TO | inotify.IN_DELETE | inotify.IN_MOVED_FROM
 
 // Watcher uses inotify to monitor changes to a specific path.
-func Watcher(context OperatorContext, config Config) {
+func Watcher(context OperatorContext) {
 	// Decrement the waitgroup counter when done
 	defer context.PoolCount.Done()
+
+        watchDir := viper.GetString("watcher.dir")
 
 	fileWatch, fileWatchErr := inotify.NewWatcher()
 	if fileWatchErr != nil {
 		log.Printf("[watcher] error creating file watcher! %v", fileWatchErr)
 		context.ReqQueue <- ThreadCannotContinue
 	} else {
-		fileWatch.AddWatch(config.WatchDirPath, fileWatchFlags)
+		fileWatch.AddWatch(watchDir, fileWatchFlags)
 	}
 	defer fileWatch.Close()
 
@@ -75,7 +79,7 @@ func Watcher(context OperatorContext, config Config) {
 		log.Printf("[watcher] error creating subdir watcher! %v", subdWatchErr)
 		context.ReqQueue <- ThreadCannotContinue
 	} else {
-		subdWatch.AddWatch(config.WatchDirPath, subdWatchFlags)
+		subdWatch.AddWatch(watchDir, subdWatchFlags)
 	}
 	defer subdWatch.Close()
 
