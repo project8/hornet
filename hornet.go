@@ -33,7 +33,7 @@ import (
 
 // Global config
 var (
-	MaxPoolSize int = 25
+	MaxThreads int = 25
 )
 
 // A ControlMessage is sent between the main thread and the worker threads
@@ -56,18 +56,28 @@ const (
 //   3) the provided watch directory is indeed a directory
 func ValidateConfig() (e error) {
         fmt.Println("[hornet] Scheduler queue size:", viper.GetInt("scheduler.queue-size"))
+        fmt.Println("[hornet] Number of nearline workers:", viper.GetInt("scheduler.n-nearline-workers"))
+        fmt.Println("[hornet] Number of shippers:", viper.GetInt("scheduler.n-shippers"))
         fmt.Println("[hornet] Watcher directory:", viper.GetString("watcher.dir"))
-        fmt.Println("[hornet] Pool size:", viper.GetInt("workers.pool-size"))
-        fmt.Println("[hornet] Command:", viper.GetString("workers.command"))
+        fmt.Println("[hornet] Worker command:", viper.GetString("workers.command"))
         fmt.Println("[hornet] Destination directory:", viper.GetString("mover.dest-dir"))
+
+        nThreads := 1/*scheduler*/ + 1/*watcher*/ + 1/*mover*/ + viper.GetInt("scheduler.n-nearline-workers") + viper.GetInt("scheduler.n-shippers")
+        if nThreads > MaxThreads {
+                e = fmt.Errorf("Maximum number of threads exceeded")
+        }
+
+        if viper.GetInt("scheduler.n-nearline-workers") == 0 {
+                e = fmt.Errorf("Cannot have 0 nearline workers")
+        }
+
+        // for now, we require that there's only 1 shipper
+        if viper.GetInt("scheduler.n-shippers") != 1 {
+        }
 
         if viper.GetInt("scheduler.queue-size") == 0 {
                 e = fmt.Errorf("Scheduler queue must be greater than 0")
         }
-
-	if viper.GetInt("workers.pool-size") > MaxPoolSize || viper.GetInt("workers.pool-size") == 0 {
-		e = fmt.Errorf("Size of thread pool must be greater than 0 and cannot exceed %d", MaxPoolSize)
-	}
 
 	if PathIsDirectory(viper.GetString("mover.dest-dir")) == false {
 		e = fmt.Errorf("Destination directory must exist and be a directory!")
@@ -123,6 +133,7 @@ func main() {
         schedulingQueue := make(chan string, viper.GetInt("scheduler.queue-size"))
         controlQueue := make(chan ControlMessage)
         requestQueue := make(chan ControlMessage)
+        threadCountQueue := make(chan uint, MaxThreads)
 
         // check to see if any files are being scheduled via the command line
         for iFile := 0; iFile < flag.NArg(); iFile++ {
@@ -131,7 +142,8 @@ func main() {
         }
 
         pool.Add(1)
-        go Scheduler(schedulingQueue, controlQueue, requestQueue, &pool)
+        threadCountQueue <- 1
+        go Scheduler(schedulingQueue, controlQueue, requestQueue, threadCountQueue, &pool)
 
 	// now just wait for the signal to stop.  this is either a ctrl+c
 	// or a SIGTERM.
@@ -154,7 +166,8 @@ stopLoop:
 	}
 
 	// Close all of the worker threads gracefully
-	for i := 0; i < 3; i++ {
+        log.Printf("[hornet] stopping %d threads", len(threadCountQueue))
+	for i := 0; i < len(threadCountQueue); i++ {
 		controlQueue <- StopExecution
 	}
 	pool.Wait()

@@ -85,7 +85,7 @@ moveLoop:
 		// TODO: should finish pending jobs before dying.
 		case controlMsg := <-context.CtrlQueue:
 			if controlMsg == StopExecution {
-				log.Print("[mover] mover stopping on interrupt.")
+				log.Print("[mover] stopping on interrupt.")
 				break moveLoop
 			}
 		case inputFile := <-context.FileStream:

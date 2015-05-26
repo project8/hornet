@@ -31,7 +31,7 @@ shipLoop:
 		// TODO: should finish pending jobs before dying.
 		case controlMsg := <-context.CtrlQueue:
 			if controlMsg == StopExecution {
-				log.Print("[shipper] mover stopping on interrupt.")
+				log.Print("[shipper] stopping on interrupt.")
 				break shipLoop
 			}
 		case inputFilePath := <-context.FileStream:

@@ -33,22 +33,25 @@ type OperatorContext struct {
 }
 
 
-func Scheduler(schQueue chan string, ctrlQueue chan ControlMessage, reqQueue chan ControlMessage, poolCount *sync.WaitGroup) {
+func Scheduler(schQueue chan string, ctrlQueue chan ControlMessage, reqQueue chan ControlMessage, threadCountQueue chan uint, poolCount *sync.WaitGroup) {
 	// Decrement the waitgroup counter when done
 	defer poolCount.Done()
 
-        poolSize := viper.GetInt("workers.pool-size")
-        log.Print("[scheduler] Worker pool size is ", poolSize)
+        queueSize := viper.GetInt("scheduler.queue-size")
+        log.Println("[scheduler] Queue size:", queueSize)
+
+        nWorkers := viper.GetInt("scheduler.n-nearline-workers")
+        log.Println("[scheduler] Number of workers:", nWorkers)
 
         // create the file queues
-        moverQueue    := make(chan string, 3 * poolSize)
-        workerQueue   := make(chan string, 3 * poolSize)
-        shipperQueue  := make(chan string, 3 * poolSize)
+        moverQueue    := make(chan string, queueSize)
+        workerQueue   := make(chan string, queueSize)
+        shipperQueue  := make(chan string, queueSize)
         
         // create the return queues
-        moverRetQueue   := make(chan OperatorReturn, 3 * poolSize)
-        workerRetQueue  := make(chan OperatorReturn, 3 * poolSize)
-        shipperRetQueue := make(chan OperatorReturn, 3 * poolSize)
+        moverRetQueue   := make(chan OperatorReturn, queueSize)
+        workerRetQueue  := make(chan OperatorReturn, queueSize)
+        shipperRetQueue := make(chan OperatorReturn, queueSize)
 
         // setup the mover
         moverCtx := OperatorContext{
@@ -59,6 +62,7 @@ func Scheduler(schQueue chan string, ctrlQueue chan ControlMessage, reqQueue cha
                 PoolCount:  poolCount,
         }
 	poolCount.Add(1)
+        threadCountQueue <- 1
 	go Mover(moverCtx)
 
         // setup the workers
@@ -69,9 +73,9 @@ func Scheduler(schQueue chan string, ctrlQueue chan ControlMessage, reqQueue cha
                 ReqQueue:   reqQueue,
                 PoolCount:  poolCount,
         }
-	// build the work pool.
-	for i := int(0); i < poolSize; i++ {
+	for i := int(0); i < nWorkers; i++ {
 		poolCount.Add(1)
+                threadCountQueue <- 1
 		go Worker(workerCtx, WorkerID(i))
 	}
 
@@ -84,6 +88,7 @@ func Scheduler(schQueue chan string, ctrlQueue chan ControlMessage, reqQueue cha
                 PoolCount:  poolCount,
         }
 	poolCount.Add(1)
+        threadCountQueue <- 1
 	go Shipper(shipperCtx)
 
         // setup the watcher
@@ -95,6 +100,7 @@ func Scheduler(schQueue chan string, ctrlQueue chan ControlMessage, reqQueue cha
                 PoolCount:  poolCount,
         }
 	poolCount.Add(1)
+        threadCountQueue <- 1
 	go Watcher(watcherCtx)
 
         workersWorking := int(0)
@@ -105,7 +111,7 @@ scheduleLoop:
                 select {
                 case controlMsg := <-ctrlQueue:
                         if controlMsg == StopExecution {
-                                log.Print("[scheduler] scheduler stopping on interrupt")
+                                log.Print("[scheduler] stopping on interrupt")
                                 // close the worker queue to stop the workers
                                 close(workerQueue)
                                 break scheduleLoop
@@ -119,7 +125,7 @@ scheduleLoop:
                         } else {
                                 file := fileRet.OutFile // file has been moved, so we want the output file
                                 // only send to the workers if there's a worker available
-                                if workersWorking < poolSize {
+                                if workersWorking < nWorkers {
                                         log.Printf("[scheduler] sending <%s> to the workers", file)
                                         workersWorking++
                                         workerQueue <- file
