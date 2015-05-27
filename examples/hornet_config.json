@@ -1,0 +1,46 @@
+{
+        "scheduler":
+        {
+                "queue-size": 100,
+                "n-nearline-workers": 5,
+                "n-shippers": 1
+        },
+
+        "watcher":
+        {
+                "dir": "/home/nsoblath/Project8/hornet"
+        },
+
+        "classifier":
+        {
+                "types":
+                [
+                        {
+                                "type": "egg",
+                                "file-pattern": "*.egg",
+                                "do-nearline": true,
+                                "nearline-cmd": "echo \"here's an egg file\""
+                        },
+                        {
+                                "type": "rsa-mat",
+                                "file-pattern": "*.mat",
+                                "do-nearline": true,
+                                "nearline-cmd": "echo \"here's an RSA MAT file\""
+                        }
+                ]
+        },
+
+        "mover":
+        {
+                "dest-dir": "/home/nsoblath/Project8/hornet/mover-dest"
+        },
+
+        "workers":
+        {
+        },
+
+        "shipper":
+        {
+                "dest-dir": "/home/nsoblath/Project8/hornet/rsync-dest"
+        }
+}
