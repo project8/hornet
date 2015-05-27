@@ -100,7 +100,7 @@ runLoop:
 		case fileCloseEvt := <-fileWatch.Event:
 			fname := fileCloseEvt.Name
 			if isTargetFile(fname) {
-				context.FileStream <- fname
+				context.SchStream <- fname
 			}// else if isSetupFile(fname) {
 			//	context.FinishedFileStream <- fname
 			//}

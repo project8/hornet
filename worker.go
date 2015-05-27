@@ -8,10 +8,11 @@ import (
 	"io/ioutil"
 	"log"
 	"os/exec"
-        "strings"
+        "path/filepath"
+        //"strings"
 	"time"
 
-        "github.com/spf13/viper"
+        //"github.com/spf13/viper"
 )
 
 // WorkerID is an identifier for a particular worker goroutine.
@@ -33,11 +34,6 @@ func Worker(context OperatorContext, id WorkerID) {
 	// Put off being done until there's nothing left in the channel
 	// to process
 	defer context.PoolCount.Done()
-
-        commandString := viper.GetString("workers.command")
-        commandParts := strings.Fields(commandString)
-        commandName := commandParts[0]
-        commandArgs := commandParts[1:len(commandParts)]
 
 	// Close workerLog over known parameters
 	//localLog := func(job JobID, format string, args ...interface{}) {
@@ -63,7 +59,7 @@ workLoop:
                         inputFile := filepath.Join(fileHeader.WarmPath, fileHeader.Filename)
                         opReturn := OperatorReturn{
                                      Operator:  fmt.Sprintf("worker_%d", id),
-                                     FHeader:   fileHeader
+                                     FHeader:   fileHeader,
                                      InFile:    inputFile,
                                      OutFile:   "",
                                      Err:       nil,
@@ -80,7 +76,7 @@ workLoop:
 
                         outputFile := fmt.Sprintf("%s_%d_%d.h5", inputFile, id, jobCount)
                         opReturn.OutFile = outputFile
-                        cmd := exec.Command(commandName, commandArgs...)
+                        cmd := exec.Command(opReturn.FHeader.NearlineCmdName, opReturn.FHeader.NearlineCmdArgs...)
         /*
         		cmd := exec.Command(config.KatydidPath,
         			"-c",

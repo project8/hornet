@@ -11,6 +11,8 @@ package main
 import (
         "fmt"
         "log"
+        "path/filepath"
+        "strings"
         "sync"
 
         "github.com/spf13/viper"
@@ -25,7 +27,8 @@ type FileInfo struct {
         WarmPath string
         ColdPath string
         DoNearline bool
-        NearlineCommand string
+        NearlineCmdName string
+        NearlineCmdArgs []string
         StandardCommand string
 }
 
@@ -38,6 +41,7 @@ type OperatorReturn struct {
 }
 
 type OperatorContext struct {
+        SchStream  chan string
         FileStream chan FileInfo
         RetStream  chan OperatorReturn
         CtrlQueue  chan ControlMessage
@@ -57,9 +61,9 @@ func Scheduler(schQueue chan string, ctrlQueue chan ControlMessage, reqQueue cha
         log.Println("[scheduler] Number of workers:", nWorkers)
 
         // create the file queues
-        moverQueue    := make(chan string, queueSize)
-        workerQueue   := make(chan string, queueSize)
-        shipperQueue  := make(chan string, queueSize)
+        moverQueue    := make(chan FileInfo, queueSize)
+        workerQueue   := make(chan FileInfo, queueSize)
+        shipperQueue  := make(chan FileInfo, queueSize)
         
         // create the return queues
         moverRetQueue   := make(chan OperatorReturn, queueSize)
@@ -68,6 +72,7 @@ func Scheduler(schQueue chan string, ctrlQueue chan ControlMessage, reqQueue cha
 
         // setup the mover
         moverCtx := OperatorContext{
+                SchStream:  schQueue,
                 FileStream: moverQueue,
                 RetStream:  moverRetQueue,
                 CtrlQueue:  ctrlQueue,
@@ -80,6 +85,7 @@ func Scheduler(schQueue chan string, ctrlQueue chan ControlMessage, reqQueue cha
 
         // setup the workers
         workerCtx := OperatorContext{
+                SchStream:  schQueue,
                 FileStream: workerQueue,
                 RetStream:  workerRetQueue,
                 CtrlQueue:  ctrlQueue,
@@ -92,8 +98,16 @@ func Scheduler(schQueue chan string, ctrlQueue chan ControlMessage, reqQueue cha
 		go Worker(workerCtx, WorkerID(i))
 	}
 
+        // command for the workers
+        commandString := viper.GetString("workers.command")
+        commandParts := strings.Fields(commandString)
+        commandName := commandParts[0]
+        commandArgs := commandParts[1:len(commandParts)]
+
+
         // setup the shipper
         shipperCtx := OperatorContext{
+                SchStream:  schQueue,
                 FileStream: shipperQueue,
                 RetStream:  shipperRetQueue,
                 CtrlQueue:  ctrlQueue,
@@ -106,7 +120,8 @@ func Scheduler(schQueue chan string, ctrlQueue chan ControlMessage, reqQueue cha
 
         // setup the watcher
         watcherCtx := OperatorContext{
-                FileStream: schQueue,
+                SchStream:  schQueue,
+                FileStream: nil,
                 RetStream:  nil,
                 CtrlQueue:  ctrlQueue,
                 ReqQueue:   reqQueue,
@@ -137,8 +152,9 @@ scheduleLoop:
                                 HotPath: path,
                                 WarmPath: "",
                                 ColdPath: "",
-                                DoNearline: false,
-                                NearlineCommand: "",
+                                DoNearline: true,
+                                NearlineCmdName: commandName,
+                                NearlineCmdArgs: commandArgs,
                                 StandardCommand: "",
                         }
                         log.Printf("[scheduler] sending <%s> to the mover", fileHeader.Filename)

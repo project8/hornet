@@ -34,18 +34,20 @@ shipLoop:
 				log.Print("[shipper] stopping on interrupt.")
 				break shipLoop
 			}
-		case inputFilePath := <-context.FileStream:
+		case fileHeader := <-context.FileStream:
+                        inputFilePath := filepath.Join(fileHeader.WarmPath, fileHeader.Filename)
                         opReturn := OperatorReturn{
                                      Operator:  "shipper",
+                                     FHeader:   fileHeader,
                                      InFile:    inputFilePath,
                                      OutFile:   "",
                                      Err:       nil,
                         }
 
-                        _, inputFile := filepath.Split(inputFilePath)
+                        _, inputFilename := filepath.Split(inputFilePath)
 
-
-                        outputFilePath := filepath.Join(destDir, inputFile)
+                        opReturn.FHeader.ColdPath = destDir
+                        outputFilePath := filepath.Join(destDir, inputFilename)
                         opReturn.OutFile = outputFilePath
 		        cmd := exec.Command("rsync", "-a", inputFilePath, outputFilePath)
 

@@ -92,7 +92,7 @@ moveLoop:
                         inputFile := filepath.Join(fileHeader.HotPath, fileHeader.Filename)
                         opReturn := OperatorReturn{
                                      Operator:  "mover",
-                                     FHeader:   fileHeader
+                                     FHeader:   fileHeader,
                                      InFile:    inputFile,
                                      OutFile:   "",
                                      Err:       nil,

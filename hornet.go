@@ -166,7 +166,7 @@ stopLoop:
 	}
 
 	// Close all of the worker threads gracefully
-        log.Printf("[hornet] stopping %d threads", len(threadCountQueue))
+        log.Printf("[hornet] stopping %d threads", len(threadCountQueue)-1)
 	for i := 0; i < len(threadCountQueue); i++ {
 		controlQueue <- StopExecution
 	}
