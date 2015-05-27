@@ -76,6 +76,8 @@ workLoop:
 
                         outputFile := fmt.Sprintf("%s_%d_%d.h5", inputFile, id, jobCount)
                         opReturn.OutFile = outputFile
+
+                        localLog(jobCount, fmt.Sprintf("Executing command: %s %v", opReturn.FHeader.NearlineCmdName, opReturn.FHeader.NearlineCmdArgs))
                         cmd := exec.Command(opReturn.FHeader.NearlineCmdName, opReturn.FHeader.NearlineCmdArgs...)
         /*
         		cmd := exec.Command(config.KatydidPath,

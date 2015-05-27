@@ -20,6 +20,7 @@
 package main
 
 import (
+        "encoding/json"
 	"flag"
 	"fmt"
 	"log"
@@ -55,16 +56,21 @@ const (
 //   2) the provided config file is parsable json
 //   3) the provided watch directory is indeed a directory
 func ValidateConfig() (e error) {
-        fmt.Println("[hornet] Scheduler queue size:", viper.GetInt("scheduler.queue-size"))
-        fmt.Println("[hornet] Number of nearline workers:", viper.GetInt("scheduler.n-nearline-workers"))
-        fmt.Println("[hornet] Number of shippers:", viper.GetInt("scheduler.n-shippers"))
-        fmt.Println("[hornet] Watcher directory:", viper.GetString("watcher.dir"))
-        fmt.Println("[hornet] Worker command:", viper.GetString("workers.command"))
-        fmt.Println("[hornet] Destination directory:", viper.GetString("mover.dest-dir"))
+        indentedConfig, confErr := json.MarshalIndent(viper.AllSettings(), "", "    ")
+        if confErr != nil {
+                e = fmt.Errorf("Error marshaling configuration!")
+                return
+        }
+        log.Printf("[hornet] Full configuration:\n%v", string(indentedConfig))
 
         nThreads := 1/*scheduler*/ + 1/*watcher*/ + 1/*mover*/ + viper.GetInt("scheduler.n-nearline-workers") + viper.GetInt("scheduler.n-shippers")
         if nThreads > MaxThreads {
                 e = fmt.Errorf("Maximum number of threads exceeded")
+        }
+
+        if classifierErr := ValidateClassifierConfig(); classifierErr != nil {
+                log.Print(classifierErr.Error())
+                e = classifierErr
         }
 
         if viper.GetInt("scheduler.n-nearline-workers") == 0 {

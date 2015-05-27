@@ -21,15 +21,25 @@ import (
 
 // File information header
 type FileInfo struct {
-        Filename string
-        FileType string
-        HotPath  string
-        WarmPath string
-        ColdPath string
-        DoNearline bool
+        Filename        string
+        FileType        string
+        FileHash        string
+        HotPath         string
+        WarmPath        string
+        ColdPath        string
+        DoNearline      bool
         NearlineCmdName string
         NearlineCmdArgs []string
-        StandardCommand string
+}
+
+// SetNearlineCmd splits the command name from its arguments, and sets the name in the FileInfo struct
+func (fileInfoPtr *FileInfo) SetNearlineCmd(nearlineCmd string) {
+        fileInfo := *fileInfoPtr
+        commandParts := strings.Fields(nearlineCmd)
+        fileInfo.NearlineCmdName = commandParts[0]
+        fileInfo.NearlineCmdArgs = commandParts[1:len(commandParts)]
+        *fileInfoPtr = fileInfo
+        return
 }
 
 type OperatorReturn struct {
@@ -61,14 +71,29 @@ func Scheduler(schQueue chan string, ctrlQueue chan ControlMessage, reqQueue cha
         log.Println("[scheduler] Number of workers:", nWorkers)
 
         // create the file queues
-        moverQueue    := make(chan FileInfo, queueSize)
-        workerQueue   := make(chan FileInfo, queueSize)
-        shipperQueue  := make(chan FileInfo, queueSize)
+        classifierQueue := make(chan FileInfo, queueSize)
+        moverQueue      := make(chan FileInfo, queueSize)
+        workerQueue     := make(chan FileInfo, queueSize)
+        shipperQueue    := make(chan FileInfo, queueSize)
         
         // create the return queues
-        moverRetQueue   := make(chan OperatorReturn, queueSize)
-        workerRetQueue  := make(chan OperatorReturn, queueSize)
-        shipperRetQueue := make(chan OperatorReturn, queueSize)
+        classifierRetQueue := make(chan OperatorReturn, queueSize)
+        moverRetQueue      := make(chan OperatorReturn, queueSize)
+        workerRetQueue     := make(chan OperatorReturn, queueSize)
+        shipperRetQueue    := make(chan OperatorReturn, queueSize)
+
+        // setup the classifier
+        classifierCtx := OperatorContext{
+                SchStream:  schQueue,
+                FileStream: classifierQueue,
+                RetStream:  classifierRetQueue,
+                CtrlQueue:  ctrlQueue,
+                ReqQueue:   reqQueue,
+                PoolCount:  poolCount,
+        }
+	poolCount.Add(1)
+        threadCountQueue <- 1
+	go Classifier(classifierCtx)
 
         // setup the mover
         moverCtx := OperatorContext{
@@ -97,13 +122,6 @@ func Scheduler(schQueue chan string, ctrlQueue chan ControlMessage, reqQueue cha
                 threadCountQueue <- 1
 		go Worker(workerCtx, WorkerID(i))
 	}
-
-        // command for the workers
-        commandString := viper.GetString("workers.command")
-        commandParts := strings.Fields(commandString)
-        commandName := commandParts[0]
-        commandArgs := commandParts[1:len(commandParts)]
-
 
         // setup the shipper
         shipperCtx := OperatorContext{
@@ -152,13 +170,20 @@ scheduleLoop:
                                 HotPath: path,
                                 WarmPath: "",
                                 ColdPath: "",
-                                DoNearline: true,
-                                NearlineCmdName: commandName,
-                                NearlineCmdArgs: commandArgs,
-                                StandardCommand: "",
+                                DoNearline: false,
+                                NearlineCmdName: "",
+                                NearlineCmdArgs: []string{},
                         }
-                        log.Printf("[scheduler] sending <%s> to the mover", fileHeader.Filename)
-                        moverQueue <- fileHeader
+                        log.Printf("[scheduler] sending <%s> to the classifier", fileHeader.Filename)
+                        classifierQueue <- fileHeader
+                case fileRet := <-classifierRetQueue:
+                        if fileRet.Err != nil {
+                                log.Printf("[scheduler error received from the classifier: %v", fileRet.Err)
+                        } else {
+                                fileHeader := fileRet.FHeader
+                                log.Printf("[scheduler] sending <%s> to the mover", fileHeader.Filename)
+                                moverQueue <- fileHeader
+                        }
                 case fileRet := <-moverRetQueue:
                         if fileRet.Err != nil {
                                 log.Printf("[scheduler] error received from the mover: %v", fileRet.Err)
