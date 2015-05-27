@@ -21,18 +21,6 @@ const (
 	dirDeletedMask   = inotify.IN_ISDIR | inotify.IN_DELETE
 )
 
-// isTargetFile returns true if the file should be passed along to a worker
-// thread for processing.
-func isTargetFile(s string) bool {
-	return strings.HasSuffix(s, ".MAT")
-}
-
-// isSetupFile returns true is the file is a setup file created on the RSA,
-// which should be transferred but should not be processed.
-func isSetupFile(s string) bool {
-	return strings.HasSuffix(s, ".Setup")
-}
-
 // shouldAddWatch tests to see if this is a new directory or if this directory
 // was moved to a place where it should be watched.
 func shouldAddWatch(evt *inotify.Event) bool {
@@ -98,12 +86,7 @@ runLoop:
 		// if a new file is available in our watched directories, check to see
 		// if we're supposed to do something - and if so, send it along.
 		case fileCloseEvt := <-fileWatch.Event:
-			fname := fileCloseEvt.Name
-			if isTargetFile(fname) {
-				context.SchStream <- fname
-			}// else if isSetupFile(fname) {
-			//	context.FinishedFileStream <- fname
-			//}
+                        context.SchStream <- fileCloseEvt.Name
 
 		// directories are a little more complicated.  if it's a new directory,
 		// watch it.  if it's a directory getting moved-from, delete the watch.

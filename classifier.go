@@ -93,7 +93,7 @@ func Classifier(context OperatorContext) {
                 types[iType].DoMatchExtension = false
                 if ext, hasExt := typeMap["match-extension"]; hasExt {
                         types[iType].DoMatchExtension = true
-                        types[iType].Extension = ext.(string)
+                        types[iType].Extension = "." + ext.(string)
                 }
                 types[iType].DoMatchRegexp = false
                 if regexpTemplate, hasRegexp := typeMap["match-regexp"]; hasRegexp {

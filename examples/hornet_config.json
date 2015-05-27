@@ -30,8 +30,14 @@
                                 "nearline-cmd": "echo \"here's an RSA MAT file\""
                         },
                         {
+                                "name": "rsa-setup",
+                                "match-extension": "Setup",
+                                "do-hash": false,
+                                "do-nearline": false
+                        },
+                        {
                                 "name": "regexp-example",
-                                "match-regexp": "project8is",
+                                "match-regexp": "project8is[A-Za-z]*",
                                 "do-hash": false,
                                 "do-nearline": false
                         }
