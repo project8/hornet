@@ -15,7 +15,7 @@ import(
         "errors"
         "fmt"
 	"log"
-	//"os/exec"
+        "os/exec"
 	"path/filepath"
         "regexp"
         "strings"
@@ -108,6 +108,9 @@ func Classifier(context OperatorContext) {
                 log.Printf("[classifier] Adding type:\n\t%v", types[iType])
         }
 
+        hashCmd := "md5sum"
+        hashOpt := "-b"
+
 	log.Print("[classifier] started successfully")
 
 shipLoop:
@@ -120,7 +123,7 @@ shipLoop:
 				break shipLoop
 			}
 		case fileHeader := <-context.FileStream:
-                        inputFilePath := filepath.Join(fileHeader.WarmPath, fileHeader.Filename)
+                        inputFilePath := filepath.Join(fileHeader.HotPath, fileHeader.Filename)
                         opReturn := OperatorReturn{
                                      Operator:  "shipper",
                                      FHeader:   fileHeader,
@@ -148,9 +151,15 @@ typeLoop:
                                         opReturn.FHeader.FileType = typeInfo.Name
                                         opReturn.FHeader.DoNearline = typeInfo.DoNearline
                                         opReturn.FHeader.SetNearlineCmd(typeInfo.NearlineCmd)
+                                        if hash, hashErr := exec.Command(hashCmd, hashOpt, inputFilePath).CombinedOutput(); hashErr != nil {
+                                                opReturn.Err = hashErr
+                                                log.Printf("[classifier] error while hashing: %s", hashErr.Error())
+                                        } else {
+                                                hashTokens := strings.Fields(string(hash))
+                                                opReturn.FHeader.FileHash = hashTokens[0]
+                                                log.Printf("[classifier] file <%s> hash: %s", inputFilename, opReturn.FHeader.FileHash)
+                                        }
                                         context.RetStream <- opReturn
-                                        // fill out file info header
-                                        // submit to the return stream
                                         break typeLoop
                                 }
                                 // if we reach this point, we can assume acceptType is false

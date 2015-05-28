@@ -163,22 +163,26 @@ scheduleLoop:
                                 break scheduleLoop
                         }
                 case file := <-schQueue:
-                        path, filename := filepath.Split(file)
-                        fileHeader := FileInfo{
-                                Filename: filename,
-                                FileType: "",
-                                HotPath: path,
-                                WarmPath: "",
-                                ColdPath: "",
-                                DoNearline: false,
-                                NearlineCmdName: "",
-                                NearlineCmdArgs: []string{},
+                        if absPath, absErr := filepath.Abs(file); absErr != nil {
+                                log.Printf("[scheduler] unable to determine an absolute path for <%s>", file)
+                        } else {
+                                path, filename := filepath.Split(absPath)
+                                fileHeader := FileInfo{
+                                        Filename: filename,
+                                        FileType: "",
+                                        HotPath: path,
+                                        WarmPath: "",
+                                        ColdPath: "",
+                                        DoNearline: false,
+                                        NearlineCmdName: "",
+                                        NearlineCmdArgs: []string{},
+                                }
+                                log.Printf("[scheduler] sending <%s> to the classifier", fileHeader.Filename)
+                                classifierQueue <- fileHeader
                         }
-                        log.Printf("[scheduler] sending <%s> to the classifier", fileHeader.Filename)
-                        classifierQueue <- fileHeader
                 case fileRet := <-classifierRetQueue:
                         if fileRet.Err != nil {
-                                log.Printf("[scheduler error received from the classifier: %v", fileRet.Err)
+                                log.Printf("[scheduler] error received from the classifier: %v", fileRet.Err)
                         } else {
                                 fileHeader := fileRet.FHeader
                                 log.Printf("[scheduler] sending <%s> to the mover", fileHeader.Filename)
