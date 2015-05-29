@@ -60,9 +60,8 @@ workLoop:
                         opReturn := OperatorReturn{
                                      Operator:  fmt.Sprintf("worker_%d", id),
                                      FHeader:   fileHeader,
-                                     InFile:    inputFile,
-                                     OutFile:   "",
                                      Err:       nil,
+                                     IsFatal:   false,
                         }
 
                         // after moving the worker stage to after the mover stage, this is no longer necessary
@@ -75,8 +74,7 @@ workLoop:
         		//}
 
                         outputFile := fmt.Sprintf("%s_%d_%d.h5", inputFile, id, jobCount)
-                        opReturn.OutFile = outputFile
-
+                        opReturn.FHeader.AddSecondaryFile(outputFile)
                         localLog(jobCount, fmt.Sprintf("Executing command: %s %v", opReturn.FHeader.NearlineCmdName, opReturn.FHeader.NearlineCmdArgs))
                         cmd := exec.Command(opReturn.FHeader.NearlineCmdName, opReturn.FHeader.NearlineCmdArgs...)
         /*

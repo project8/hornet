@@ -39,16 +39,14 @@ shipLoop:
                         opReturn := OperatorReturn{
                                      Operator:  "shipper",
                                      FHeader:   fileHeader,
-                                     InFile:    inputFilePath,
-                                     OutFile:   "",
                                      Err:       nil,
+                                     IsFatal:   false,
                         }
 
                         _, inputFilename := filepath.Split(inputFilePath)
 
                         opReturn.FHeader.ColdPath = destDir
                         outputFilePath := filepath.Join(destDir, inputFilename)
-                        opReturn.OutFile = outputFilePath
 		        cmd := exec.Command("rsync", "-a", inputFilePath, outputFilePath)
 
 		        // run the process

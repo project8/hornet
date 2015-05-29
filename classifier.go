@@ -108,6 +108,7 @@ func Classifier(context OperatorContext) {
                 log.Printf("[classifier] Adding type:\n\t%v", types[iType])
         }
 
+        requireHash := viper.GetBool("classifier.require-hash")
         hashCmd := "md5sum"
         hashOpt := "-b"
 
@@ -127,9 +128,8 @@ shipLoop:
                         opReturn := OperatorReturn{
                                      Operator:  "shipper",
                                      FHeader:   fileHeader,
-                                     InFile:    inputFilePath,
-                                     OutFile:   "",
                                      Err:       nil,
+                                     IsFatal:     false,
                         }
 
                         _, inputFilename := filepath.Split(inputFilePath)
@@ -153,6 +153,7 @@ typeLoop:
                                         opReturn.FHeader.SetNearlineCmd(typeInfo.NearlineCmd)
                                         if hash, hashErr := exec.Command(hashCmd, hashOpt, inputFilePath).CombinedOutput(); hashErr != nil {
                                                 opReturn.Err = hashErr
+                                                opReturn.IsFatal = requireHash
                                                 log.Printf("[classifier] error while hashing: %s", hashErr.Error())
                                         } else {
                                                 hashTokens := strings.Fields(string(hash))
@@ -169,6 +170,7 @@ typeLoop:
                         if acceptType == false {
                                 log.Printf("[classifier] Unable to classify file <%s>", inputFilename)
                                 opReturn.Err = errors.New("[Classifier] Unable to classify")
+                                opReturn.IsFatal = true
                                 context.RetStream <- opReturn
                         }
                 }

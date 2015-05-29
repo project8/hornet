@@ -93,18 +93,17 @@ moveLoop:
                         opReturn := OperatorReturn{
                                      Operator:  "mover",
                                      FHeader:   fileHeader,
-                                     InFile:    inputFile,
-                                     OutFile:   "",
                                      Err:       nil,
+                                     IsFatal:   false,
                         }
 			outputFile, destErr := RenamePathRelativeTo(inputFile, watchDirPath, destDirPath)
 			if destErr != nil {
                                 opReturn.Err = fmt.Errorf("[mover] bad rename request: %s -> %s w.r.t %s\n",
 					inputFile, destDirPath, watchDirPath)
+                                opReturn.IsFatal = true
 				log.Printf(opReturn.Err.Error())
 			} else {
-                                opReturn.OutFile = outputFile
-                                outputPath, _ := filepath.Split(outputFile)
+                                 outputPath, _ := filepath.Split(outputFile)
                                 opReturn.FHeader.WarmPath = outputPath
 				// check if we already know about the destdir
 				newDir := filepath.Dir(outputFile)
@@ -112,6 +111,7 @@ moveLoop:
 					log.Printf("[mover] creating directory %s\n", newDir)
 					if mkErr := os.MkdirAll(newDir, os.ModeDir|os.ModePerm); mkErr != nil {
                                                 opReturn.Err = fmt.Errorf("[mover] couldn't make directory %v: [%v]", newDir, mkErr)
+                                                opReturn.IsFatal = true
 						log.Printf(opReturn.Err.Error())
 					} else {
 						ds[newDir] = true
@@ -120,6 +120,7 @@ moveLoop:
 				if moveErr := Move(inputFile, outputFile); moveErr != nil {
                                         opReturn.Err = fmt.Errorf("[mover] error moving (%v -> %v) [%v]",
 						inputFile, outputFile, moveErr)
+                                        opReturn.IsFatal = true
 					log.Printf(opReturn.Err.Error())
 				}
 			}

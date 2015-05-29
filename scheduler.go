@@ -12,42 +12,18 @@ import (
         "fmt"
         "log"
         "path/filepath"
-        "strings"
+        //"strings"
         "sync"
 
         "github.com/spf13/viper"
 )
 
 
-// File information header
-type FileInfo struct {
-        Filename        string
-        FileType        string
-        FileHash        string
-        HotPath         string
-        WarmPath        string
-        ColdPath        string
-        DoNearline      bool
-        NearlineCmdName string
-        NearlineCmdArgs []string
-}
-
-// SetNearlineCmd splits the command name from its arguments, and sets the name in the FileInfo struct
-func (fileInfoPtr *FileInfo) SetNearlineCmd(nearlineCmd string) {
-        fileInfo := *fileInfoPtr
-        commandParts := strings.Fields(nearlineCmd)
-        fileInfo.NearlineCmdName = commandParts[0]
-        fileInfo.NearlineCmdArgs = commandParts[1:len(commandParts)]
-        *fileInfoPtr = fileInfo
-        return
-}
-
 type OperatorReturn struct {
         Operator string
         FHeader  FileInfo
-        InFile   string
-        OutFile  string
         Err      error
+        IsFatal  bool
 }
 
 type OperatorContext struct {
@@ -169,29 +145,34 @@ scheduleLoop:
                                 path, filename := filepath.Split(absPath)
                                 fileHeader := FileInfo{
                                         Filename: filename,
-                                        FileType: "",
                                         HotPath: path,
-                                        WarmPath: "",
-                                        ColdPath: "",
                                         DoNearline: false,
-                                        NearlineCmdName: "",
-                                        NearlineCmdArgs: []string{},
                                 }
                                 log.Printf("[scheduler] sending <%s> to the classifier", fileHeader.Filename)
                                 classifierQueue <- fileHeader
                         }
                 case fileRet := <-classifierRetQueue:
                         if fileRet.Err != nil {
-                                log.Printf("[scheduler] error received from the classifier: %v", fileRet.Err)
-                        } else {
+                                severity := "warning"
+                                if fileRet.IsFatal {
+                                        severity = "error"
+                                }
+                                log.Printf("[scheduler] %s received from the classifier:\n\t%v", severity, fileRet.Err)
+                        }
+                        if fileRet.IsFatal == false {
                                 fileHeader := fileRet.FHeader
                                 log.Printf("[scheduler] sending <%s> to the mover", fileHeader.Filename)
                                 moverQueue <- fileHeader
                         }
                 case fileRet := <-moverRetQueue:
                         if fileRet.Err != nil {
-                                log.Printf("[scheduler] error received from the mover: %v", fileRet.Err)
-                        } else {
+                                severity := "warning"
+                                if fileRet.IsFatal {
+                                        severity = "error"
+                                }
+                                log.Printf("[scheduler] %s received from the mover:\n\t%v", severity, fileRet.Err)
+                        }
+                        if fileRet.IsFatal == false {
                                 fileHeader := fileRet.FHeader
                                 // only send to the nearline workers if the file requests it and there's a worker available
                                 if fileHeader.DoNearline && workersWorking < nWorkers {
@@ -207,16 +188,26 @@ scheduleLoop:
                 case fileRet := <-workerRetQueue:
                         workersWorking--
                         if fileRet.Err != nil {
-                                log.Printf("[scheduler] error received from the workers: %v", fileRet.Err)
-                        } else {
+                                severity := "warning"
+                                if fileRet.IsFatal {
+                                        severity = "error"
+                                }
+                                log.Printf("[scheduler] %s received from the workers:\n\t%v", severity, fileRet.Err)
+                        }
+                        if fileRet.IsFatal == false {
                                 fileHeader := fileRet.FHeader // original data file is still the input file from the worker
                                 log.Printf("[scheduler] sending <%s> to the shipper", fileHeader.Filename)
                                 shipperQueue <- fileHeader
                         }
                 case fileRet := <-shipperRetQueue:
                         if fileRet.Err != nil {
-                                log.Printf("[scheduler] error received from the shipper: %v", fileRet.Err)
-                        } else {
+                                severity := "warning"
+                                if fileRet.IsFatal {
+                                        severity = "error"
+                                }
+                                log.Printf("[scheduler] %s received from the shipper:\n\t%v", severity, fileRet.Err)
+                        }
+                        if fileRet.IsFatal == false {
                                 log.Printf("[scheduler] completed work on file <%s>", fileRet.FHeader.Filename)
                         }
                 }

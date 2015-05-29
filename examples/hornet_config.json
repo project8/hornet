@@ -41,7 +41,8 @@
                                 "do-hash": false,
                                 "do-nearline": false
                         }
-                ]
+                ],
+                "require-hash": false
         },
 
         "mover":
