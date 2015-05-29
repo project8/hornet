@@ -8,13 +8,13 @@ package main
 
 import (
 	"errors"
-        "fmt"
+	"fmt"
 	"io"
 	"log"
 	"os"
 	"path/filepath"
 
-        "github.com/spf13/viper"
+	"github.com/spf13/viper"
 )
 
 // A DirectorySet is just a simple Set type for directories.
@@ -73,8 +73,8 @@ func Mover(context OperatorContext) {
 	// keep a running list of all of the directories we know about.
 	ds := make(DirectorySet)
 
-        watchDirPath := viper.GetString("watcher.dir")
-        destDirPath  := viper.GetString("mover.dest-dir")
+	watchDirPath := viper.GetString("watcher.dir")
+	destDirPath := viper.GetString("mover.dest-dir")
 
 	log.Print("[mover] started successfully")
 
@@ -89,42 +89,42 @@ moveLoop:
 				break moveLoop
 			}
 		case fileHeader := <-context.FileStream:
-                        inputFile := filepath.Join(fileHeader.HotPath, fileHeader.Filename)
-                        opReturn := OperatorReturn{
-                                     Operator:  "mover",
-                                     FHeader:   fileHeader,
-                                     Err:       nil,
-                                     IsFatal:   false,
-                        }
+			inputFile := filepath.Join(fileHeader.HotPath, fileHeader.Filename)
+			opReturn := OperatorReturn{
+				Operator: "mover",
+				FHeader:  fileHeader,
+				Err:      nil,
+				IsFatal:  false,
+			}
 			outputFile, destErr := RenamePathRelativeTo(inputFile, watchDirPath, destDirPath)
 			if destErr != nil {
-                                opReturn.Err = fmt.Errorf("[mover] bad rename request: %s -> %s w.r.t %s\n",
+				opReturn.Err = fmt.Errorf("[mover] bad rename request: %s -> %s w.r.t %s\n",
 					inputFile, destDirPath, watchDirPath)
-                                opReturn.IsFatal = true
+				opReturn.IsFatal = true
 				log.Printf(opReturn.Err.Error())
 			} else {
-                                 outputPath, _ := filepath.Split(outputFile)
-                                opReturn.FHeader.WarmPath = outputPath
+				outputPath, _ := filepath.Split(outputFile)
+				opReturn.FHeader.WarmPath = outputPath
 				// check if we already know about the destdir
 				newDir := filepath.Dir(outputFile)
 				if ds[newDir] == false {
 					log.Printf("[mover] creating directory %s\n", newDir)
 					if mkErr := os.MkdirAll(newDir, os.ModeDir|os.ModePerm); mkErr != nil {
-                                                opReturn.Err = fmt.Errorf("[mover] couldn't make directory %v: [%v]", newDir, mkErr)
-                                                opReturn.IsFatal = true
+						opReturn.Err = fmt.Errorf("[mover] couldn't make directory %v: [%v]", newDir, mkErr)
+						opReturn.IsFatal = true
 						log.Printf(opReturn.Err.Error())
 					} else {
 						ds[newDir] = true
 					}
 				}
 				if moveErr := Move(inputFile, outputFile); moveErr != nil {
-                                        opReturn.Err = fmt.Errorf("[mover] error moving (%v -> %v) [%v]",
+					opReturn.Err = fmt.Errorf("[mover] error moving (%v -> %v) [%v]",
 						inputFile, outputFile, moveErr)
-                                        opReturn.IsFatal = true
+					opReturn.IsFatal = true
 					log.Printf(opReturn.Err.Error())
 				}
 			}
-                        context.RetStream <- opReturn
+			context.RetStream <- opReturn
 		}
 
 	}

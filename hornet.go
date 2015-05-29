@@ -20,7 +20,7 @@
 package main
 
 import (
-        "encoding/json"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
@@ -29,7 +29,7 @@ import (
 	"sync"
 	"syscall"
 
-        "github.com/spf13/viper"
+	"github.com/spf13/viper"
 )
 
 // Global config
@@ -56,39 +56,39 @@ const (
 //   2) the provided config file is parsable json
 //   3) the provided watch directory is indeed a directory
 func ValidateConfig() (e error) {
-        indentedConfig, confErr := json.MarshalIndent(viper.AllSettings(), "", "    ")
-        if confErr != nil {
-                e = fmt.Errorf("Error marshaling configuration!")
-                return
-        }
-        log.Printf("[hornet] Full configuration:\n%v", string(indentedConfig))
+	indentedConfig, confErr := json.MarshalIndent(viper.AllSettings(), "", "    ")
+	if confErr != nil {
+		e = fmt.Errorf("Error marshaling configuration!")
+		return
+	}
+	log.Printf("[hornet] Full configuration:\n%v", string(indentedConfig))
 
-        nThreads := 1/*scheduler*/ + 1/*watcher*/ + 1/*mover*/ + viper.GetInt("scheduler.n-nearline-workers") + viper.GetInt("scheduler.n-shippers")
-        if nThreads > MaxThreads {
-                e = fmt.Errorf("Maximum number of threads exceeded")
-        }
+	nThreads := 1 /*scheduler*/ + 1 /*watcher*/ + 1 /*mover*/ + viper.GetInt("scheduler.n-nearline-workers") + viper.GetInt("scheduler.n-shippers")
+	if nThreads > MaxThreads {
+		e = fmt.Errorf("Maximum number of threads exceeded")
+	}
 
-        if amqpErr := ValidateAmqpConfig(); amqpErr != nil {
-                log.Print(amqpErr.Error())
-                e = amqpErr
-        }
+	if amqpErr := ValidateAmqpConfig(); amqpErr != nil {
+		log.Print(amqpErr.Error())
+		e = amqpErr
+	}
 
-        if classifierErr := ValidateClassifierConfig(); classifierErr != nil {
-                log.Print(classifierErr.Error())
-                e = classifierErr
-        }
+	if classifierErr := ValidateClassifierConfig(); classifierErr != nil {
+		log.Print(classifierErr.Error())
+		e = classifierErr
+	}
 
-        if viper.GetInt("scheduler.n-nearline-workers") == 0 {
-                e = fmt.Errorf("Cannot have 0 nearline workers")
-        }
+	if viper.GetInt("scheduler.n-nearline-workers") == 0 {
+		e = fmt.Errorf("Cannot have 0 nearline workers")
+	}
 
-        // for now, we require that there's only 1 shipper
-        if viper.GetInt("scheduler.n-shippers") != 1 {
-        }
+	// for now, we require that there's only 1 shipper
+	if viper.GetInt("scheduler.n-shippers") != 1 {
+	}
 
-        if viper.GetInt("scheduler.queue-size") == 0 {
-                e = fmt.Errorf("Scheduler queue must be greater than 0")
-        }
+	if viper.GetInt("scheduler.queue-size") == 0 {
+		e = fmt.Errorf("Scheduler queue must be greater than 0")
+	}
 
 	if PathIsDirectory(viper.GetString("mover.dest-dir")) == false {
 		e = fmt.Errorf("Destination directory must exist and be a directory!")
@@ -105,35 +105,35 @@ func main() {
 	// user needs help
 	var needHelp bool
 
-        // configuration file
-        var configFile string
+	// configuration file
+	var configFile string
 
 	// set up flag to point at conf, parse arguments and then verify
 	flag.BoolVar(&needHelp,
 		"help",
 		false,
 		"display this dialog")
-        flag.StringVar(&configFile,
-                "config",
-                "",
-                "JSON configuration file")
+	flag.StringVar(&configFile,
+		"config",
+		"",
+		"JSON configuration file")
 	flag.Parse()
 
 	if needHelp {
 		flag.Usage()
 		os.Exit(1)
-	} 
+	}
 
-        log.Print("[hornet] Reading config file: ", configFile)
-        viper.SetConfigFile(configFile)
-        if parseErr := viper.ReadInConfig(); parseErr != nil {
-                log.Fatal("(FATAL) ", parseErr)
-        }
+	log.Print("[hornet] Reading config file: ", configFile)
+	viper.SetConfigFile(configFile)
+	if parseErr := viper.ReadInConfig(); parseErr != nil {
+		log.Fatal("(FATAL) ", parseErr)
+	}
 
-        //fmt.Println(viper.AllSettings())
+	//fmt.Println(viper.AllSettings())
 
 	if configErr := ValidateConfig(); configErr != nil {
-               	flag.Usage()
+		flag.Usage()
 		log.Fatal("(FATAL) ", configErr)
 	}
 
@@ -141,22 +141,22 @@ func main() {
 
 	var pool sync.WaitGroup
 
-        schedulingQueue := make(chan string, viper.GetInt("scheduler.queue-size"))
-        controlQueue := make(chan ControlMessage)
-        requestQueue := make(chan ControlMessage)
-        threadCountQueue := make(chan uint, MaxThreads)
+	schedulingQueue := make(chan string, viper.GetInt("scheduler.queue-size"))
+	controlQueue := make(chan ControlMessage)
+	requestQueue := make(chan ControlMessage)
+	threadCountQueue := make(chan uint, MaxThreads)
 
-        StartAmqp(controlQueue, requestQueue, threadCountQueue, &pool)
+	StartAmqp(controlQueue, requestQueue, threadCountQueue, &pool)
 
-        // check to see if any files are being scheduled via the command line
-        for iFile := 0; iFile < flag.NArg(); iFile++ {
-                fmt.Println("Scheduling", flag.Arg(iFile))
-                schedulingQueue <- flag.Arg(iFile)
-        }
+	// check to see if any files are being scheduled via the command line
+	for iFile := 0; iFile < flag.NArg(); iFile++ {
+		fmt.Println("Scheduling", flag.Arg(iFile))
+		schedulingQueue <- flag.Arg(iFile)
+	}
 
-        pool.Add(1)
-        threadCountQueue <- 1
-        go Scheduler(schedulingQueue, controlQueue, requestQueue, threadCountQueue, &pool)
+	pool.Add(1)
+	threadCountQueue <- 1
+	go Scheduler(schedulingQueue, controlQueue, requestQueue, threadCountQueue, &pool)
 
 	// now just wait for the signal to stop.  this is either a ctrl+c
 	// or a SIGTERM.
@@ -179,7 +179,7 @@ stopLoop:
 	}
 
 	// Close all of the worker threads gracefully
-        log.Printf("[hornet] stopping %d threads", len(threadCountQueue)-1)
+	log.Printf("[hornet] stopping %d threads", len(threadCountQueue)-1)
 	for i := 0; i < len(threadCountQueue); i++ {
 		controlQueue <- StopExecution
 	}

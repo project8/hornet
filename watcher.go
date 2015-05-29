@@ -11,7 +11,7 @@ import (
 	"log"
 	"strings"
 
-        "github.com/spf13/viper"
+	"github.com/spf13/viper"
 )
 
 const (
@@ -51,7 +51,7 @@ func Watcher(context OperatorContext) {
 	// Decrement the waitgroup counter when done
 	defer context.PoolCount.Done()
 
-        watchDir := viper.GetString("watcher.dir")
+	watchDir := viper.GetString("watcher.dir")
 
 	fileWatch, fileWatchErr := inotify.NewWatcher()
 	if fileWatchErr != nil {
@@ -86,7 +86,7 @@ runLoop:
 		// if a new file is available in our watched directories, check to see
 		// if we're supposed to do something - and if so, send it along.
 		case fileCloseEvt := <-fileWatch.Event:
-                        context.SchStream <- fileCloseEvt.Name
+			context.SchStream <- fileCloseEvt.Name
 
 		// directories are a little more complicated.  if it's a new directory,
 		// watch it.  if it's a directory getting moved-from, delete the watch.
