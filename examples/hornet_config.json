@@ -6,8 +6,24 @@
                 "n-shippers": 1
         },
 
+        "amqp":
+        {
+                "broker": "higgsino.physics.ucsb.edu",
+                "receiver":
+                {
+                        "active": true,
+                        "exchange": "requests",
+                        "queue": "hornet"
+                },
+                "sender":
+                {
+                        "active": false
+                }
+        },
+
         "watcher":
         {
+                "active": true,
                 "dir": "/home/nsoblath/Project8/hornet"
         },
 

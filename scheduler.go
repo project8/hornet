@@ -27,11 +27,12 @@ type OperatorReturn struct {
 }
 
 type OperatorContext struct {
-        SchStream  chan string
-        FileStream chan FileInfo
-        RetStream  chan OperatorReturn
-        CtrlQueue  chan ControlMessage
-        ReqQueue   chan ControlMessage
+        SchStream        chan string
+        FileStream       chan FileInfo
+        RetStream        chan OperatorReturn
+        CtrlQueue        chan ControlMessage
+        ReqQueue         chan ControlMessage
+        ThreadCountQueue chan uint
         PoolCount  *sync.WaitGroup
 }
 
@@ -65,6 +66,7 @@ func Scheduler(schQueue chan string, ctrlQueue chan ControlMessage, reqQueue cha
                 RetStream:  classifierRetQueue,
                 CtrlQueue:  ctrlQueue,
                 ReqQueue:   reqQueue,
+                ThreadCountQueue: threadCountQueue,
                 PoolCount:  poolCount,
         }
 	poolCount.Add(1)
@@ -78,6 +80,7 @@ func Scheduler(schQueue chan string, ctrlQueue chan ControlMessage, reqQueue cha
                 RetStream:  moverRetQueue,
                 CtrlQueue:  ctrlQueue,
                 ReqQueue:   reqQueue,
+                ThreadCountQueue: threadCountQueue,
                 PoolCount:  poolCount,
         }
 	poolCount.Add(1)
@@ -91,6 +94,7 @@ func Scheduler(schQueue chan string, ctrlQueue chan ControlMessage, reqQueue cha
                 RetStream:  workerRetQueue,
                 CtrlQueue:  ctrlQueue,
                 ReqQueue:   reqQueue,
+                ThreadCountQueue: threadCountQueue,
                 PoolCount:  poolCount,
         }
 	for i := int(0); i < nWorkers; i++ {
@@ -106,6 +110,7 @@ func Scheduler(schQueue chan string, ctrlQueue chan ControlMessage, reqQueue cha
                 RetStream:  shipperRetQueue,
                 CtrlQueue:  ctrlQueue,
                 ReqQueue:   reqQueue,
+                ThreadCountQueue: threadCountQueue,
                 PoolCount:  poolCount,
         }
 	poolCount.Add(1)
@@ -119,6 +124,7 @@ func Scheduler(schQueue chan string, ctrlQueue chan ControlMessage, reqQueue cha
                 RetStream:  nil,
                 CtrlQueue:  ctrlQueue,
                 ReqQueue:   reqQueue,
+                ThreadCountQueue: threadCountQueue,
                 PoolCount:  poolCount,
         }
 	poolCount.Add(1)

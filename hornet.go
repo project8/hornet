@@ -68,6 +68,11 @@ func ValidateConfig() (e error) {
                 e = fmt.Errorf("Maximum number of threads exceeded")
         }
 
+        if amqpErr := ValidateAmqpConfig(); amqpErr != nil {
+                log.Print(amqpErr.Error())
+                e = amqpErr
+        }
+
         if classifierErr := ValidateClassifierConfig(); classifierErr != nil {
                 log.Print(classifierErr.Error())
                 e = classifierErr
@@ -140,6 +145,8 @@ func main() {
         controlQueue := make(chan ControlMessage)
         requestQueue := make(chan ControlMessage)
         threadCountQueue := make(chan uint, MaxThreads)
+
+        StartAmqp(controlQueue, requestQueue, threadCountQueue, &pool)
 
         // check to see if any files are being scheduled via the command line
         for iFile := 0; iFile < flag.NArg(); iFile++ {

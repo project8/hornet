@@ -15,6 +15,7 @@ import(
         "errors"
         "fmt"
 	"log"
+        "os"
         "os/exec"
 	"path/filepath"
         "regexp"
@@ -132,6 +133,14 @@ shipLoop:
                                      IsFatal:     false,
                         }
 
+                        if _, existsErr := os.Stat(inputFilePath); os.IsNotExist(existsErr) {
+                                opReturn.Err = fmt.Errorf("[classifier] file <%s> does not exist", inputFilePath)
+                                opReturn.IsFatal = true
+                                log.Printf(opReturn.Err.Error())
+                                context.RetStream <- opReturn
+                                break
+                        }
+
                         _, inputFilename := filepath.Split(inputFilePath)
 
                         acceptType := bool(false) 
@@ -152,9 +161,9 @@ typeLoop:
                                         opReturn.FHeader.DoNearline = typeInfo.DoNearline
                                         opReturn.FHeader.SetNearlineCmd(typeInfo.NearlineCmd)
                                         if hash, hashErr := exec.Command(hashCmd, hashOpt, inputFilePath).CombinedOutput(); hashErr != nil {
-                                                opReturn.Err = hashErr
+                                                opReturn.Err = fmt.Errorf("[classifier] error while hashing:\n\t%v", hashErr.Error())
                                                 opReturn.IsFatal = requireHash
-                                                log.Printf("[classifier] error while hashing: %s", hashErr.Error())
+                                                log.Printf(opReturn.Err.Error())
                                         } else {
                                                 hashTokens := strings.Fields(string(hash))
                                                 opReturn.FHeader.FileHash = hashTokens[0]
