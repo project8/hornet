@@ -21,6 +21,24 @@ import (
 	"github.com/ugorji/go/codec"
 )
 
+type SenderInfo struct {
+	Package  string
+	Exe      string
+	Version  string
+	Commit   string
+	Hostname string
+	Username string
+}
+
+type P8Message struct {
+    Target     []string
+	MsgType    uint64
+	MsgOp      uint64
+	TimeStamp  string
+	SenderInfo
+	Payload    interface{}
+}
+
 // ValidateAmqpConfig checks the sanity of the amqp section of a configuration.
 // It makes the following guarantees
 //   1) The broker setting is present
@@ -135,22 +153,22 @@ amqpLoop:
 		case message := <-messageQueue:
 			message.Ack(false)
 			log.Printf("[amqp receiver] Received message with encoding %s", message.ContentEncoding)
-			var body interface{} //TODO: replace this with a struct for the dripline style message
+			var body map[string]interface{}
 			switch message.ContentEncoding {
 			case "application/json":
 				log.Printf("this is a json message")
-				h := new(codec.JsonHandle)
-				dec := codec.NewDecoderBytes(message.Body, h)
-				jsonErr := dec.Decode(&body)
+				handle := new(codec.JsonHandle)
+				decoder := codec.NewDecoderBytes(message.Body, handle)
+				jsonErr := decoder.Decode(&body)
 				if jsonErr != nil {
 					log.Printf("[amqp receiver] Unable to decode JSON-encoded message:\n\t%v", jsonErr)
 					continue amqpLoop
 				}
 			case "application/msgpack":
 				log.Printf("this is a msgpack message")
-				h := new(codec.MsgpackHandle)
-				dec := codec.NewDecoderBytes(message.Body, h)
-				msgpackErr := dec.Decode(&body)
+				handle := new(codec.MsgpackHandle)
+				decoder := codec.NewDecoderBytes(message.Body, handle)
+				msgpackErr := decoder.Decode(&body)
 				if msgpackErr != nil {
 					log.Printf("[amqp receiver] Unable to decode msgpack-encoded message:\n\t%v", msgpackErr)
 					continue amqpLoop
@@ -159,6 +177,39 @@ amqpLoop:
 				log.Printf("[amqp receiver] Message content encoding is not understood: %s", message.ContentEncoding)
 			}
 			log.Printf("[amqp receiver] Message body:\n\t%v", body)
+
+			senderInfo := body["sender_info"].(map[interface{}]interface{})
+			p8Message := P8Message {
+				MsgType: body["msgtype"].(uint64),
+				MsgOp:   body["msgop"].(uint64),
+				TimeStamp: body["timestamp"].(string),
+				SenderInfo: SenderInfo{
+					Package:  senderInfo["package"].(string),
+					Exe:      senderInfo["exe"].(string),
+					Version:  senderInfo["version"].(string),
+					Commit:   senderInfo["commit"].(string),
+					//Hostname: senderInfo["hostname"].(string),
+					//Username: senderInfo["username"].(string),
+				},
+				Payload: body["payload"],
+			}
+			routingKeyParts := strings.Split(message.RoutingKey, ".")
+			if len(routingKeyParts) > 1 {
+				p8Message.Target = routingKeyParts[1:len(routingKeyParts)]
+			}
+
+			log.Printf("[amqp receiver] Message:\n\t%v", p8Message)
+
+			if len(p8Message.Target) == 0 {
+				log.Printf("[amqp receiver] No Hornet target provided")
+			} else {
+				switch p8Message.Target[0] {
+				case "quit-hornet":
+					reqQueue <- StopExecution
+				default:
+					log.Printf("[amqp receiver] Unknown hornet target: %v", p8Message.Target)
+				}
+			}
 		}
 	}
 

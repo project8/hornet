@@ -170,9 +170,13 @@ stopLoop:
 			log.Printf("[hornet] termination requested...\n")
 			break stopLoop
 
-		case threadMsg := <-requestQueue:
-			if threadMsg == ThreadCannotContinue {
-				log.Print("[hornet] thread error!  cannot continue...")
+		case requestMsg := <-requestQueue:
+			switch requestMsg {
+			case ThreadCannotContinue:
+				log.Print("[hornet] thread error!  cannot continue running")
+				break stopLoop
+			case StopExecution:
+				log.Print("[hornet] stop-execution request received")
 				break stopLoop
 			}
 		}
