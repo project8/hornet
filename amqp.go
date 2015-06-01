@@ -18,6 +18,7 @@ import (
 
 	"github.com/spf13/viper"
 	"github.com/streadway/amqp"
+	"github.com/ugorji/go/codec"
 )
 
 // ValidateAmqpConfig checks the sanity of the amqp section of a configuration.
@@ -133,7 +134,31 @@ amqpLoop:
 			}
 		case message := <-messageQueue:
 			message.Ack(false)
-			log.Printf("[amqp receiver] Received message:\n\t%v", message)
+			log.Printf("[amqp receiver] Received message with encoding %s", message.ContentEncoding)
+			var body interface{} //TODO: replace this with a struct for the dripline style message
+			switch message.ContentEncoding {
+			case "application/json":
+				log.Printf("this is a json message")
+				h := new(codec.JsonHandle)
+				dec := codec.NewDecoderBytes(message.Body, h)
+				jsonErr := dec.Decode(&body)
+				if jsonErr != nil {
+					log.Printf("[amqp receiver] Unable to decode JSON-encoded message:\n\t%v", jsonErr)
+					continue amqpLoop
+				}
+			case "application/msgpack":
+				log.Printf("this is a msgpack message")
+				h := new(codec.MsgpackHandle)
+				dec := codec.NewDecoderBytes(message.Body, h)
+				msgpackErr := dec.Decode(&body)
+				if msgpackErr != nil {
+					log.Printf("[amqp receiver] Unable to decode msgpack-encoded message:\n\t%v", msgpackErr)
+					continue amqpLoop
+				}
+			default:
+				log.Printf("[amqp receiver] Message content encoding is not understood: %s", message.ContentEncoding)
+			}
+			log.Printf("[amqp receiver] Message body:\n\t%v", body)
 		}
 	}
 
