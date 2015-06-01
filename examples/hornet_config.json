@@ -8,7 +8,7 @@
 
         "amqp":
         {
-                "broker": "higgsino.physics.ucsb.edu",
+                "broker": "my.broker",
                 "receiver":
                 {
                         "active": true,
@@ -24,7 +24,7 @@
         "watcher":
         {
                 "active": true,
-                "dir": "/home/nsoblath/Project8/hornet"
+                "dir": "/data"
         },
 
         "classifier":
@@ -63,7 +63,7 @@
 
         "mover":
         {
-                "dest-dir": "/home/nsoblath/Project8/hornet/mover-dest"
+                "dest-dir": "/home/me/mover-dest"
         },
 
         "workers":
@@ -72,6 +72,6 @@
 
         "shipper":
         {
-                "dest-dir": "/home/nsoblath/Project8/hornet/rsync-dest"
+                "dest-dir": "/home/me/rsync-dest"
         }
 }

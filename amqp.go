@@ -213,6 +213,6 @@ amqpLoop:
 		}
 	}
 
-	log.Print("[amqp hub] finished.")
+	log.Print("[amqp receiver] finished.")
 
 }
