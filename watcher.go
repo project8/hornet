@@ -10,6 +10,8 @@ import (
 	"golang.org/x/exp/inotify"
 	"log"
 	"strings"
+
+        "github.com/spf13/viper"
 )
 
 const (
@@ -57,25 +59,27 @@ const fileWatchFlags = inotify.IN_CLOSE_WRITE
 const subdWatchFlags = inotify.IN_ONLYDIR | inotify.IN_CREATE | inotify.IN_MOVED_TO | inotify.IN_DELETE | inotify.IN_MOVED_FROM
 
 // Watcher uses inotify to monitor changes to a specific path.
-func Watcher(context Context, config Config) {
+func Watcher(context OperatorContext) {
 	// Decrement the waitgroup counter when done
-	defer context.Pool.Done()
+	defer context.PoolCount.Done()
+
+        watchDir := viper.GetString("watcher.dir")
 
 	fileWatch, fileWatchErr := inotify.NewWatcher()
 	if fileWatchErr != nil {
 		log.Printf("[watcher] error creating file watcher! %v", fileWatchErr)
-		context.Control <- ThreadCannotContinue
+		context.ReqQueue <- ThreadCannotContinue
 	} else {
-		fileWatch.AddWatch(config.WatchDirPath, fileWatchFlags)
+		fileWatch.AddWatch(watchDir, fileWatchFlags)
 	}
 	defer fileWatch.Close()
 
 	subdWatch, subdWatchErr := inotify.NewWatcher()
 	if subdWatchErr != nil {
 		log.Printf("[watcher] error creating subdir watcher! %v", subdWatchErr)
-		context.Control <- ThreadCannotContinue
+		context.ReqQueue <- ThreadCannotContinue
 	} else {
-		subdWatch.AddWatch(config.WatchDirPath, subdWatchFlags)
+		subdWatch.AddWatch(watchDir, subdWatchFlags)
 	}
 	defer subdWatch.Close()
 
@@ -85,7 +89,7 @@ runLoop:
 	for {
 		select {
 		// First check for any control messages.
-		case control := <-context.Control:
+		case control := <-context.CtrlQueue:
 			if control == StopExecution {
 				log.Print("[watcher] stopping on interrupt.")
 				break runLoop
@@ -96,10 +100,10 @@ runLoop:
 		case fileCloseEvt := <-fileWatch.Event:
 			fname := fileCloseEvt.Name
 			if isTargetFile(fname) {
-				context.NewFileStream <- fname
-			} else if isSetupFile(fname) {
-				context.FinishedFileStream <- fname
-			}
+				context.FileStream <- fname
+			}// else if isSetupFile(fname) {
+			//	context.FinishedFileStream <- fname
+			//}
 
 		// directories are a little more complicated.  if it's a new directory,
 		// watch it.  if it's a directory getting moved-from, delete the watch.
@@ -110,7 +114,7 @@ runLoop:
 			if shouldAddWatch(newSubDirEvt) {
 				if err := fileWatch.AddWatch(dirname, fileWatchFlags); err != nil {
 					log.Printf("[watcher] couldn't add subdir watch [%v]", err)
-					context.Control <- ThreadCannotContinue
+					context.CtrlQueue <- ThreadCannotContinue
 					break runLoop
 				} else {
 					log.Printf("[watcher] added subdirectory to watch [%v]",
@@ -130,7 +134,7 @@ runLoop:
 			if isEintr(fileWatchErr) == false {
 				log.Printf("[watcher] inotify error on file watch %v",
 					fileWatchErr)
-				context.Control <- ThreadCannotContinue
+				context.ReqQueue <- ThreadCannotContinue
 				break runLoop
 			}
 
@@ -138,11 +142,11 @@ runLoop:
 			if isEintr(fileWatchErr) == false {
 				log.Printf("[watcher] inotify error on directory watch %v",
 					subdWatchErr)
-				context.Control <- ThreadCannotContinue
+				context.ReqQueue <- ThreadCannotContinue
 				break runLoop
 			}
 
 		}
 	}
-	close(context.NewFileStream)
+	//close(context.FileStream)
 }
