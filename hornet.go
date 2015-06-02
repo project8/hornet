@@ -31,7 +31,7 @@ import (
 
 	"github.com/spf13/viper"
 
-	//"hornet"
+	"github.com/project8/hornet/hornet"
 )
 
 // Validate checks the sanity of a Config instance
@@ -47,16 +47,16 @@ func ValidateConfig() (e error) {
 	log.Printf("[hornet] Full configuration:\n%v", string(indentedConfig))
 
 	nThreads := 1 /*scheduler*/ + 1 /*watcher*/ + 1 /*mover*/ + viper.GetInt("scheduler.n-nearline-workers") + viper.GetInt("scheduler.n-shippers")
-	if nThreads > MaxThreads {
+	if nThreads > hornet.MaxThreads {
 		e = fmt.Errorf("Maximum number of threads exceeded")
 	}
 
-	if amqpErr := ValidateAmqpConfig(); amqpErr != nil {
+	if amqpErr := hornet.ValidateAmqpConfig(); amqpErr != nil {
 		log.Print(amqpErr.Error())
 		e = amqpErr
 	}
 
-	if classifierErr := ValidateClassifierConfig(); classifierErr != nil {
+	if classifierErr := hornet.ValidateClassifierConfig(); classifierErr != nil {
 		log.Print(classifierErr.Error())
 		e = classifierErr
 	}
@@ -73,11 +73,11 @@ func ValidateConfig() (e error) {
 		e = fmt.Errorf("Scheduler queue must be greater than 0")
 	}
 
-	if PathIsDirectory(viper.GetString("mover.dest-dir")) == false {
+	if hornet.PathIsDirectory(viper.GetString("mover.dest-dir")) == false {
 		e = fmt.Errorf("Destination directory must exist and be a directory!")
 	}
 
-	if PathIsDirectory(viper.GetString("watcher.dir")) == false {
+	if hornet.PathIsDirectory(viper.GetString("watcher.dir")) == false {
 		e = fmt.Errorf("Watch directory must exist and be a directory!")
 	}
 
@@ -125,11 +125,11 @@ func main() {
 	var pool sync.WaitGroup
 
 	schedulingQueue := make(chan string, viper.GetInt("scheduler.queue-size"))
-	controlQueue := make(chan ControlMessage)
-	requestQueue := make(chan ControlMessage)
-	threadCountQueue := make(chan uint, MaxThreads)
+	controlQueue := make(chan hornet.ControlMessage)
+	requestQueue := make(chan hornet.ControlMessage)
+	threadCountQueue := make(chan uint, hornet.MaxThreads)
 
-	StartAmqp(controlQueue, requestQueue, threadCountQueue, &pool)
+	hornet.StartAmqp(controlQueue, requestQueue, threadCountQueue, &pool)
 
 	// check to see if any files are being scheduled via the command line
 	for iFile := 0; iFile < flag.NArg(); iFile++ {
@@ -139,15 +139,15 @@ func main() {
 
 	pool.Add(1)
 	threadCountQueue <- 1
-	go Scheduler(schedulingQueue, controlQueue, requestQueue, threadCountQueue, &pool)
+	go hornet.Scheduler(schedulingQueue, controlQueue, requestQueue, threadCountQueue, &pool)
 
-	p8Message := P8Message {
+	p8Message := hornet.P8Message {
 		Encoding: "application/json",
 		Target: []string{"some", "address", "or", "another"},
 		MsgTypeVal: 1,
 		MsgOpVal:   2,
 		TimeStamp: "now",
-		SenderInfo: SenderInfo{
+		SenderInfo: hornet.SenderInfo{
 			Package:  "test",
 			Exe:      "test",
 			Version:  "test",
@@ -157,7 +157,7 @@ func main() {
 		},
 		Payload: "the payload",
 	}
-	SendMessageQueue <- p8Message
+	hornet.SendMessageQueue <- p8Message
 
 	// now just wait for the signal to stop.  this is either a ctrl+c
 	// or a SIGTERM.
@@ -173,10 +173,10 @@ stopLoop:
 
 		case requestMsg := <-requestQueue:
 			switch requestMsg {
-			case ThreadCannotContinue:
+			case hornet.ThreadCannotContinue:
 				log.Print("[hornet] thread error!  cannot continue running")
 				break stopLoop
-			case StopExecution:
+			case hornet.StopExecution:
 				log.Print("[hornet] stop-execution request received")
 				break stopLoop
 			}
@@ -186,7 +186,7 @@ stopLoop:
 	// Close all of the worker threads gracefully
 	log.Printf("[hornet] stopping %d threads", len(threadCountQueue)-1)
 	for i := 0; i < len(threadCountQueue); i++ {
-		controlQueue <- StopExecution
+		controlQueue <- hornet.StopExecution
 	}
 	pool.Wait()
 
