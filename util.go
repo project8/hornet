@@ -1,5 +1,5 @@
 // Utility functions for the hornet package go here.
-package main
+package hornet
 
 import (
 	//"errors"

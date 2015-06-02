@@ -4,7 +4,7 @@
 * the mover thread moves files from a source location to a destination.
 * it can batch files for moving if requested.
  */
-package main
+package hornet
 
 import (
 	"errors"

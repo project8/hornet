@@ -1,7 +1,7 @@
 /*
 * worker.go
  */
-package main
+package hornet
 
 import (
 	"fmt"

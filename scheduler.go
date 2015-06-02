@@ -6,7 +6,7 @@
 * hornet to the next.
  */
 
-package main
+package hornet
 
 import (
 	"fmt"

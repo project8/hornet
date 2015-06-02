@@ -4,7 +4,7 @@
 * the shipper thread sends data files to a remote destination for long-term storage via rsync
  */
 
-package main
+package hornet
 
 import (
 	"fmt"

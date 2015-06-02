@@ -4,14 +4,14 @@
 * watcher is responsible for monitoring changes to the filesystem and sending
 * those changes to workers.
  */
-package main
+package hornet
 
 import (
-	"golang.org/x/exp/inotify"
 	"log"
 	"strings"
 
 	"github.com/spf13/viper"
+	"golang.org/x/exp/inotify"
 )
 
 const (
