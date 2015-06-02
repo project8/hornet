@@ -6,12 +6,12 @@
 * Two threads can be used for receiving and sending AMQP messages, respectively: AmqpReceiver and AmqpSender
  */
 
-package main
+package hornet
 
 import (
 	"errors"
 	"log"
-	"os"
+	//"os"
 	//"os/exec"
 	//"path/filepath"
 	"strings"
@@ -20,8 +20,10 @@ import (
 
 	"github.com/streadway/amqp"
 	"github.com/ugorji/go/codec"
-	"github.com/kardianos/osext"
+	//"github.com/kardianos/osext"
 	"github.com/spf13/viper"
+
+	"github.com/project8/hornet/gogitver"
 )
 
 type SenderInfo struct {

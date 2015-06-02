@@ -4,7 +4,7 @@
 * The FileInfo struct holds the header information about a file being processed by Hornet.
  */
 
-package main
+package hornet
 
 import (
 	//"fmt"

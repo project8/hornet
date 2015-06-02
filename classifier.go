@@ -9,7 +9,7 @@
 *    - Types will be tested in order of specification in the configuration.
  */
 
-package main
+package hornet
 
 import (
 	"errors"
@@ -177,6 +177,9 @@ shipLoop:
 						hashTokens := strings.Fields(string(hash))
 						opReturn.FHeader.FileHash = hashTokens[0]
 						log.Printf("[classifier] file <%s> hash: %s", inputFilename, opReturn.FHeader.FileHash)
+						if sendHash {
+							log.Printf("%v", hashMessage)
+						}
 					}
 					context.RetStream <- opReturn
 					break typeLoop

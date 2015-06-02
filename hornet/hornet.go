@@ -30,6 +30,8 @@ import (
 	"syscall"
 
 	"github.com/spf13/viper"
+
+	//"hornet"
 )
 
 // Validate checks the sanity of a Config instance

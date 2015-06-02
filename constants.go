@@ -5,7 +5,7 @@
 *
 */
 
-package main
+package hornet
 
 // Global config
 var (
