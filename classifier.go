@@ -72,6 +72,12 @@ func ValidateClassifierConfig() (e error) {
 			log.Print(e.Error())
 		}
 	}
+
+	if viper.IsSet("hash") == false {
+		e = errors.New("[classifier] Hash configuration not provided")
+		log.Print(e.Error())
+		return
+	}
 	return
 }
 
@@ -104,9 +110,17 @@ func Classifier(context OperatorContext) {
 		log.Printf("[classifier] Adding type:\n\t%v", types[iType])
 	}
 
-	requireHash := viper.GetBool("classifier.require-hash")
-	hashCmd := "md5sum"
-	hashOpt := "-b"
+	requireHash := viper.GetBool("hash.required")
+	hashCmd := viper.GetString("hash.command")
+	hashOpt := viper.GetString("hash.cmd-opt")
+
+	hashRoutingKey := viper.GetString("hash.send-to")
+	sendHash := false
+	var hashMessage P8Message
+	if len(hashRoutingKey) > 0 {
+		sendHash = true
+		hashMessage = PrepareMessage([]string{hashRoutingKey}, "application/msgpack", Request, Set)
+	}
 
 	log.Print("[classifier] started successfully")
 

@@ -11,15 +11,17 @@ package main
 import (
 	"errors"
 	"log"
+	"os"
 	//"os/exec"
 	//"path/filepath"
 	"strings"
 	"sync"
 	"unsafe"
 
-	"github.com/spf13/viper"
 	"github.com/streadway/amqp"
 	"github.com/ugorji/go/codec"
+	"github.com/kardianos/osext"
+	"github.com/spf13/viper"
 )
 
 type SenderInfo struct {
@@ -34,8 +36,8 @@ type SenderInfo struct {
 type P8Message struct {
     Target     []string
 	Encoding   string
-	MsgType    uint64
-	MsgOp      uint64
+	MsgTypeVal MsgType
+	MsgOpVal   MsgOp
 	TimeStamp  string
 	SenderInfo
 	Payload    interface{}
@@ -46,6 +48,16 @@ var SendMessageQueue = make(chan P8Message, 100)
 
 // Separator for the routing key/target parts
 var TargetSeparator string = "."
+
+var MasterSenderInfo = SenderInfo{
+	Package:  "hornet", // yeah, hardcoded, I know . . .
+	Exe:      "",//osext.Executable(), //TODO: this is illegal because of double return values
+	Version:  gogitver.Tag(),
+	Commit:   gogitver.Git(),
+	Hostname: "",//os.Hostname(), //TODO: this is illegal because of double return values
+	Username: "",//user.Current(), //TODO: this returns a pointer to user, and we want User.Username; plus it's a double return value
+}
+
 
 // ValidateAmqpConfig checks the sanity of the amqp section of a configuration.
 // It makes the following guarantees
@@ -99,6 +111,7 @@ func StartAmqp(ctrlQueue chan ControlMessage, reqQueue chan ControlMessage, thre
 	return
 }
 
+// AmqpReceiver is a goroutine for receiving and handling AMQP messages
 func AmqpReceiver(ctrlQueue chan ControlMessage, reqQueue chan ControlMessage, poolCount *sync.WaitGroup) {
 	// decrement the wg counter at the end
 	defer poolCount.Done()
@@ -221,10 +234,10 @@ amqpLoop:
 			// Translate the body of the message into a P8Message object
 			senderInfo := body["sender_info"].(map[interface{}]interface{})
 			p8Message := P8Message {
-				Encoding: message.ContentEncoding,
-				MsgType: body["msgtype"].(uint64),
-				MsgOp:   body["msgop"].(uint64),
-				TimeStamp: body["timestamp"].(string),
+				Encoding:   message.ContentEncoding,
+				MsgTypeVal: body["msgtype"].(MsgType),
+				MsgOpVal:   body["msgop"].(MsgOp),
+				TimeStamp:  body["timestamp"].(string),
 				SenderInfo: SenderInfo{
 					Package:  senderInfo["package"].(string),
 					Exe:      senderInfo["exe"].(string),
@@ -260,7 +273,7 @@ amqpLoop:
 
 }
 
-
+// AmqpSender is a goroutine responsible for sending AMQP messages received on a channel
 func AmqpSender(ctrlQueue chan ControlMessage, reqQueue chan ControlMessage, poolCount *sync.WaitGroup) {
 	// decrement the wg counter at the end
 	defer poolCount.Done()
@@ -314,8 +327,8 @@ amqpLoop:
 				//"username": p8Message.SenderInfo.Username,
 			}
 			var body = map[string]interface{} {
-				"msgtype": p8Message.MsgType,
-				"msgop": p8Message.MsgOp,
+				"msgtype": p8Message.MsgTypeVal,
+				"msgop": p8Message.MsgOpVal,
 				"timestamp": p8Message.TimeStamp,
 				"sender_info": senderInfo,
 				"payload": p8Message.Payload,
@@ -368,5 +381,18 @@ amqpLoop:
 	}
 
 	log.Print("[amqp sender] finished.")
+}
 
+// PrepareMessage sets up most of the fields in a P8Message object.
+// The payload is not set here.
+func PrepareMessage(target []string, encoding string, msgType MsgType, msgOp MsgOp)(p8Message P8Message) {
+	p8Message = P8Message {
+		Target: target,
+		Encoding: encoding,
+		MsgTypeVal: msgType,
+		MsgOpVal: msgOp,
+		// timestamp
+		SenderInfo: MasterSenderInfo,
+	}
+	return
 }

@@ -32,25 +32,6 @@ import (
 	"github.com/spf13/viper"
 )
 
-// Global config
-var (
-	MaxThreads int = 25
-)
-
-// A ControlMessage is sent between the main thread and the worker threads
-// to indicate system events (such as termination) that must be handled.
-type ControlMessage uint
-
-const (
-	// StopExecution asks the worker threads to finish what they are doing
-	// and return gracefully.
-	StopExecution = 0
-
-	// ThreadCannotContinue signals that the sending thread cannot continue
-	// executing due to an error, and hornet should shut down.
-	ThreadCannotContinue = 1
-)
-
 // Validate checks the sanity of a Config instance
 //   1) the number of threads is sane
 //   2) the provided config file is parsable json
@@ -157,6 +138,24 @@ func main() {
 	pool.Add(1)
 	threadCountQueue <- 1
 	go Scheduler(schedulingQueue, controlQueue, requestQueue, threadCountQueue, &pool)
+
+	p8Message := P8Message {
+		Encoding: "application/json",
+		Target: []string{"some", "address", "or", "another"},
+		MsgTypeVal: 1,
+		MsgOpVal:   2,
+		TimeStamp: "now",
+		SenderInfo: SenderInfo{
+			Package:  "test",
+			Exe:      "test",
+			Version:  "test",
+			Commit:   "test",
+			//Hostname: senderInfo["hostname"].(string),
+			//Username: senderInfo["username"].(string),
+		},
+		Payload: "the payload",
+	}
+	SendMessageQueue <- p8Message
 
 	// now just wait for the signal to stop.  this is either a ctrl+c
 	// or a SIGTERM.

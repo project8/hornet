@@ -33,10 +33,18 @@ The second line removes the old version of go that I previously installed using 
 The third line gave me an error, so I used the fourth line to force the package manager to overwrite 
 the golang package.
 
-Hornet is almost all standard library, except for the inotify package at 
-[golang.org](https://godoc.org/golang.org/x/exp/inotify):
+Aside from standard go libraries, several external packages are used, which you'll need to acquire:
+* [amqp](https://github.com/streadway/amqp) for sending and receiving AMQP messages;
+* [codec](https://github.com/ugorji/go/codec) for encoding and decoding JSON and msgpack;
+* [inotify](https://golang.org/x/exp/inotify) for tracking file system events (Linux only);
+* [osext](https://github.com/kardianos/osext) for finding the absolute executable path in a platform-independent way;
+* [viper](https://github.com/spf13/viper) for the application configuration.
 ```
+  > go get github.com/streadway/amqp
+  > go get github.com/ugorji/go/codec
   > go get golang.org/x/exp/inotify
+  > go get github.com/kardianos/osext
+  > go get github.com/spf13/viper
 ```
 
 #### Operating system support
