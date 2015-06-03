@@ -9,7 +9,7 @@
 package hornet
 
 import (
-	"fmt"
+	//"fmt"
 	"log"
 	"path/filepath"
 	//"strings"
@@ -182,7 +182,7 @@ scheduleLoop:
 					log.Printf("[scheduler] sending <%s> to the workers", fileHeader.Filename)
 					workersWorking++
 					workerQueue <- fileHeader
-					fmt.Println("workers working:", workersWorking)
+					//fmt.Println("[scheduler] workers working:", workersWorking)
 				} else {
 					log.Printf("[scheduler] sending <%s> to shipper (skipping nearline)", fileHeader.Filename)
 					shipperQueue <- fileHeader

@@ -3,7 +3,7 @@ package hornet
 
 import (
 	//"errors"
-	"fmt"
+	//"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -58,13 +58,13 @@ func RenamePathRelativeTo(filename, base, dest string) (s string, e error) {
 			return
 		}
 		s = filepath.Join(dest, subpath)
-		fmt.Printf("RPRT opt 1: %s --> %s\n", filename, s)
+		//fmt.Printf("RPRT opt 1: %s --> %s\n", filename, s)
 		//e = errors.New("filename does not contain base as a prefix")
 		return
 	} else {
 		_, file := filepath.Split(filename)
 		s = filepath.Join(dest, file)
-		fmt.Printf("RPRT opt 2: %s --> %s\n", filename, s)
+		//fmt.Printf("RPRT opt 2: %s --> %s\n", filename, s)
 		return
 	}
 }

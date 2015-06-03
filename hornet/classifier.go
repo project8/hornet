@@ -196,7 +196,7 @@ shipLoop:
 							hashMessage.TimeStamp = time.Now().UTC().Format(TimeFormat)
 							hashMessage.Payload.(map[string]interface{})["file_name"] = inputFilename
 							hashMessage.Payload.(map[string]interface{})["hash"] = opReturn.FHeader.FileHash
-							log.Printf("Sending hash message:\n\t%v", hashMessage)
+							//log.Printf("[classifier] Sending hash message:\n\t%v", hashMessage)
 							SendMessageQueue <- hashMessage
 						}
 					}

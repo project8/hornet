@@ -259,7 +259,7 @@ amqpLoop:
 				log.Printf("[amqp receiver] Message content encoding is not understood: %s", message.ContentEncoding)
 				continue amqpLoop
 			}
-			log.Printf("[amqp receiver] Message body:\n\t%v", body)
+			//log.Printf("[amqp receiver] Message body:\n\t%v", body)
 
 			// Translate the body of the message into a P8Message object
 			senderInfo := body["sender_info"].(map[interface{}]interface{})
@@ -283,7 +283,7 @@ amqpLoop:
 				p8Message.Target = routingKeyParts[1:len(routingKeyParts)]
 			}
 
-			log.Printf("[amqp receiver] Message:\n\t%v", p8Message)
+			//log.Printf("[amqp receiver] Message:\n\t%v", p8Message)
 
 			// Deal with the message according to the target
 			if len(p8Message.Target) == 0 {
@@ -366,7 +366,7 @@ amqpLoop:
 				"payload": p8Message.Payload,
 			}
 
-			log.Printf("[amqp sender] Received message to send:\n\t%v", body)
+			//log.Printf("[amqp sender] Received message to send:\n\t%v", body)
 			bodyNBytes := unsafe.Sizeof(p8Message)
 			//log.Printf("[amqp sender] Message size in bytes: %d", bodyNBytes)
 
@@ -401,7 +401,7 @@ amqpLoop:
 
 			routingKey := strings.Join(p8Message.Target, TargetSeparator)
 
-			log.Printf("[amqp sender] Encoded message:\n\t%v", message)
+			//log.Printf("[amqp sender] Encoded message:\n\t%v", message)
 
 			// Publish!
 			pubErr := channel.Publish(exchangeName, routingKey, false, false, message)
