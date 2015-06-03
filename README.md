@@ -55,18 +55,17 @@ care of this.
 
 
 ### Installation
-We suggest that you create a build directory to keep the built files out of the source tree:
+Update hornet's knowledge of its git commit and tag:
 ```
-  > mkdir build
-  > cd build
-```
-
-Then use the `go` tool to build Hornet:
-```
-  > go build -o hornet ../*.go
+  > make remove_older_describe_go
 ```
 
-This should create the executable `hornet`. 
+Install hornet:
+```
+  > go install hornet
+```
+
+The executable `hornet` should now be in `$GOPATH/bin`.
 
 ## Running hornet
 To run hornet at the command line, you must supply a few parameters:
