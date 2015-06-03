@@ -80,3 +80,12 @@ There are two options for building hornet:
 3. Run the executable:
 
         > hornet --config my_config.json
+
+### So, you want to . . .
+* Change the number of nearline workers to adapt to available processing power and analysis time: `scheduler.n-nearline-workers`
+* Turn AMQP usage off: `amqp.receiver` and `amqp.sender` set to `false`.  Also, if `hash.required` is `true`, then make sure `hash.send-to` is `""` (empty string)
+* Turn the watcher on or off: `watcher.active` set to `true` or `false`, respectively
+* Set the directory for the watcher: `watcher.dir`
+* Add/remove/modify a recognized file type: `classifier.types.[whatever]`
+* Change the warm data storage: `mover.dest-dir`
+* Change the cold data storage: `shipper.dest-dir`
