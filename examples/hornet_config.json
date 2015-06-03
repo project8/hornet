@@ -57,9 +57,16 @@
                 "do-hash": false,
                 "do-nearline": false
             }
-        ],
-        "require-hash": false
+        ]
     },
+
+	"hash":
+	{
+		"required": true,
+		"send-to": "hornet",
+		"command": "md5sum",
+		"cmd-opt": "-b"
+	},
 
     "mover":
     {
