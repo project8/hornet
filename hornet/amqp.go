@@ -265,18 +265,18 @@ amqpLoop:
 			senderInfo := body["sender_info"].(map[interface{}]interface{})
 			p8Message := P8Message {
 				Encoding:   message.ContentEncoding,
-				MsgTypeVal: MsgType(body["msgtype"].(int64)),//.(MsgType),
-				MsgOpVal:   MsgOp(body["msgop"].(int64)),//.(MsgOp),
-				//TimeStamp:  body["timestamp"].(string),
+				MsgTypeVal: MsgType(body["msgtype"].(int64)),
+				MsgOpVal:   MsgOp(body["msgop"].(int64)),
+				TimeStamp:  string(body["timestamp"].([]uint8)),
 				SenderInfo: SenderInfo{
-					//Package:  senderInfo["package"].(string),
-					//Exe:      senderInfo["exe"].(string),
-					//Version:  senderInfo["version"].(string),
-					Commit:   senderInfo[interface{}("commit")].(string),
-					//Hostname: senderInfo["hostname"].(string),
-					//Username: senderInfo["username"].(string),
+					Package:  string(senderInfo["package"].([]uint8)),
+					Exe:      string(senderInfo["exe"].([]uint8)),
+					Version:  string(senderInfo["version"].([]uint8)),
+					Commit:   string(senderInfo["commit"].([]uint8)),
+					Hostname: string(senderInfo["hostname"].([]uint8)),
+					Username: string(senderInfo["username"].([]uint8)),
 				},
-				//Payload: body["payload"],
+				Payload: body["payload"],
 			}
 			routingKeyParts := strings.Split(message.RoutingKey, TargetSeparator)
 			if len(routingKeyParts) > 1 {
@@ -355,8 +355,8 @@ amqpLoop:
 				"exe": p8Message.SenderInfo.Exe,
 				"version": p8Message.SenderInfo.Version,
 				"commit": p8Message.SenderInfo.Commit,
-				//"hostname": p8Message.SenderInfo.Hostname,
-				//"username": p8Message.SenderInfo.Username,
+				"hostname": p8Message.SenderInfo.Hostname,
+				"username": p8Message.SenderInfo.Username,
 			}
 			var body = map[string]interface{} {
 				"msgtype": p8Message.MsgTypeVal,
