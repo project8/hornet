@@ -60,14 +60,22 @@ Update hornet's knowledge of its git commit and tag:
   > make remove_older_describe_go
 ```
 
-Install hornet:
-```
-  > go install hornet
-```
+There are two options for building hornet:
 
-The executable `hornet` should now be in `$GOPATH/bin`.
+1. If you want to build an "official" copy that gets installed for general use:
+
+        > go install hornet
+
+ The executable `hornet` should now be in `$GOPATH/bin`.
+2. If you want to build a local copy for development purposes:
+
+        > go build -o run_hornet .
+
+ This will create the executable `run_hornet` in the source directory. The name is different from `hornet` since there's a subdirectory with that name.
+
 
 ## Running hornet
+NOTE: these instructions are outdated and will be fixed shortly
 To run hornet at the command line, you must supply a few parameters:
 * Path to your Katydid executable
 * Path to the Katydid config file you want to have run by Hornet
