@@ -23,7 +23,7 @@ For use on systems where the standard go version is too old (e.g. Debian Wheezy)
 the `godeb` application is suggested.  First, install the too-old version of `golang`.
 Then proceed to install godeb.  When I (Noah) installed it on teselecta, I used the following sequence of commands:
 ```
-  > go get gopkg.in/niermyer/godeb.v1/cmd/godeb
+  > go get gopkg.in/niemeyer/godeb.v1/cmd/godeb
   > sudo apt-get remove golang
   > sudo $GOPATH/bin/godeb install
   > sudo dpkg -i --force-overwrite go_[version]-godeb1_[system].deb
