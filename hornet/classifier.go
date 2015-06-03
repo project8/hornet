@@ -130,6 +130,11 @@ func Classifier(context OperatorContext) {
 		}
 		sendHash = true
 		hashMessage = PrepareMessage([]string{hashRoutingKey}, "application/msgpack", Request, Set)
+		payload := make(map[string]interface{})
+		payload["value"] = []string{"do_insert"}
+		payload["file_name"] = ""
+		payload["hash"] = ""
+		hashMessage.Payload = payload
 	}
 
 	log.Print("[classifier] started successfully")
@@ -188,7 +193,11 @@ shipLoop:
 						opReturn.FHeader.FileHash = hashTokens[0]
 						log.Printf("[classifier] file <%s> hash: %s", inputFilename, opReturn.FHeader.FileHash)
 						if sendHash {
-							log.Printf("%v", hashMessage)
+							hashMessage.TimeStamp = time.Now().UTC().Format(TimeFormat)
+							hashMessage.Payload.(map[string]interface{})["file_name"] = inputFilename
+							hashMessage.Payload.(map[string]interface{})["hash"] = opReturn.FHeader.FileHash
+							log.Printf("Sending hash message:\n\t%v", hashMessage)
+							SendMessageQueue <- hashMessage
 						}
 					}
 					context.RetStream <- opReturn

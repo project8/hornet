@@ -26,6 +26,10 @@ const (
 	ThreadCannotContinue = 1
 )
 
+// Time format
+const TimeFormat = "2006-01-02T22:04:05Z"
+
+
 // Project 8 Wire Protocol Standards
 type MsgType uint64
 const (

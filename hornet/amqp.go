@@ -265,18 +265,18 @@ amqpLoop:
 			senderInfo := body["sender_info"].(map[interface{}]interface{})
 			p8Message := P8Message {
 				Encoding:   message.ContentEncoding,
-				MsgTypeVal: body["msgtype"].(MsgType),
-				MsgOpVal:   body["msgop"].(MsgOp),
-				TimeStamp:  body["timestamp"].(string),
+				MsgTypeVal: MsgType(body["msgtype"].(int64)),//.(MsgType),
+				MsgOpVal:   MsgOp(body["msgop"].(int64)),//.(MsgOp),
+				//TimeStamp:  body["timestamp"].(string),
 				SenderInfo: SenderInfo{
-					Package:  senderInfo["package"].(string),
-					Exe:      senderInfo["exe"].(string),
-					Version:  senderInfo["version"].(string),
-					Commit:   senderInfo["commit"].(string),
+					//Package:  senderInfo["package"].(string),
+					//Exe:      senderInfo["exe"].(string),
+					//Version:  senderInfo["version"].(string),
+					Commit:   senderInfo[interface{}("commit")].(string),
 					//Hostname: senderInfo["hostname"].(string),
 					//Username: senderInfo["username"].(string),
 				},
-				Payload: body["payload"],
+				//Payload: body["payload"],
 			}
 			routingKeyParts := strings.Split(message.RoutingKey, TargetSeparator)
 			if len(routingKeyParts) > 1 {
