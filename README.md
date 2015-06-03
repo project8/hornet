@@ -21,7 +21,7 @@ Hornet requires go version 1.1 or better.
 
 For use on systems where the standard go version is too old (e.g. Debian Wheezy), 
 the `godeb` application is suggested.  First, install the too-old version of `golang`, 
-and setup your go workspace and `GOPATH` environment ((e.g.)[http://golang.org/doc/code.html#Workspaces]).
+and setup your go workspace and `GOPATH` environment ([e.g.](http://golang.org/doc/code.html#Workspaces)).
 Then proceed to install godeb.  When I (Noah) installed it on teselecta, I used the following sequence of commands:
 ```
   > go get gopkg.in/niermyer/godeb.v1/cmd/godeb
