@@ -75,11 +75,8 @@ There are two options for building hornet:
 
 
 ## Running hornet
-NOTE: these instructions are outdated and will be fixed shortly
-To run hornet at the command line, you must supply a few parameters:
-* Path to your Katydid executable
-* Path to the Katydid config file you want to have run by Hornet
-* The maximum number of workers (i.e. threads which are running Katydid)
-* The directory to watch for new files.
+1. Make a copy of `examples/hornet_config.json`
+2. Make any changes needed.  At a minimum, you will need to change `amqp.broker` (assuming either the sender or receiver are active), `watcher.dir` (assuming the watcher is active), `mover.dest-dir`, and `shipper.dest-dir`.  All of the directories used must exist.
+3. Run the executable:
 
-Check ```hornet -h``` for the most up-to-date invocation rules and syntax.
+        > hornet --config my_config.json
