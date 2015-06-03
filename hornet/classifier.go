@@ -20,6 +20,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/spf13/viper"
 )
@@ -118,6 +119,15 @@ func Classifier(context OperatorContext) {
 	sendHash := false
 	var hashMessage P8Message
 	if len(hashRoutingKey) > 0 {
+		if AmqpSenderIsActive == false {
+			// sometimes the AMQP sender takes a little time to startup, so wait a second
+			time.Sleep(1 * time.Second)
+			if AmqpSenderIsActive == false {
+				log.Printf("[classifier] Cannot start classifier because the AMQP sender routine is not active, and sending hashes has been requested")
+				context.ReqQueue <- ThreadCannotContinue
+				return
+			}
+		}
 		sendHash = true
 		hashMessage = PrepareMessage([]string{hashRoutingKey}, "application/msgpack", Request, Set)
 	}

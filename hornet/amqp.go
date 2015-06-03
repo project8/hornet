@@ -11,8 +11,9 @@ package hornet
 import (
 	"errors"
 	"log"
-	//"os"
+	"os"
 	//"os/exec"
+	"os/user"
 	//"path/filepath"
 	"strings"
 	"sync"
@@ -20,7 +21,7 @@ import (
 
 	"github.com/streadway/amqp"
 	"github.com/ugorji/go/codec"
-	//"github.com/kardianos/osext"
+	"github.com/kardianos/osext"
 	"github.com/spf13/viper"
 
 	"github.com/project8/hornet/gogitver"
@@ -51,15 +52,33 @@ var SendMessageQueue = make(chan P8Message, 100)
 // Separator for the routing key/target parts
 var TargetSeparator string = "."
 
-var MasterSenderInfo = SenderInfo{
-	Package:  "hornet", // yeah, hardcoded, I know . . .
-	Exe:      "",//osext.Executable(), //TODO: this is illegal because of double return values
-	Version:  gogitver.Tag(),
-	Commit:   gogitver.Git(),
-	Hostname: "",//os.Hostname(), //TODO: this is illegal because of double return values
-	Username: "",//user.Current(), //TODO: this returns a pointer to user, and we want User.Username; plus it's a double return value
-}
+// Value to confirm that the AMQP sender routine has started
+var AmqpSenderIsActive bool = false
+// Value to confirm that the AMQP receiver routine has started
+var AmqpReceiverIsActive bool = false
 
+var MasterSenderInfo SenderInfo
+func fillMasterSenderInfo() (e error) {
+	MasterSenderInfo.Package = "hornet"
+	MasterSenderInfo.Exe, e = osext.Executable()
+	if e != nil {
+		log.Printf("[amqp] Error in getting the executable:\n\t%v", e)
+	}
+	MasterSenderInfo.Version = gogitver.Tag()
+	MasterSenderInfo.Commit = gogitver.Git()
+	MasterSenderInfo.Hostname, e = os.Hostname()
+	if e != nil {
+		log.Printf("[amqp] Error in getting the hostname:\n\t%v", e)
+	}
+	user, userErr := user.Current()
+	e = userErr
+	if e != nil {
+		log.Printf("[amqp] Error in getting the username:\n\t%v", e)
+	} else {
+		MasterSenderInfo.Username = user.Username
+	}
+	return
+}
 
 // ValidateAmqpConfig checks the sanity of the amqp section of a configuration.
 // It makes the following guarantees
@@ -93,8 +112,15 @@ func ValidateAmqpConfig() (e error) {
 	return
 }
 
-func StartAmqp(ctrlQueue chan ControlMessage, reqQueue chan ControlMessage, threadCountQueue chan uint, poolCount *sync.WaitGroup) {
+func StartAmqp(ctrlQueue chan ControlMessage, reqQueue chan ControlMessage, threadCountQueue chan uint, poolCount *sync.WaitGroup) (e error) {
 	log.Print("[amqp] Starting AMQP components")
+	log.Printf("[####] git: %v,  tag: %v", MasterSenderInfo.Version, MasterSenderInfo.Commit)
+
+	e = fillMasterSenderInfo()
+	if e != nil {
+		log.Printf("[amqp] Cannot start AMQP; failed to get master sender info")
+		return
+	}
 
 	if viper.IsSet("amqp.receiver") && viper.GetBool("amqp.receiver.active") {
 		log.Print("[amqp] Starting AMQP receiver")
@@ -190,6 +216,8 @@ func AmqpReceiver(ctrlQueue chan ControlMessage, reqQueue chan ControlMessage, p
 	}
 
 	log.Print("[amqp receiver] started successfully")
+	AmqpReceiverIsActive = true
+	defer func() {AmqpReceiverIsActive = false}()
 
 amqpLoop:
 	for {
@@ -307,6 +335,8 @@ func AmqpSender(ctrlQueue chan ControlMessage, reqQueue chan ControlMessage, poo
 	exchangeName := viper.GetString("amqp.exchange")
 
 	log.Print("[amqp sender] started successfully")
+	AmqpSenderIsActive = true
+	defer func() {AmqpSenderIsActive = false}()
 
 amqpLoop:
 	for {
