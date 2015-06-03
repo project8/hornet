@@ -17,11 +17,10 @@ The worker simply invokes Katydid with a config file specified on the command
 line at runtime.  
 
 ### Dependencies
-Hornet requires go version 1.1 or better.  
+Hornet requires go version 1.1 or better.  It's recommended that you setup your  go workspace and `GOPATH` environment ([e.g.](http://golang.org/doc/code.html#Workspaces)) in the standard way.
 
 For use on systems where the standard go version is too old (e.g. Debian Wheezy), 
-the `godeb` application is suggested.  First, install the too-old version of `golang`, 
-and setup your go workspace and `GOPATH` environment ([e.g.](http://golang.org/doc/code.html#Workspaces)).
+the `godeb` application is suggested.  First, install the too-old version of `golang`.
 Then proceed to install godeb.  When I (Noah) installed it on teselecta, I used the following sequence of commands:
 ```
   > go get gopkg.in/niermyer/godeb.v1/cmd/godeb
