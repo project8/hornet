@@ -55,6 +55,11 @@ care of this.
 
 
 ### Installation
+Download hornet:
+```
+  > go get github.com/project8/hornet
+```
+
 Update hornet's knowledge of its git commit and tag:
 ```
   > make remove_older_describe_go
