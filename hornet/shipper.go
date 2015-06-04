@@ -18,6 +18,7 @@ import (
 func Shipper(context OperatorContext) {
 	// decrement the wg counter at the end
 	defer context.PoolCount.Done()
+	defer log.Print("[shipper] finished.")
 
 	destDir := viper.GetString("shipper.dest-dir")
 
@@ -59,8 +60,4 @@ shipLoop:
 		}
 
 	}
-
-	// Finish any pending move jobs.
-
-	log.Print("[shipper] finished.")
 }

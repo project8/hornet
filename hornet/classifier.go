@@ -85,6 +85,7 @@ func ValidateClassifierConfig() (e error) {
 func Classifier(context OperatorContext) {
 	// decrement the wg counter at the end
 	defer context.PoolCount.Done()
+	defer log.Print("[classifier] finished.")
 
 	typesRawIfc := viper.Get("classifier.types")
 	typesRaw := typesRawIfc.([]interface{})
@@ -216,8 +217,4 @@ shipLoop:
 		}
 
 	}
-
-	// Finish any pending move jobs.
-
-	log.Print("[classifier] finished.")
 }

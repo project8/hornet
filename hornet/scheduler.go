@@ -38,6 +38,7 @@ type OperatorContext struct {
 func Scheduler(schQueue chan string, ctrlQueue chan ControlMessage, reqQueue chan ControlMessage, threadCountQueue chan uint, poolCount *sync.WaitGroup) {
 	// Decrement the waitgroup counter when done
 	defer poolCount.Done()
+	defer log.Print("[scheduler] finished.")
 
 	queueSize := viper.GetInt("scheduler.queue-size")
 	log.Println("[scheduler] Queue size:", queueSize)
@@ -215,5 +216,4 @@ scheduleLoop:
 			}
 		}
 	}
-
 }

@@ -69,6 +69,7 @@ func Move(src, dest string) (e error) {
 func Mover(context OperatorContext) {
 	// decrement the wg counter at the end
 	defer context.PoolCount.Done()
+	defer log.Print("[mover] finished.")
 
 	// keep a running list of all of the directories we know about.
 	ds := make(DirectorySet)
@@ -128,8 +129,4 @@ moveLoop:
 		}
 
 	}
-
-	// Finish any pending move jobs.
-
-	log.Print("[mover] finished.")
 }

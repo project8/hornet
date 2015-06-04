@@ -142,6 +142,7 @@ func StartAmqp(ctrlQueue chan ControlMessage, reqQueue chan ControlMessage, thre
 func AmqpReceiver(ctrlQueue chan ControlMessage, reqQueue chan ControlMessage, poolCount *sync.WaitGroup) {
 	// decrement the wg counter at the end
 	defer poolCount.Done()
+	defer log.Print("[amqp receiver] finished.")
 
 	// Connect to the AMQP broker
 	// Deferred command: close the connection
@@ -297,15 +298,14 @@ amqpLoop:
 			}
 		}
 	}
-
-	log.Print("[amqp receiver] finished.")
-
 }
 
 // AmqpSender is a goroutine responsible for sending AMQP messages received on a channel
 func AmqpSender(ctrlQueue chan ControlMessage, reqQueue chan ControlMessage, poolCount *sync.WaitGroup) {
 	// decrement the wg counter at the end
 	defer poolCount.Done()
+	defer log.Print("[amqp sender] finished.")
+
 
 	// Connect to the AMQP broker
 	// Deferred command: close the connection
@@ -410,8 +410,6 @@ amqpLoop:
 
 		}
 	}
-
-	log.Print("[amqp sender] finished.")
 }
 
 // PrepareMessage sets up most of the fields in a P8Message object.
