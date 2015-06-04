@@ -28,6 +28,7 @@ import (
 	"os/signal"
 	"sync"
 	"syscall"
+	"time"
 
 	"github.com/spf13/viper"
 
@@ -46,7 +47,11 @@ func ValidateConfig() (e error) {
 	}
 	log.Printf("[hornet] Full configuration:\n%v", string(indentedConfig))
 
-	nThreads := 1 /*scheduler*/ + 1 /*watcher*/ + 1 /*mover*/ + viper.GetInt("scheduler.n-nearline-workers") + viper.GetInt("scheduler.n-shippers")
+	// Threads used:
+	//   1 each for the scheduler, classifier, watcher, mover, amqp sender, amqp receiver = 6
+	//   N nearline workers (specified in scheduler.n-nearline-workers)
+	//   M shippers (specified in scheduler.n-shippers)
+	nThreads := 6 + viper.GetInt("scheduler.n-nearline-workers") + viper.GetInt("scheduler.n-shippers")
 	if nThreads > hornet.MaxThreads {
 		e = fmt.Errorf("Maximum number of threads exceeded")
 	}
@@ -184,11 +189,28 @@ stopLoop:
 	}
 
 	// Close all of the worker threads gracefully
+	// Use the select/default idiom to avoid the problem where one of the threads has already
+	// closed and we can't send to the control queue
 	log.Printf("[hornet] stopping %d threads", len(threadCountQueue)-1)
 	for i := 0; i < len(threadCountQueue); i++ {
-		controlQueue <- hornet.StopExecution
+		select {
+		case controlQueue <- hornet.StopExecution:
+		default:
+		}
 	}
-	pool.Wait()
 
-	log.Print("[hornet] All goroutines finished.  terminating...")
+	// Timed call to pool.Wait() in case one or more of the threads refuses to close
+	// Use the channel-based concurrency pattern (http://blog.golang.org/go-concurrency-patterns-timing-out-and)
+	// We have to wrap pool.Wait() in a go routine that sends on a channel
+	waitChan := make(chan bool, 1)
+	go func() {
+		pool.Wait()
+		waitChan <- true
+	}()
+	select {
+	case <-waitChan:
+		log.Print("[hornet] All goroutines finished.")
+	case <-time.After(1 * time.Second):
+		log.Print("[hornet] Timed out waiting for goroutines to finish.")
+	}
 }

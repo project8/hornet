@@ -50,6 +50,7 @@ const subdWatchFlags = inotify.IN_ONLYDIR | inotify.IN_CREATE | inotify.IN_MOVED
 func Watcher(context OperatorContext) {
 	// Decrement the waitgroup counter when done
 	defer context.PoolCount.Done()
+	defer func() {log.Print("[watcher] finished.")}()
 
 	watchDir := viper.GetString("watcher.dir")
 
@@ -131,5 +132,4 @@ runLoop:
 
 		}
 	}
-	//close(context.FileStream)
 }

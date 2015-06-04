@@ -52,7 +52,7 @@ workLoop:
 		// TODO: should finish pending jobs before dying.
 		case controlMsg := <-context.CtrlQueue:
 			if controlMsg == StopExecution {
-				log.Print("[worker] stopping on interrupt.")
+				localLog(jobCount, "stopping on interrupt.")
 				break workLoop
 			}
 		case fileHeader := <-context.FileStream:
@@ -124,5 +124,5 @@ workLoop:
 			context.RetStream <- opReturn
 		} // end select
 	} // end for
-	localLog(jobCount+1, fmt.Sprintf("no work remaining.  total of %d jobs processed.", jobCount))
+	localLog(jobCount, fmt.Sprintf("no work remaining.  total of %d jobs processed.", jobCount))
 }

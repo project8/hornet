@@ -114,7 +114,6 @@ func ValidateAmqpConfig() (e error) {
 
 func StartAmqp(ctrlQueue chan ControlMessage, reqQueue chan ControlMessage, threadCountQueue chan uint, poolCount *sync.WaitGroup) (e error) {
 	log.Print("[amqp] Starting AMQP components")
-	log.Printf("[####] git: %v,  tag: %v", MasterSenderInfo.Version, MasterSenderInfo.Commit)
 
 	e = fillMasterSenderInfo()
 	if e != nil {
