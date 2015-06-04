@@ -1,0 +1,84 @@
+{
+    "scheduler":
+    {
+        "queue-size": 100,
+        "n-nearline-workers": 5,
+        "n-shippers": 1
+    },
+
+    "amqp":
+    {
+        "broker": "my.server",
+        "exchange": "requests",
+        "receiver":
+        {
+            "active": true,
+            "queue": "hornet"
+        },
+        "sender":
+        {
+            "active": true
+        }
+    },
+
+    "watcher":
+    {
+        "active": true,
+        "dir": "/data"
+    },
+
+    "classifier":
+    {
+        "types":
+        [
+            {
+                "name": "egg",
+                "match-extension": "egg",
+                "do-hash": true,
+                "do-nearline": true,
+                "nearline-cmd": "echo \"here's an egg file\""
+            },
+            {
+                "name": "rsa-mat",
+                "match-extension": "mat",
+                "do-hash": true,
+                "do-nearline": true,
+                "nearline-cmd": "echo \"here's an RSA MAT file\""
+            },
+            {
+                "name": "rsa-setup",
+                "match-extension": "Setup",
+                "do-hash": false,
+                "do-nearline": false
+            },
+            {
+                "name": "regexp-example",
+                "match-regexp": "project8is[A-Za-z]*",
+                "do-hash": false,
+                "do-nearline": false
+            }
+        ]
+    },
+
+	"hash":
+	{
+		"required": true,
+		"send-to": "hornet",
+		"command": "md5sum",
+		"cmd-opt": "-b"
+	},
+
+    "mover":
+    {
+        "dest-dir": "/warm-data"
+    },
+
+    "workers":
+    {
+    },
+
+    "shipper":
+    {
+        "dest-dir": "/remote-data"
+    }
+}
