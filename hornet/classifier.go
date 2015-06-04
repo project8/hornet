@@ -122,7 +122,11 @@ func Classifier(context OperatorContext) {
 	if len(hashRoutingKey) > 0 {
 		if AmqpSenderIsActive == false {
 			// sometimes the AMQP sender takes a little time to startup, so wait a second
-			time.Sleep(1 * time.Second)
+			var waitTime int = 1
+			if viper.IsSet("classifier.wait-for-sender") {
+				waitTime = viper.GetInt("classifier.wait-for-sender")
+			}
+			time.Sleep(time.Duration(waitTime) * time.Second)
 			if AmqpSenderIsActive == false {
 				log.Printf("[classifier] Cannot start classifier because the AMQP sender routine is not active, and sending hashes has been requested")
 				context.ReqQueue <- ThreadCannotContinue
@@ -185,20 +189,22 @@ shipLoop:
 					opReturn.FHeader.FileType = typeInfo.Name
 					opReturn.FHeader.DoNearline = typeInfo.DoNearline
 					opReturn.FHeader.SetNearlineCmd(typeInfo.NearlineCmd)
-					if hash, hashErr := exec.Command(hashCmd, hashOpt, inputFilePath).CombinedOutput(); hashErr != nil {
-						opReturn.Err = fmt.Errorf("[classifier] error while hashing:\n\t%v", hashErr.Error())
-						opReturn.IsFatal = requireHash
-						log.Printf(opReturn.Err.Error())
-					} else {
-						hashTokens := strings.Fields(string(hash))
-						opReturn.FHeader.FileHash = hashTokens[0]
-						log.Printf("[classifier] file <%s> hash: %s", inputFilename, opReturn.FHeader.FileHash)
-						if sendHash {
-							hashMessage.TimeStamp = time.Now().UTC().Format(TimeFormat)
-							hashMessage.Payload.(map[string]interface{})["file_name"] = inputFilename
-							hashMessage.Payload.(map[string]interface{})["hash"] = opReturn.FHeader.FileHash
-							//log.Printf("[classifier] Sending hash message:\n\t%v", hashMessage)
-							SendMessageQueue <- hashMessage
+					if typeInfo.DoHash {
+						if hash, hashErr := exec.Command(hashCmd, hashOpt, inputFilePath).CombinedOutput(); hashErr != nil {
+							opReturn.Err = fmt.Errorf("[classifier] error while hashing:\n\t%v", hashErr.Error())
+							opReturn.IsFatal = requireHash
+							log.Printf(opReturn.Err.Error())
+						} else {
+							hashTokens := strings.Fields(string(hash))
+							opReturn.FHeader.FileHash = hashTokens[0]
+							log.Printf("[classifier] file <%s> hash: %s", inputFilename, opReturn.FHeader.FileHash)
+							if sendHash {
+								hashMessage.TimeStamp = time.Now().UTC().Format(TimeFormat)
+								hashMessage.Payload.(map[string]interface{})["file_name"] = inputFilename
+								hashMessage.Payload.(map[string]interface{})["hash"] = opReturn.FHeader.FileHash
+								//log.Printf("[classifier] Sending hash message:\n\t%v", hashMessage)
+								SendMessageQueue <- hashMessage
+							}
 						}
 					}
 					context.RetStream <- opReturn

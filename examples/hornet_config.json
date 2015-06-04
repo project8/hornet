@@ -57,7 +57,8 @@
                 "do-hash": false,
                 "do-nearline": false
             }
-        ]
+        ],
+	"wait-for-sender": 1
     },
 
 	"hash":
