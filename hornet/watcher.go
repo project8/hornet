@@ -87,6 +87,7 @@ runLoop:
 		// if a new file is available in our watched directories, check to see
 		// if we're supposed to do something - and if so, send it along.
 		case fileCloseEvt := <-fileWatch.Event:
+			log.Printf("[watcher file event] %s", fileCloseEvt.String())
 			context.SchStream <- fileCloseEvt.Name
 
 		// directories are a little more complicated.  if it's a new directory,
@@ -94,21 +95,34 @@ runLoop:
 		// if it's a directory getting deleted, delete the watch.  if it's a
 		// directory getting moved-to, watch it.
 		case newSubDirEvt := <-subdWatch.Event:
+			log.Printf("[watcher dir event] %s", newSubDirEvt.String())
 			dirname := newSubDirEvt.Name
 			if shouldAddWatch(newSubDirEvt) {
 				if err := fileWatch.AddWatch(dirname, fileWatchFlags); err != nil {
-					log.Printf("[watcher] couldn't add subdir watch [%v]", err)
+					log.Printf("[watcher] couldn't add subdir file watch [%v]", err)
 					context.CtrlQueue <- ThreadCannotContinue
 					break runLoop
 				} else {
-					log.Printf("[watcher] added subdirectory to watch [%v]",
-						dirname)
+					log.Printf("[watcher] added subdirectory to file watch [%v]", dirname)
+				}
+				if err := subdWatch.AddWatch(dirname, subdWatchFlags); err != nil {
+					log.Printf("[watcher] couldn't add subdir dir watch [%v]", err)
+					context.CtrlQueue <- ThreadCannotContinue
+					break runLoop
+				} else {
+					log.Printf("[watcher] added subdirectory to dir watch [%v]", dirname)
 				}
 			} else if shouldRemoveWatch(newSubDirEvt) {
 				log.Printf("[watcher] removing watch on %s...", dirname)
 				if err := fileWatch.RemoveWatch(dirname); err != nil {
-					log.Printf("[watcher] can't remove watch on %s [%v]",
-						dirname, err)
+					log.Printf("[watcher] can't remove file watch on %s [%v]", dirname, err)
+				} else {
+					log.Printf("[watcher] removed file watch on %s", dirname)
+				}
+				if err := subdWatch.RemoveWatch(dirname); err != nil {
+					log.Printf("[watcher] can't remove dir watch on %s [%v]", dirname, err)
+				} else {
+					log.Printf("[watcher] removed dir watch on %s", dirname)
 				}
 			}
 
