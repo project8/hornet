@@ -74,10 +74,38 @@ func ValidateClassifierConfig() (e error) {
 		}
 	}
 
+	if viper.IsSet("classifier.base-paths") {
+		basePathsRawIfc := viper.Get("classifier.base-paths")
+		basePathsRaw := basePathsRawIfc.([]interface{})
+		for _, pathIfc := range basePathsRaw {
+			if _, fpErr := filepath.Abs(pathIfc.(string)); fpErr != nil {
+				e = fmt.Errorf("[classifier] Invalid base path: <%v>", pathIfc.(string))
+				log.Printf(e.Error())
+			}
+		}
+	}
+
 	if viper.IsSet("hash") == false {
 		e = errors.New("[classifier] Hash configuration not provided")
 		log.Print(e.Error())
 		return
+	}
+	return
+}
+
+func getSubPath(path string) (subPath string) {
+	subPath = ""
+	for _, basePath := range BasePaths {
+		if strings.HasPrefix(path, basePath) {
+			var relErr error
+			subPath, relErr = filepath.Rel(basePath, path)
+			if relErr != nil {
+				log.Printf("[classifier] Unable to get relative path after checking prefix:\n\t%s\n\t%s\n\t%v", basePath, path, relErr)
+				subPath = ""
+			} else {
+				break
+			}
+		}
 	}
 	return
 }
@@ -87,6 +115,7 @@ func Classifier(context OperatorContext) {
 	defer context.PoolCount.Done()
 	defer log.Print("[classifier] finished.")
 
+	// Process the file types
 	typesRawIfc := viper.Get("classifier.types")
 	typesRaw := typesRawIfc.([]interface{})
 
@@ -112,6 +141,32 @@ func Classifier(context OperatorContext) {
 		log.Printf("[classifier] Adding type:\n\t%v", types[iType])
 	}
 
+	// Process the base paths
+	basePathsRawIfc := viper.Get("classifier.base-paths")
+	basePathsRaw := make([]interface{}, 0)
+	if basePathsRawIfc != nil {
+		basePathsRaw = basePathsRawIfc.([]interface{})
+	}
+
+	includeWatcherDir := viper.GetBool("watcher.active")
+
+	nBasePaths := len(basePathsRaw)
+	if includeWatcherDir {nBasePaths++}
+
+	BasePaths = make([]string, nBasePaths)
+	firstPath := 0
+	if includeWatcherDir {
+		BasePaths[0], _ = filepath.Abs(viper.GetString("watcher.dir"))
+		firstPath++
+	}
+	for iPath, pathIfc := range basePathsRaw {
+		BasePaths[firstPath + iPath], _ = filepath.Abs(pathIfc.(string))
+	}
+	//BasePaths = append(BasePaths, []string(basePaths)...)
+	log.Printf("Base paths: %v", BasePaths)
+    
+
+	// Deal with the hash (do we need it, how do we run it, and do we send it somewhere?)
 	requireHash := viper.GetBool("hash.required")
 	hashCmd := viper.GetString("hash.command")
 	hashOpt := viper.GetString("hash.cmd-opt")
@@ -145,14 +200,14 @@ func Classifier(context OperatorContext) {
 
 	log.Print("[classifier] started successfully")
 
-shipLoop:
+classifierLoop:
 	for {
 		select {
 		// the control messages can stop execution
 		case controlMsg := <-context.CtrlQueue:
 			if controlMsg == StopExecution {
 				log.Print("[classifier] stopping on interrupt.")
-				break shipLoop
+				break classifierLoop
 			}
 		case fileHeader := <-context.FileStream:
 			inputFilePath := filepath.Join(fileHeader.HotPath, fileHeader.Filename)
@@ -175,7 +230,7 @@ shipLoop:
 
 			acceptType := bool(false)
 
-		typeLoop:
+typeLoop:
 			for _, typeInfo := range types {
 				acceptType = true // this must start as true for this multi-test setup to work
 				if typeInfo.DoMatchExtension {
@@ -188,6 +243,7 @@ shipLoop:
 				if acceptType {
 					log.Printf("[classifier] Classifying file <%s> as type <%s>", inputFilename, typeInfo.Name)
 					opReturn.FHeader.FileType = typeInfo.Name
+					opReturn.FHeader.SubPath = getSubPath(opReturn.FHeader.HotPath)
 					opReturn.FHeader.DoNearline = typeInfo.DoNearline
 					opReturn.FHeader.SetNearlineCmd(typeInfo.NearlineCmd)
 					if typeInfo.DoHash {

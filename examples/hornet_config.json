@@ -51,7 +51,12 @@
                 "do-nearline": false
             }
         ],
-	"wait-for-sender": 1
+		"base-paths":
+		[
+			"/some/special/path",
+			"/another/path"
+		],
+		"wait-for-sender": 2
     },
 
 	"hash":

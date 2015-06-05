@@ -150,7 +150,6 @@ scheduleLoop:
 				fileHeader := FileInfo{
 					Filename:   filename,
 					HotPath:    path,
-					DoNearline: false,
 				}
 				log.Printf("[scheduler] sending <%s> to the classifier", fileHeader.Filename)
 				classifierQueue <- fileHeader

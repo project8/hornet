@@ -11,6 +11,7 @@ import (
 	"log"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"github.com/spf13/viper"
 )
@@ -20,7 +21,7 @@ func Shipper(context OperatorContext) {
 	defer context.PoolCount.Done()
 	defer log.Print("[shipper] finished.")
 
-	destDir := viper.GetString("shipper.dest-dir")
+	destDirBase := viper.GetString("shipper.dest-dir")
 
 	log.Print("[shipper] started successfully")
 
@@ -35,7 +36,6 @@ shipLoop:
 				break shipLoop
 			}
 		case fileHeader := <-context.FileStream:
-			inputFilePath := filepath.Join(fileHeader.WarmPath, fileHeader.Filename)
 			opReturn := OperatorReturn{
 				Operator: "shipper",
 				FHeader:  fileHeader,
@@ -43,16 +43,28 @@ shipLoop:
 				IsFatal:  false,
 			}
 
-			_, inputFilename := filepath.Split(inputFilePath)
+			//inputFilePath := filepath.Join(fileHeader.WarmPath, fileHeader.Filename)
+			inputFileSubPath := filepath.Clean(filepath.Join(fileHeader.SubPath, fileHeader.Filename))
 
-			opReturn.FHeader.ColdPath = destDir
-			outputFilePath := filepath.Join(destDir, inputFilename)
-			cmd := exec.Command("rsync", "-a", inputFilePath, outputFilePath)
+			destDirPath := filepath.Clean(filepath.Join(destDirBase, fileHeader.SubPath))
+			opReturn.FHeader.ColdPath = destDirPath
+
+			//outputFilePath := filepath.Join(destDirPath, fileHeader.Filename)
+
+			// for local shipping only
+			absDestDirBase, _ := filepath.Abs(destDirBase)
+			cmd := exec.Command("rsync", "-a", "--relative", inputFileSubPath, absDestDirBase)
+			// Set the command's working directory to the input basepath, 
+			// so that the inputFileSubPath is definitely referring to the file.
+			// The input basepath is the warm path minus the subpath
+			inputBaseDir := strings.TrimSuffix(filepath.Clean(opReturn.FHeader.WarmPath), filepath.Clean(fileHeader.SubPath))
+			cmd.Dir = filepath.Clean(inputBaseDir)
+			log.Printf("[shipper] rsync command is: %v", cmd)
 
 			// run the process
 			outputError := cmd.Run()
 			if outputError != nil {
-				opReturn.Err = fmt.Errorf("Error on running rsync for <%s>: %v", inputFilePath, outputError)
+				opReturn.Err = fmt.Errorf("Error on running rsync for <%s>: %v", fileHeader.Filename, outputError)
 				log.Print("[shipper]", opReturn.Err.Error())
 			}
 

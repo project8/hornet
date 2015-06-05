@@ -17,9 +17,13 @@ type FileInfo struct {
 	Filename        string
 	FileType        string
 	FileHash        string
+	SubPath         string
 	HotPath         string
 	WarmPath        string
 	ColdPath        string
+	FileHotPath     string
+	FileWarmPath    string
+    FileColdPath    string
 	SecondaryFiles  []string
 	DoNearline      bool
 	NearlineCmdName string
@@ -41,3 +45,9 @@ func (fileInfoPtr *FileInfo) SetNearlineCmd(nearlineCmd string) {
 	*fileInfoPtr = fileInfo
 	return
 }
+
+
+// Base paths are special locations on top of which a file system exists
+// These are defined in the classifier config; if a watcher is in use, its path is added to this
+var BasePaths []string
+

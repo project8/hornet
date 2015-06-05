@@ -74,8 +74,7 @@ func Mover(context OperatorContext) {
 	// keep a running list of all of the directories we know about.
 	ds := make(DirectorySet)
 
-	watchDirPath := viper.GetString("watcher.dir")
-	destDirPath := viper.GetString("mover.dest-dir")
+	destDirBase, _ := filepath.Abs(viper.GetString("mover.dest-dir"))
 
 	log.Print("[mover] started successfully")
 
@@ -90,40 +89,31 @@ moveLoop:
 				break moveLoop
 			}
 		case fileHeader := <-context.FileStream:
-			inputFile := filepath.Join(fileHeader.HotPath, fileHeader.Filename)
+			inputFilePath := filepath.Join(fileHeader.HotPath, fileHeader.Filename)
 			opReturn := OperatorReturn{
 				Operator: "mover",
 				FHeader:  fileHeader,
 				Err:      nil,
 				IsFatal:  false,
 			}
-			outputFile, destErr := RenamePathRelativeTo(inputFile, watchDirPath, destDirPath)
-			if destErr != nil {
-				opReturn.Err = fmt.Errorf("[mover] bad rename request: %s -> %s w.r.t %s\n",
-					inputFile, destDirPath, watchDirPath)
-				opReturn.IsFatal = true
-				log.Printf(opReturn.Err.Error())
-			} else {
-				outputPath, _ := filepath.Split(outputFile)
-				opReturn.FHeader.WarmPath = outputPath
-				// check if we already know about the destdir
-				newDir := filepath.Dir(outputFile)
-				if ds[newDir] == false {
-					log.Printf("[mover] creating directory %s\n", newDir)
-					if mkErr := os.MkdirAll(newDir, os.ModeDir|os.ModePerm); mkErr != nil {
-						opReturn.Err = fmt.Errorf("[mover] couldn't make directory %v: [%v]", newDir, mkErr)
-						opReturn.IsFatal = true
-						log.Printf(opReturn.Err.Error())
-					} else {
-						ds[newDir] = true
-					}
-				}
-				if moveErr := Move(inputFile, outputFile); moveErr != nil {
-					opReturn.Err = fmt.Errorf("[mover] error moving (%v -> %v) [%v]",
-						inputFile, outputFile, moveErr)
+			destDirPath := filepath.Clean(filepath.Join(destDirBase, fileHeader.SubPath))
+			outputFilePath := filepath.Join(destDirPath, fileHeader.Filename)
+			opReturn.FHeader.WarmPath = destDirPath
+			// check if we already know about the destDirPath
+			if ds[destDirPath] == false {
+				log.Printf("[mover] creating directory %s\n", destDirPath)
+				if mkErr := os.MkdirAll(destDirPath, os.ModeDir|os.ModePerm); mkErr != nil {
+					opReturn.Err = fmt.Errorf("[mover] couldn't make directory %v: [%v]", destDirPath, mkErr)
 					opReturn.IsFatal = true
 					log.Printf(opReturn.Err.Error())
+				} else {
+					ds[destDirPath] = true
 				}
+			}
+			if moveErr := Move(inputFilePath, outputFilePath); moveErr != nil {
+				opReturn.Err = fmt.Errorf("[mover] error moving (%v -> %v) [%v]", inputFilePath, outputFilePath, moveErr)
+				opReturn.IsFatal = true
+				log.Printf(opReturn.Err.Error())
 			}
 			context.RetStream <- opReturn
 		}
