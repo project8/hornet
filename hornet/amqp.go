@@ -17,6 +17,7 @@ import (
 	//"path/filepath"
 	"strings"
 	"sync"
+	"time"
 	"unsafe"
 
 	"github.com/streadway/amqp"
@@ -40,11 +41,14 @@ type SenderInfo struct {
 type P8Message struct {
     Target     []string
 	Encoding   string
-	MsgTypeVal MsgType
-	MsgOpVal   MsgOp
+	CorrId     string
+	MsgType    MsgCodeT
+	MsgOp      MsgCodeT
+	RetCode    MsgCodeT
 	TimeStamp  string
 	SenderInfo
 	Payload    interface{}
+	ReplyChan  chan P8Message
 }
 
 // Globally-accessible message-sending queue
@@ -57,6 +61,9 @@ var TargetSeparator string = "."
 var AmqpSenderIsActive bool = false
 // Value to confirm that the AMQP receiver routine has started
 var AmqpReceiverIsActive bool = false
+
+// Map of correlation ID to channel to handle the reply message
+var replyMap map[string]chan P8Message
 
 var MasterSenderInfo SenderInfo
 func fillMasterSenderInfo() (e error) {
@@ -86,34 +93,33 @@ func fillMasterSenderInfo() (e error) {
 //   1) The broker setting is present
 //   2) If the receiver is present and active, then the queue and exchange are set.
 func ValidateAmqpConfig() (e error) {
-	// to see if we need to check on the broker and exchange
-	requireAmqp := false	
-
-	if viper.IsSet("amqp.recever") && viper.GetBool("amqp.receiver.active") {
-		requireAmqp = true
-		if viper.IsSet("amqp.receiver.queue") == false {
-			e = errors.New("[amqp] Receiver section is missing the queue")
-			log.Print(e.Error())
-		}
-		
+	if viper.IsSet("amqp.active") == false {
+		e = errors.New("[amqp] amqp.active is not set")
+		log.Print(e.Error())
+	}
+	if viper.GetBool("amqp.active") == false {
+		return
 	}
 
-	if viper.IsSet("amqp.sender") && viper.GetBool("amqp.sender.active") {
-		requireAmqp = true
-		// nothing really to check here
-	}
-
-	if requireAmqp && (viper.IsSet("amqp.broker") == false || viper.IsSet("amqp.exchange") == false) {
-		e = errors.New("[amqp] AMQP sender/receiver cannot be used without the broker and exchange being set")
+	if viper.IsSet("amqp.queue") == false {
+		e = errors.New("[amqp] Queue name is not set (amqp.queue)")
 		log.Print(e.Error())
 	}
 
-
+	if (viper.IsSet("amqp.broker") == false || viper.IsSet("amqp.exchange") == false) {
+		e = errors.New("[amqp] AMQP sender/receiver cannot be used without the broker and exchange being set")
+		log.Print(e.Error())
+	}
 
 	return
 }
 
 func StartAmqp(ctrlQueue chan ControlMessage, reqQueue chan ControlMessage, threadCountQueue chan uint, poolCount *sync.WaitGroup) (e error) {
+	if viper.GetBool("amqp.active") == false {
+		log.Printf("[amqp] AMQP is inactive")
+		return
+	}
+
 	log.Print("[amqp] Starting AMQP components")
 
 	e = fillMasterSenderInfo()
@@ -122,19 +128,15 @@ func StartAmqp(ctrlQueue chan ControlMessage, reqQueue chan ControlMessage, thre
 		return
 	}
 
-	if viper.IsSet("amqp.receiver") && viper.GetBool("amqp.receiver.active") {
-		log.Print("[amqp] Starting AMQP receiver")
-		poolCount.Add(1)
-		threadCountQueue <- 1
-		go AmqpReceiver(ctrlQueue, reqQueue, poolCount)
-	}
+	log.Print("[amqp] Starting AMQP receiver")
+	poolCount.Add(1)
+	threadCountQueue <- 1
+	go AmqpReceiver(ctrlQueue, reqQueue, poolCount)
 
-	if viper.IsSet("amqp.sender") && viper.GetBool("amqp.sender.active") {
-		log.Print("[amqp] Starting AMQP sender")
-		poolCount.Add(1)
-		threadCountQueue <- 1
-		go AmqpSender(ctrlQueue, reqQueue, poolCount)
-	}
+	log.Print("[amqp] Starting AMQP sender")
+	poolCount.Add(1)
+	threadCountQueue <- 1
+	go AmqpSender(ctrlQueue, reqQueue, poolCount)
 
 	return
 }
@@ -180,7 +182,7 @@ func AmqpReceiver(ctrlQueue chan ControlMessage, reqQueue chan ControlMessage, p
 
 	// Declare the "hornet" queue
 	// Deferred command: delete the "hornet" queue
-	queueName := viper.GetString("amqp.receiver.queue")
+	queueName := viper.GetString("amqp.queue")
 	_, queueDeclErr := channel.QueueDeclare(queueName, false, true, true, false, nil)
 	if queueDeclErr != nil {
 		log.Printf("[amqp receiver] Unable to declare queue <%s>:\n\t%v", queueName, queueDeclErr.Error())
@@ -262,23 +264,63 @@ amqpLoop:
 			}
 			//log.Printf("[amqp receiver] Message body:\n\t%v", body)
 
+			// Message contents validation
+			// required elements: msgtype, timestamp, sender_info
+			msgTypeIfc, msgtypePresent := body["msgtype"]
+			timestampIfc, timestampPresent := body["timestamp"]
+			senderInfoIfc, senderInfoPresent := body["sender_info"]
+			if msgtypePresent && timestampPresent && senderInfoPresent == false {
+				log.Printf("[amqp receiver] Message is missing a required element:\n\tmsgtype: %v\n\ttimestamp: %v\n\tsender_info: %v", msgtypePresent, timestampPresent, senderInfoPresent)
+				continue amqpLoop
+			}
+			msgType := ConvertToMsgCode(msgTypeIfc)
+
 			// Translate the body of the message into a P8Message object
-			senderInfo := body["sender_info"].(map[interface{}]interface{})
+			senderInfo := senderInfoIfc.(map[interface{}]interface{})
 			p8Message := P8Message {
 				Encoding:   message.ContentEncoding,
-				MsgTypeVal: MsgType(body["msgtype"].(int64)),
-				MsgOpVal:   MsgOp(body["msgop"].(int64)),
-				TimeStamp:  string(body["timestamp"].([]uint8)),
+				CorrId:     message.CorrelationId,
+				MsgType:    msgType,
+				TimeStamp:  ConvertToString(timestampIfc),
 				SenderInfo: SenderInfo{
-					Package:  string(senderInfo["package"].([]uint8)),
-					Exe:      string(senderInfo["exe"].([]uint8)),
-					Version:  string(senderInfo["version"].([]uint8)),
-					Commit:   string(senderInfo["commit"].([]uint8)),
-					Hostname: string(senderInfo["hostname"].([]uint8)),
-					Username: string(senderInfo["username"].([]uint8)),
+					Package:  ConvertToString(senderInfo["package"]),
+					Exe:      ConvertToString(senderInfo["exe"]),
+					Version:  ConvertToString(senderInfo["version"]),
+					Commit:   ConvertToString(senderInfo["commit"]),
+					Hostname: ConvertToString(senderInfo["hostname"]),
+					Username: ConvertToString(senderInfo["username"]),
 				},
-				Payload: body["payload"],
 			}
+
+			if payloadIfc, hasPayload := body["payload"]; hasPayload {
+				p8Message.Payload = payloadIfc
+			}
+
+			// validation for certain types of messages
+			switch msgType {
+			case MTReply:
+				if retcodeIfc, retcodePresent := body["retcode"]; retcodePresent == false {
+					log.Printf("[amqp receiver] Message is missing a required element:\n\tretcode: %v", retcodePresent)
+					continue amqpLoop
+				} else {
+					p8Message.RetCode = ConvertToMsgCode(retcodeIfc)
+				}
+			case MTRequest:
+				
+				if msgopIfc, msgopPresent := body["msgop"]; msgopPresent == false {
+					log.Printf("[amqp receiver] Request message is missing a required element:\n\tmsgop: %v", msgopPresent)
+					continue amqpLoop
+				} else {
+					p8Message.MsgOp = ConvertToMsgCode(msgopIfc)
+				}
+			case MTAlert:
+				log.Printf("[amqp receiver] Cannot handle Alert messages")
+			case MTInfo:
+				log.Printf("[amqp receiver] Cannot handle Info messages")
+			default:
+				log.Printf("[amqp receiver] Unknown message type: %v", msgType)
+			}
+
 			routingKeyParts := strings.Split(message.RoutingKey, TargetSeparator)
 			if len(routingKeyParts) > 1 {
 				p8Message.Target = routingKeyParts[1:len(routingKeyParts)]
@@ -286,19 +328,28 @@ amqpLoop:
 
 			//log.Printf("[amqp receiver] Message:\n\t%v", p8Message)
 
-			// Deal with the message according to the target
-			if len(p8Message.Target) == 0 {
-				log.Printf("[amqp receiver] No Hornet target provided")
-			} else {
-				switch p8Message.Target[0] {
-				case "quit-hornet":
-					reqQueue <- StopExecution
-				default:
-					log.Printf("[amqp receiver] Unknown hornet target: %v", p8Message.Target)
+			// Handle with the message according to the message type
+			switch msgType {
+			case MTReply:
+				log.Printf("[amqp receiver] Received reply message: %d", p8Message.RetCode)
+				if replyHandlerChan, canReply := replyMap[message.CorrelationId]; canReply {
+					replyHandlerChan <- p8Message
+				}
+			case MTRequest:
+				// Handle with the request message according to the target
+				if len(p8Message.Target) == 0 {
+					log.Printf("[amqp receiver] No Hornet target provided")
+				} else {
+					switch p8Message.Target[0] {
+					case "quit-hornet":
+						reqQueue <- StopExecution
+					default:
+						log.Printf("[amqp receiver] Unknown hornet target for request messages: %v", p8Message.Target)
+					}
 				}
 			}
-		}
-	}
+		} // end select block
+	} // end for loop
 }
 
 // AmqpSender is a goroutine responsible for sending AMQP messages received on a channel
@@ -334,7 +385,7 @@ func AmqpSender(ctrlQueue chan ControlMessage, reqQueue chan ControlMessage, poo
 
 	exchangeName := viper.GetString("amqp.exchange")
 
-	replyTo := viper.GetString("amqp.sender.replyto")
+	replyTo := viper.GetString("amqp.queue")
 
 	log.Print("[amqp sender] started successfully")
 	AmqpSenderIsActive = true
@@ -361,11 +412,23 @@ amqpLoop:
 				"username": p8Message.SenderInfo.Username,
 			}
 			var body = map[string]interface{} {
-				"msgtype": p8Message.MsgTypeVal,
-				"msgop": p8Message.MsgOpVal,
+				"msgtype": p8Message.MsgType,
+				"msgop": p8Message.MsgOp,
+				"retcode": p8Message.RetCode,
 				"timestamp": p8Message.TimeStamp,
 				"sender_info": senderInfo,
 				"payload": p8Message.Payload,
+			}
+
+			// Get the UUID for the correlation ID
+			correlationId := p8Message.CorrId
+			if p8Message.CorrId == "" {
+				correlationId = uuid.New()
+			}
+
+			// if a reply is requested (as indicated by a non-nil reply channel), add the channel to the reply map
+			if p8Message.ReplyChan != nil {
+				replyMap[correlationId] = p8Message.ReplyChan
 			}
 
 			//log.Printf("[amqp sender] Received message to send:\n\t%v", body)
@@ -376,7 +439,7 @@ amqpLoop:
 				ContentEncoding: p8Message.Encoding,
 				Body: make([]byte, 0, bodyNBytes),
 				ReplyTo: replyTo,
-				CorrelationId: uuid.New(),
+				CorrelationId: correlationId,
 			}
 			// Encode the message body for transmission
 			switch p8Message.Encoding {
@@ -414,20 +477,38 @@ amqpLoop:
 				log.Printf("[amqp sender] Error while sending message:\n\t%v", pubErr)
 			}
 
-		}
-	}
+		} // end select block
+	} // end for loop
 }
 
-// PrepareMessage sets up most of the fields in a P8Message object.
+// PrepareRequest sets up most of the fields in a P8Message request object.
 // The payload is not set here.
-func PrepareMessage(target []string, encoding string, msgType MsgType, msgOp MsgOp)(p8Message P8Message) {
+func PrepareRequest(target []string, encoding string, msgOp MsgCodeT, replyChan chan P8Message)(p8Message P8Message) {
 	p8Message = P8Message {
-		Target: target,
-		Encoding: encoding,
-		MsgTypeVal: msgType,
-		MsgOpVal: msgOp,
-		// timestamp
+		Target:     target,
+		Encoding:   encoding,
+		MsgType:    MTRequest,
+		MsgOp:      msgOp,
+		TimeStamp:  time.Now().UTC().Format(TimeFormat),
 		SenderInfo: MasterSenderInfo,
+		ReplyChan:  replyChan,
 	}
 	return
 }
+
+// PrepareReply sets up most of the fields in a P8Message reply object.
+// The payload is not set here.
+func PrepareReply(target []string, encoding string, corrId string, retCode MsgCodeT, replyChan chan P8Message)(p8Message P8Message) {
+	p8Message = P8Message {
+		Target:     target,
+		Encoding:   encoding,
+		CorrId:     corrId,
+		MsgType:    MTReply,
+		RetCode:    retCode,
+		TimeStamp:  time.Now().UTC().Format(TimeFormat),
+		SenderInfo: MasterSenderInfo,
+		ReplyChan:  replyChan,
+	}
+	return
+}
+

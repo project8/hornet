@@ -8,19 +8,11 @@
 
     "amqp":
     {
+        "active": true,
         "broker": "my.server",
         "exchange": "requests",
-        "receiver":
-        {
-            "active": true,
-            "queue": "hornet"
-        },
-        "sender":
-        {
-            "active": true,
-            "replyto": "hornet"
-        }
-    },
+        "queue": "hornet"
+     },
 
     "watcher":
     {

@@ -134,7 +134,7 @@ func Classifier(context OperatorContext) {
 			}
 		}
 		sendHash = true
-		hashMessage = PrepareMessage([]string{hashRoutingKey}, "application/msgpack", Request, Command)
+		hashMessage = PrepareRequest([]string{hashRoutingKey}, "application/msgpack", MOCommand, nil)
 		payload := make(map[string]interface{})
 		payload["values"] = []string{"do_insert"}
 		payload["file_name"] = ""
