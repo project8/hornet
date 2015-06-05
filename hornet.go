@@ -146,24 +146,6 @@ func main() {
 	threadCountQueue <- 1
 	go hornet.Scheduler(schedulingQueue, controlQueue, requestQueue, threadCountQueue, &pool)
 
-	p8Message := hornet.P8Message {
-		Encoding: "application/json",
-		Target: []string{"some", "address", "or", "another"},
-		MsgTypeVal: 1,
-		MsgOpVal:   2,
-		TimeStamp: "now",
-		SenderInfo: hornet.SenderInfo{
-			Package:  "test",
-			Exe:      "test",
-			Version:  "test",
-			Commit:   "test",
-			//Hostname: senderInfo["hostname"].(string),
-			//Username: senderInfo["username"].(string),
-		},
-		Payload: "the payload",
-	}
-	hornet.SendMessageQueue <- p8Message
-
 	// now just wait for the signal to stop.  this is either a ctrl+c
 	// or a SIGTERM.
 	sigChan := make(chan os.Signal, 1)

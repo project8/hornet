@@ -22,6 +22,7 @@ import (
 	"github.com/streadway/amqp"
 	"github.com/ugorji/go/codec"
 	"github.com/kardianos/osext"
+	"code.google.com/p/go-uuid/uuid"
 	"github.com/spf13/viper"
 
 	"github.com/project8/hornet/gogitver"
@@ -333,6 +334,8 @@ func AmqpSender(ctrlQueue chan ControlMessage, reqQueue chan ControlMessage, poo
 
 	exchangeName := viper.GetString("amqp.exchange")
 
+	replyTo := viper.GetString("amqp.sender.replyto")
+
 	log.Print("[amqp sender] started successfully")
 	AmqpSenderIsActive = true
 	defer func() {AmqpSenderIsActive = false}()
@@ -372,6 +375,8 @@ amqpLoop:
 			var message = amqp.Publishing {
 				ContentEncoding: p8Message.Encoding,
 				Body: make([]byte, 0, bodyNBytes),
+				ReplyTo: replyTo,
+				CorrelationId: uuid.New(),
 			}
 			// Encode the message body for transmission
 			switch p8Message.Encoding {
@@ -401,6 +406,7 @@ amqpLoop:
 			routingKey := strings.Join(p8Message.Target, TargetSeparator)
 
 			//log.Printf("[amqp sender] Encoded message:\n\t%v", message)
+			log.Printf("[amqp sender] Sending message to routing key <%s>", routingKey)
 
 			// Publish!
 			pubErr := channel.Publish(exchangeName, routingKey, false, false, message)

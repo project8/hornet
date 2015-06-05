@@ -62,6 +62,8 @@ func Watcher(context OperatorContext) {
 		fileWatch.AddWatch(watchDir, fileWatchFlags)
 	}
 	defer fileWatch.Close()
+	log.Printf("[watcher debug] file flags: %v", fileWatchFlags)
+	log.Printf("[watcher debug] subd flags: %v", subdWatchFlags)
 
 	subdWatch, subdWatchErr := inotify.NewWatcher()
 	if subdWatchErr != nil {

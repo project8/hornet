@@ -138,7 +138,8 @@ func Classifier(context OperatorContext) {
 		payload := make(map[string]interface{})
 		payload["values"] = []string{"do_insert"}
 		payload["file_name"] = ""
-		payload["hash"] = ""
+		payload["file_hash"] = ""
+		payload["run_id"] = 106
 		hashMessage.Payload = payload
 	}
 
@@ -201,7 +202,8 @@ shipLoop:
 							if sendHash {
 								hashMessage.TimeStamp = time.Now().UTC().Format(TimeFormat)
 								hashMessage.Payload.(map[string]interface{})["file_name"] = inputFilename
-								hashMessage.Payload.(map[string]interface{})["hash"] = opReturn.FHeader.FileHash
+								hashMessage.Payload.(map[string]interface{})["file_hash"] = opReturn.FHeader.FileHash
+								//hashMessage.Payload.(map[string]interface{})["run_id"] = ???
 								//log.Printf("[classifier] Sending hash message:\n\t%v", hashMessage)
 								SendMessageQueue <- hashMessage
 							}
