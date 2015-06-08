@@ -21,7 +21,17 @@ func Shipper(context OperatorContext) {
 	defer context.PoolCount.Done()
 	defer log.Print("[shipper] finished.")
 
-	destDirBase := viper.GetString("shipper.dest-dir")
+	remoteShip := false
+	var destDirBase, hostname, username string
+	if viper.IsSet("shipper.hostname") {
+		remoteShip = true
+		hostname = viper.GetString("shipper.hostname")
+		username = viper.GetString("shipper.username")
+		destDirBase = viper.GetString("shipper.dest-dir")
+	} else {
+		// for local ship, make the destination directory an absolute path
+		destDirBase, _ = filepath.Abs(viper.GetString("shipper.dest-dir"))
+	}
 
 	log.Print("[shipper] started successfully")
 
@@ -49,11 +59,21 @@ shipLoop:
 			destDirPath := filepath.Clean(filepath.Join(destDirBase, fileHeader.SubPath))
 			opReturn.FHeader.ColdPath = destDirPath
 
+			var rsyncDest string
+			if remoteShip {
+				if len(username) > 0 {
+					rsyncDest = username + "@" + hostname + ":" + destDirBase
+				} else {
+					rsyncDest = hostname + ":" + destDirBase
+				}
+			} else {
+				rsyncDest = destDirBase
+			}
+			log.Printf("[shipper] rsync dest: %s", rsyncDest)
+
 			//outputFilePath := filepath.Join(destDirPath, fileHeader.Filename)
 
-			// for local shipping only
-			absDestDirBase, _ := filepath.Abs(destDirBase)
-			cmd := exec.Command("rsync", "-a", "--relative", inputFileSubPath, absDestDirBase)
+			cmd := exec.Command("rsync", "-a", "--relative", inputFileSubPath, rsyncDest)
 			// Set the command's working directory to the input basepath, 
 			// so that the inputFileSubPath is definitely referring to the file.
 			// The input basepath is the warm path minus the subpath

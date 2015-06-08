@@ -78,6 +78,8 @@
 
     "shipper":
     {
-        "dest-dir": "/remote-data"
+        "dest-dir": "/remote-data",
+		"hostname": "my.server",
+		"username": "aphysicist"
     }
 }
