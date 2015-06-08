@@ -17,8 +17,9 @@ import (
 const (
 	dirCreatedMask   = inotify.IN_ISDIR | inotify.IN_CREATE
 	dirMovedToMask   = inotify.IN_ISDIR | inotify.IN_MOVED_TO
-	dirMovedFromMask = inotify.IN_ISDIR | inotify.IN_MOVED_FROM
-	dirDeletedMask   = inotify.IN_ISDIR | inotify.IN_DELETE
+	//dirMovedFromMask = inotify.IN_ISDIR | inotify.IN_MOVED_FROM
+	//dirDeletedMask   = inotify.IN_ISDIR | inotify.IN_DELETE
+	ignoreMask = inotify.IN_IGNORED
 )
 
 // shouldAddWatch tests to see if this is a new directory or if this directory
@@ -29,12 +30,21 @@ func shouldAddWatch(evt *inotify.Event) bool {
 	return newCreated || wasMovedTo
 }
 
+// shouldIgnore tests to see whether this is an event we should ignore.
+// For instance, directory deletion events are caught by the filewatcher 
+// with the IN_IGNORED bit set.
+func shouldIgnore(evt *inotify.Event) bool {
+	return (evt.Mask & inotify.IN_IGNORED) == ignoreMask
+}
+
 // shouldRemoveWatch tests to see if a directory is no longer of interest.
-func shouldRemoveWatch(evt *inotify.Event) bool {
+// NOTE: this functionality has been removed because testing has shown that 
+//       deleted/moved directories are removed from the inotify watch automatically.
+/*func shouldRemoveWatch(evt *inotify.Event) bool {
 	wasDeleted := (evt.Mask & dirDeletedMask) == dirDeletedMask
 	wasMovedFrom := (evt.Mask & dirMovedFromMask) == dirMovedFromMask
 	return wasDeleted || wasMovedFrom
-}
+}*/
 
 // isEintr is exactly what it sounds like.
 func isEintr(e error) bool {
@@ -89,7 +99,11 @@ runLoop:
 		// if a new file is available in our watched directories, check to see
 		// if we're supposed to do something - and if so, send it along.
 		case fileCloseEvt := <-fileWatch.Event:
-			log.Printf("[watcher file event] %s", fileCloseEvt.String())
+			if shouldIgnore(fileCloseEvt) {
+				//log.Printf("[watcher file event (ignoring)] %s", fileCloseEvt.String())
+				continue runLoop
+			}
+			//log.Printf("[watcher file event] %s", fileCloseEvt.String())
 			context.SchStream <- fileCloseEvt.Name
 
 		// directories are a little more complicated.  if it's a new directory,
@@ -97,7 +111,7 @@ runLoop:
 		// if it's a directory getting deleted, delete the watch.  if it's a
 		// directory getting moved-to, watch it.
 		case newSubDirEvt := <-subdWatch.Event:
-			log.Printf("[watcher dir event] %s", newSubDirEvt.String())
+			//log.Printf("[watcher dir event] %s", newSubDirEvt.String())
 			dirname := newSubDirEvt.Name
 			if shouldAddWatch(newSubDirEvt) {
 				if err := fileWatch.AddWatch(dirname, fileWatchFlags); err != nil {
@@ -114,7 +128,7 @@ runLoop:
 				} else {
 					log.Printf("[watcher] added subdirectory to dir watch [%v]", dirname)
 				}
-			} else if shouldRemoveWatch(newSubDirEvt) {
+			} /*else if shouldRemoveWatch(newSubDirEvt) {
 				log.Printf("[watcher] removing watch on %s...", dirname)
 				if err := fileWatch.RemoveWatch(dirname); err != nil {
 					log.Printf("[watcher] can't remove file watch on %s [%v]", dirname, err)
@@ -126,7 +140,7 @@ runLoop:
 				} else {
 					log.Printf("[watcher] removed dir watch on %s", dirname)
 				}
-			}
+			}*/
 
 			//	if either of the filesystem watchers gets an error, die
 			//	as gracefully as possible.
@@ -149,3 +163,4 @@ runLoop:
 		}
 	}
 }
+
