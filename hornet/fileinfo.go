@@ -10,12 +10,14 @@ import (
 	//"fmt"
 	//"path/filepath"
 	//"strings"
+	"text/template"
 )
 
 type Job struct {
-	Command       string
-	CommandName   string
-	CommandArgs   [] string
+	CommandTemplate  *template.Template
+	Command          string
+	CommandName      string
+	CommandArgs      [] string
 }
 
 // File information header

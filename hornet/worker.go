@@ -4,12 +4,14 @@
 package hornet
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"os/exec"
 	//"path/filepath"
 	"strings"
+	//"text/template"
 	"time"
 
 	//"github.com/spf13/viper"
@@ -82,8 +84,9 @@ workLoop:
 			select {
 			case job := <-opReturn.FHeader.JobQueue: // get the job
 				// execute parsing on job.Command
-				// TODO: parse
-				command := job.Command // temporary, w/ no parsing
+				var cmdBuf bytes.Buffer
+				job.CommandTemplate.Execute(&cmdBuf, opReturn.FHeader)
+				command := cmdBuf.String()
 				// split parsed command into cmd name and args
 				commandParts := strings.Fields(command)
 				job.CommandName = commandParts[0]

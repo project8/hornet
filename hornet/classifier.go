@@ -20,6 +20,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"text/template"
 	"time"
 
 	"github.com/spf13/viper"
@@ -40,7 +41,8 @@ type TypeInfo struct {
 type JobInfo struct {
 	Name             string
 	FileType         string
-	CommandTemplate  string
+	Command          string
+	CommandTemplate  *template.Template
 }
 
 // ValidateClassifierConfig checks the sanity of the classifier section of a configuration.
@@ -155,12 +157,19 @@ func Classifier(context OperatorContext) {
 	jobsRaw := jobsRawIfc.([]interface{})
 
 	var jobs = make([]JobInfo, len(jobsRaw))
+	var cmdErr error
 	for iJob, jobMapIfc := range jobsRaw {
 		jobMap := jobMapIfc.(map[string](interface{}))
 		jobs[iJob].Name = jobMap["name"].(string)
 		jobs[iJob].FileType = jobMap["file-type"].(string)
-		jobs[iJob].CommandTemplate = jobMap["command"].(string)
+		jobs[iJob].Command = jobMap["command"].(string)
+		if jobs[iJob].CommandTemplate, cmdErr = template.New("cmd").Parse(jobs[iJob].Command); cmdErr != nil {
+			log.Printf("[classifier] template error while processing <%v>", jobs[iJob].Command)
+			context.CtrlQueue <- ThreadCannotContinue;
+			return
+		}
 		log.Printf("[classifier] Adding job:\n\t%v", jobs[iJob])
+
 		// add this job to the list of jobs for its file type
 		for iType, _ := range types {
 			if types[iType].Name == jobs[iJob].FileType {
@@ -299,8 +308,10 @@ typeLoop:
 					log.Printf("[classifier] type %s has %d jobs: %v", typeInfo.Name, len(typeInfo.Jobs), typeInfo.Jobs)
 					for _, jobId := range typeInfo.Jobs {
 						newJob := Job{
-							Command: jobs[jobId].CommandTemplate,
+							Command: jobs[jobId].Command,
+							CommandTemplate: jobs[jobId].CommandTemplate,
 						}
+						
 						select {
 						case opReturn.FHeader.JobQueue <- newJob:
 							// do nothing
