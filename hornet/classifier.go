@@ -161,7 +161,7 @@ func Classifier(context OperatorContext) {
 		jobs[iJob].Command = jobMap["command"].(string)
 		if jobs[iJob].CommandTemplate, cmdErr = template.New("cmd").Parse(jobs[iJob].Command); cmdErr != nil {
 			log.Printf("[classifier] template error while processing <%v>", jobs[iJob].Command)
-			context.CtrlQueue <- ThreadCannotContinue;
+			context.ReqQueue <- ThreadCannotContinue;
 			return
 		}
 		log.Printf("[classifier] Adding job:\n\t%v", jobs[iJob])
@@ -322,7 +322,7 @@ typeLoop:
 							// do nothing
 						default:
 							log.Printf("[classifier] attempting to submit more than the maximum number of jobs for a file; aborting")
-							context.CtrlQueue <- ThreadCannotContinue
+							context.ReqQueue <- ThreadCannotContinue
 							break classifierLoop
 						}
 					}

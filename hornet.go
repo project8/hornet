@@ -83,10 +83,6 @@ func ValidateConfig() (e error) {
 		e = fmt.Errorf("Destination directory must exist and be a directory!")
 	}
 
-	if hornet.PathIsDirectory(viper.GetString("watcher.dir")) == false {
-		e = fmt.Errorf("Watch directory must exist and be a directory!")
-	}
-
 	return
 }
 

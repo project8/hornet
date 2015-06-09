@@ -53,27 +53,51 @@ func Watcher(context OperatorContext) {
 	defer context.PoolCount.Done()
 	defer log.Print("[watcher] finished.")
 
-	watchDir := viper.GetString("watcher.dir")
-
+	// Start up the file watching
 	fileWatch, fileWatchErr := inotify.NewWatcher()
 	if fileWatchErr != nil {
 		log.Printf("[watcher] error creating file watcher! %v", fileWatchErr)
 		context.ReqQueue <- ThreadCannotContinue
-	} else {
-		fileWatch.AddWatch(watchDir, fileWatchFlags)
+		return
 	}
 	defer fileWatch.Close()
 	//log.Printf("[watcher debug] file flags: %v", fileWatchFlags)
 	//log.Printf("[watcher debug] subd flags: %v", subdWatchFlags)
 
+	// Start up the subdirectory watching
 	subdWatch, subdWatchErr := inotify.NewWatcher()
 	if subdWatchErr != nil {
 		log.Printf("[watcher] error creating subdir watcher! %v", subdWatchErr)
 		context.ReqQueue <- ThreadCannotContinue
-	} else {
-		subdWatch.AddWatch(watchDir, subdWatchFlags)
+		return
 	}
 	defer subdWatch.Close()
+
+	// Add the directories specified in the configuration
+	if viper.IsSet("watcher.dir") {
+		watchDir := viper.GetString("watcher.dir")
+		if PathIsDirectory(watchDir) == false {
+			log.Printf("[watcher] Watch directory does not exist or is not a directory:\n\t%s", watchDir)
+			context.ReqQueue <- ThreadCannotContinue
+			return
+		}
+		fileWatch.AddWatch(watchDir, fileWatchFlags)
+		subdWatch.AddWatch(watchDir, subdWatchFlags)
+		log.Printf("[watcher] Now watching <%s>", watchDir)
+	}
+	if viper.IsSet("watcher.dirs") {
+		watchDirs := viper.GetStringSlice("watcher.dirs")
+		for _, watchDir := range watchDirs {
+			if PathIsDirectory(watchDir) == false {
+				log.Printf("[watcher] Watch directory does not exist or is not a directory:\n\t%s", watchDir)
+				context.ReqQueue <- ThreadCannotContinue
+				return
+			}
+			fileWatch.AddWatch(watchDir, fileWatchFlags)
+			subdWatch.AddWatch(watchDir, subdWatchFlags)
+			log.Printf("[watcher] Now watching <%s>", watchDir)
+		}
+	}
 
 	log.Print("[watcher] started successfully.  waiting for events...")
 
@@ -107,14 +131,14 @@ runLoop:
 			if shouldAddWatch(newSubDirEvt) {
 				if err := fileWatch.AddWatch(dirname, fileWatchFlags); err != nil {
 					log.Printf("[watcher] couldn't add subdir file watch [%v]", err)
-					context.CtrlQueue <- ThreadCannotContinue
+					context.ReqQueue <- ThreadCannotContinue
 					break runLoop
 				} else {
 					log.Printf("[watcher] added subdirectory to file watch [%v]", dirname)
 				}
 				if err := subdWatch.AddWatch(dirname, subdWatchFlags); err != nil {
 					log.Printf("[watcher] couldn't add subdir dir watch [%v]", err)
-					context.CtrlQueue <- ThreadCannotContinue
+					context.ReqQueue <- ThreadCannotContinue
 					break runLoop
 				} else {
 					log.Printf("[watcher] added subdirectory to dir watch [%v]", dirname)
