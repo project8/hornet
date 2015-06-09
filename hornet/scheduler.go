@@ -9,10 +9,8 @@
 package hornet
 
 import (
-	//"fmt"
 	"log"
 	"path/filepath"
-	//"strings"
 	"sync"
 
 	"github.com/spf13/viper"
@@ -35,16 +33,33 @@ type OperatorContext struct {
 	PoolCount        *sync.WaitGroup
 }
 
-func Scheduler(schQueue chan string, ctrlQueue chan ControlMessage, reqQueue chan ControlMessage, threadCountQueue chan uint, poolCount *sync.WaitGroup) {
+func Scheduler(schQueue chan string, ctrlQueue, reqQueue chan ControlMessage, threadCountQueue chan uint, poolCount *sync.WaitGroup) {
 	// Decrement the waitgroup counter when done
 	defer poolCount.Done()
 	defer log.Print("[scheduler] finished.")
 
 	queueSize := viper.GetInt("scheduler.queue-size")
 	log.Println("[scheduler] Queue size:", queueSize)
+	if queueSize <= 0 {
+		log.Print("[scheduler] Queue size must be > 0")
+		reqQueue <- ThreadCannotContinue
+		return
+	}
 
-	nWorkers := viper.GetInt("scheduler.n-nearline-workers")
+	nWorkers := viper.GetInt("workers.n-workers")
 	log.Println("[scheduler] Number of workers:", nWorkers)
+	if nWorkers <= 0 {
+		log.Print("[scheduler] Number of workers must be > 0")
+		reqQueue <- ThreadCannotContinue
+		return
+	}
+
+	// for now, we require that there's only 1 shipper
+	if viper.GetInt("shipper.n-shippers") != 1 {
+		log.Print("[scheduler] Currently can only have 1 shipper")
+		reqQueue <- ThreadCannotContinue
+		return
+	}
 
 	// create the file queues
 	classifierQueue := make(chan FileInfo, queueSize)
@@ -150,7 +165,6 @@ scheduleLoop:
 				fileHeader := FileInfo{
 					Filename:   filename,
 					HotPath:    path,
-					DoNearline: false,
 				}
 				log.Printf("[scheduler] sending <%s> to the classifier", fileHeader.Filename)
 				classifierQueue <- fileHeader
@@ -178,8 +192,8 @@ scheduleLoop:
 			}
 			if fileRet.IsFatal == false {
 				fileHeader := fileRet.FHeader
-				// only send to the nearline workers if the file requests it and there's a worker available
-				if fileHeader.DoNearline && workersWorking < nWorkers {
+				// only send to the workers if the file requests it and there's a worker available
+				if len(fileHeader.JobQueue) > 0 && workersWorking < nWorkers {
 					log.Printf("[scheduler] sending <%s> to the workers", fileHeader.Filename)
 					workersWorking++
 					workerQueue <- fileHeader

@@ -11,6 +11,7 @@ import (
 	"log"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"github.com/spf13/viper"
 )
@@ -20,7 +21,17 @@ func Shipper(context OperatorContext) {
 	defer context.PoolCount.Done()
 	defer log.Print("[shipper] finished.")
 
-	destDir := viper.GetString("shipper.dest-dir")
+	remoteShip := false
+	var destDirBase, hostname, username string
+	if viper.IsSet("shipper.hostname") {
+		remoteShip = true
+		hostname = viper.GetString("shipper.hostname")
+		username = viper.GetString("shipper.username")
+		destDirBase = viper.GetString("shipper.dest-dir")
+	} else {
+		// for local ship, make the destination directory an absolute path
+		destDirBase, _ = filepath.Abs(viper.GetString("shipper.dest-dir"))
+	}
 
 	log.Print("[shipper] started successfully")
 
@@ -35,7 +46,6 @@ shipLoop:
 				break shipLoop
 			}
 		case fileHeader := <-context.FileStream:
-			inputFilePath := filepath.Join(fileHeader.WarmPath, fileHeader.Filename)
 			opReturn := OperatorReturn{
 				Operator: "shipper",
 				FHeader:  fileHeader,
@@ -43,16 +53,38 @@ shipLoop:
 				IsFatal:  false,
 			}
 
-			_, inputFilename := filepath.Split(inputFilePath)
+			//inputFilePath := filepath.Join(fileHeader.WarmPath, fileHeader.Filename)
+			inputFileSubPath := filepath.Clean(filepath.Join(fileHeader.SubPath, fileHeader.Filename))
 
-			opReturn.FHeader.ColdPath = destDir
-			outputFilePath := filepath.Join(destDir, inputFilename)
-			cmd := exec.Command("rsync", "-a", inputFilePath, outputFilePath)
+			destDirPath := filepath.Clean(filepath.Join(destDirBase, fileHeader.SubPath))
+			opReturn.FHeader.ColdPath = destDirPath
+
+			var rsyncDest string
+			if remoteShip {
+				if len(username) > 0 {
+					rsyncDest = username + "@" + hostname + ":" + destDirBase
+				} else {
+					rsyncDest = hostname + ":" + destDirBase
+				}
+			} else {
+				rsyncDest = destDirBase
+			}
+			log.Printf("[shipper] rsync dest: %s", rsyncDest)
+
+			//outputFilePath := filepath.Join(destDirPath, fileHeader.Filename)
+
+			cmd := exec.Command("rsync", "-a", "--relative", inputFileSubPath, rsyncDest)
+			// Set the command's working directory to the input basepath, 
+			// so that the inputFileSubPath is definitely referring to the file.
+			// The input basepath is the warm path minus the subpath
+			inputBaseDir := strings.TrimSuffix(filepath.Clean(opReturn.FHeader.WarmPath), filepath.Clean(fileHeader.SubPath))
+			cmd.Dir = filepath.Clean(inputBaseDir)
+			log.Printf("[shipper] rsync command is: %v", cmd)
 
 			// run the process
 			outputError := cmd.Run()
 			if outputError != nil {
-				opReturn.Err = fmt.Errorf("Error on running rsync for <%s>: %v", inputFilePath, outputError)
+				opReturn.Err = fmt.Errorf("Error on running rsync for <%s>: %v", fileHeader.Filename, outputError)
 				log.Print("[shipper]", opReturn.Err.Error())
 			}
 

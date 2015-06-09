@@ -4,12 +4,12 @@
 package hornet
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"os/exec"
-	"path/filepath"
-	//"strings"
+	"strings"
 	"time"
 
 	//"github.com/spf13/viper"
@@ -56,7 +56,7 @@ workLoop:
 				break workLoop
 			}
 		case fileHeader := <-context.FileStream:
-			inputFile := filepath.Join(fileHeader.WarmPath, fileHeader.Filename)
+			//inputFile := filepath.Join(fileHeader.WarmPath, fileHeader.Filename)
 			opReturn := OperatorReturn{
 				Operator: fmt.Sprintf("worker_%d", id),
 				FHeader:  fileHeader,
@@ -64,65 +64,57 @@ workLoop:
 				IsFatal:  false,
 			}
 
-			// after moving the worker stage to after the mover stage, this is no longer necessary
-			//opReturn.File, opReturn.Err := RenamePathRelativeTo(inputFile,
-			//	config.WatchDirPath,
-			//	config.DestDirPath)
-			//if opReturn.Err != nil {
-			//	log.Printf("[worker] bad rename request [%s -> %s] [%v]",
-			//		config.WatchDirPath, config.DestDirPath, opReturn.Err)
-			//}
+			// select statement to make a non-blocking receive on the job queue channel
+			select {
+			case job := <-opReturn.FHeader.JobQueue: // get the job
+				// execute parsing on job.Command
+				var cmdBuf bytes.Buffer
+				job.CommandTemplate.Execute(&cmdBuf, opReturn.FHeader)
+				command := cmdBuf.String()
+				// split parsed command into cmd name and args
+				commandParts := strings.Fields(command)
+				job.CommandName = commandParts[0]
+				job.CommandArgs = commandParts[1:len(commandParts)]
+				localLog(jobCount, fmt.Sprintf("Executing command: %s %v", job.CommandName, job.CommandArgs))
+				// create the command
+				cmd := exec.Command(job.CommandName, job.CommandArgs...)
 
-			outputFile := fmt.Sprintf("%s_%d_%d.h5", inputFile, id, jobCount)
-			opReturn.FHeader.AddSecondaryFile(outputFile)
-			localLog(jobCount, fmt.Sprintf("Executing command: %s %v", opReturn.FHeader.NearlineCmdName, opReturn.FHeader.NearlineCmdArgs))
-			cmd := exec.Command(opReturn.FHeader.NearlineCmdName, opReturn.FHeader.NearlineCmdArgs...)
-			/*
-				cmd := exec.Command(config.KatydidPath,
-					"-c",
-					config.KatydidConfPath,
-					"-e",
-					inputFile,
-					"--hdf5-file",
-					outputFile)
-			*/
-			// for debugging purposes (the println is to avoid an unused variable error for outputPath)
-			//fmt.Println("InputFile:", inputFile)
-			//fmt.Println("OutputFile:",outputFile)
-			//cmd := exec.Command("ls")
-
-			// run the process
-			var outputBytes []byte
-			var outputError error
-			if stdout, stdoutErr := cmd.StdoutPipe(); stdoutErr == nil {
-				var startTime time.Time
-				if procErr := cmd.Start(); procErr != nil {
-					opReturn.Err = fmt.Errorf("couldn't start command: %v", procErr)
-					localLog(jobCount, opReturn.Err.Error())
+				// run the process
+				var outputBytes []byte
+				var outputError error
+				if stdout, stdoutErr := cmd.StdoutPipe(); stdoutErr == nil {
+					var startTime time.Time
+					if procErr := cmd.Start(); procErr != nil {
+						opReturn.Err = fmt.Errorf("couldn't start command: %v", procErr)
+						localLog(jobCount, opReturn.Err.Error())
+					} else {
+						startTime = time.Now()
+						outputBytes, outputError = ioutil.ReadAll(stdout)
+						if outputError != nil {
+							opReturn.Err = fmt.Errorf("Error running process: %v", string(outputBytes[:]))
+							localLog(jobCount, opReturn.Err.Error())
+						}
+					}
+					if runErr := cmd.Wait(); runErr != nil {
+						if exitErr, ok := runErr.(*exec.ExitError); !ok {
+							opReturn.Err = fmt.Errorf("Nonzero exit status on process [%v].  Log: %v", exitErr, string(outputBytes[:]))
+							localLog(jobCount, opReturn.Err.Error())
+						}
+					}
+					// if we're here, the job succeeded
+					localLog(jobCount, fmt.Sprintf("Execution finished.  Elapsed time: %v", time.Since(startTime)))
+					localLog(jobCount, fmt.Sprintf("Job output:\n%s", string(outputBytes)))
+					opReturn.FHeader.FinishedJobs = append(opReturn.FHeader.FinishedJobs, job)
 				} else {
-					startTime = time.Now()
-					outputBytes, outputError = ioutil.ReadAll(stdout)
-					if outputError != nil {
-						opReturn.Err = fmt.Errorf("Error running process: %v", string(outputBytes[:]))
-						localLog(jobCount, opReturn.Err.Error())
-					}
+					opReturn.Err = fmt.Errorf("error opening stdout: %v", stdoutErr)
+					localLog(jobCount, opReturn.Err.Error())
 				}
-				if runErr := cmd.Wait(); runErr != nil {
-					if exitErr, ok := runErr.(*exec.ExitError); !ok {
-						opReturn.Err = fmt.Errorf("Nonzero exit status on process [%v].  Log: %v", exitErr, string(outputBytes[:]))
-						localLog(jobCount, opReturn.Err.Error())
-					}
-				}
-				localLog(jobCount,
-					fmt.Sprintf("Execution finished.  Elapsed time: %v",
-						time.Since(startTime)))
-			} else {
-				opReturn.Err = fmt.Errorf("error opening stdout: %v", stdoutErr)
-				localLog(jobCount, opReturn.Err.Error())
-			}
-			jobCount++
-			context.RetStream <- opReturn
-		} // end select
+				jobCount++
+			default: // non-blocking receive on the job queue
+				localLog(jobCount, "Finished processing jobs for this file")
+				context.RetStream <- opReturn
+			} // end secondary select (non-blocking receive on the job queue
+		} // end main select
 	} // end for
 	localLog(jobCount, fmt.Sprintf("no work remaining.  total of %d jobs processed.", jobCount))
 }
