@@ -178,7 +178,7 @@ scheduleLoop:
 			if fileRet.IsFatal == false {
 				fileHeader := fileRet.FHeader
 				// only send to the nearline workers if the file requests it and there's a worker available
-				if fileHeader.DoNearline && workersWorking < nWorkers {
+				if len(fileHeader.JobQueue) > 0 && workersWorking < nWorkers {
 					log.Printf("[scheduler] sending <%s> to the workers", fileHeader.Filename)
 					workersWorking++
 					workerQueue <- fileHeader

@@ -32,8 +32,15 @@ type TypeInfo struct {
 	DoMatchRegexp    bool
 	RegexpTemplate   *regexp.Regexp
 	DoHash           bool
-	DoNearline       bool
-	NearlineCmd      string
+	//DoNearline       bool
+	//NearlineCmd      string
+	Jobs             []int
+}
+
+type JobInfo struct {
+	Name             string
+	FileType         string
+	CommandTemplate  string
 }
 
 // ValidateClassifierConfig checks the sanity of the classifier section of a configuration.
@@ -134,11 +141,33 @@ func Classifier(context OperatorContext) {
 			types[iType].RegexpTemplate = regexp.MustCompile(regexpTemplate.(string))
 		}
 		types[iType].DoHash = typeMap["do-hash"].(bool)
-		types[iType].DoNearline = typeMap["do-nearline"].(bool)
+/*		types[iType].DoNearline = typeMap["do-nearline"].(bool)
 		if types[iType].DoNearline {
 			types[iType].NearlineCmd = typeMap["nearline-cmd"].(string)
-		}
+		}*/
 		log.Printf("[classifier] Adding type:\n\t%v", types[iType])
+	}
+
+	// Process the jobs
+	maxJobs := uint(viper.GetInt("classifier.max-jobs"))
+
+	jobsRawIfc :=  viper.Get("workers.jobs")
+	jobsRaw := jobsRawIfc.([]interface{})
+
+	var jobs = make([]JobInfo, len(jobsRaw))
+	for iJob, jobMapIfc := range jobsRaw {
+		jobMap := jobMapIfc.(map[string](interface{}))
+		jobs[iJob].Name = jobMap["name"].(string)
+		jobs[iJob].FileType = jobMap["file-type"].(string)
+		jobs[iJob].CommandTemplate = jobMap["command"].(string)
+		log.Printf("[classifier] Adding job:\n\t%v", jobs[iJob])
+		// add this job to the list of jobs for its file type
+		for iType, _ := range types {
+			if types[iType].Name == jobs[iJob].FileType {
+				types[iType].Jobs = append(types[iType].Jobs, iJob)
+				log.Printf("[classifier] type <%s> will now perform job %d <%s>: %v", types[iType].Name, iJob, jobs[iJob].Name, types[iType].Jobs)
+			}
+		}
 	}
 
 	// Process the base paths
@@ -244,8 +273,9 @@ typeLoop:
 					log.Printf("[classifier] Classifying file <%s> as type <%s>", inputFilename, typeInfo.Name)
 					opReturn.FHeader.FileType = typeInfo.Name
 					opReturn.FHeader.SubPath = getSubPath(opReturn.FHeader.HotPath)
-					opReturn.FHeader.DoNearline = typeInfo.DoNearline
-					opReturn.FHeader.SetNearlineCmd(typeInfo.NearlineCmd)
+					//opReturn.FHeader.DoNearline = typeInfo.DoNearline
+					//opReturn.FHeader.SetNearlineCmd(typeInfo.NearlineCmd)
+					opReturn.FHeader.JobQueue = make(chan Job, maxJobs)
 					if typeInfo.DoHash {
 						if hash, hashErr := exec.Command(hashCmd, hashOpt, inputFilePath).CombinedOutput(); hashErr != nil {
 							opReturn.Err = fmt.Errorf("[classifier] error while hashing:\n\t%v", hashErr.Error())
@@ -263,6 +293,21 @@ typeLoop:
 								//log.Printf("[classifier] Sending hash message:\n\t%v", hashMessage)
 								SendMessageQueue <- hashMessage
 							}
+						}
+					} // end if do-hash
+					// jobs for the job queue
+					log.Printf("[classifier] type %s has %d jobs: %v", typeInfo.Name, len(typeInfo.Jobs), typeInfo.Jobs)
+					for _, jobId := range typeInfo.Jobs {
+						newJob := Job{
+							Command: jobs[jobId].CommandTemplate,
+						}
+						select {
+						case opReturn.FHeader.JobQueue <- newJob:
+							// do nothing
+						default:
+							log.Printf("[classifier] attempting to submit more than the maximum number of jobs for a file; aborting")
+							context.CtrlQueue <- ThreadCannotContinue
+							break classifierLoop
 						}
 					}
 					context.RetStream <- opReturn

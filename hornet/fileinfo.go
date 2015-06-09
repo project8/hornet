@@ -9,8 +9,14 @@ package hornet
 import (
 	//"fmt"
 	//"path/filepath"
-	"strings"
+	//"strings"
 )
+
+type Job struct {
+	Command       string
+	CommandName   string
+	CommandArgs   [] string
+}
 
 // File information header
 type FileInfo struct {
@@ -24,18 +30,20 @@ type FileInfo struct {
 	FileHotPath     string
 	FileWarmPath    string
     FileColdPath    string
-	SecondaryFiles  []string
-	DoNearline      bool
-	NearlineCmdName string
-	NearlineCmdArgs []string
+	JobQueue        chan Job
+	FinishedJobs    []Job
+	//SecondaryFiles  []string
+	//DoNearline      bool
+	//NearlineCmdName string
+	//NearlineCmdArgs []string
 }
-
+/*
 // AddSecondaryFile appends another filename to the list of secondary files
 func (fileInfoPtr *FileInfo) AddSecondaryFile(file string) {
 	(*fileInfoPtr).SecondaryFiles = append((*fileInfoPtr).SecondaryFiles, file)
 	return
 }
-
+*//*
 // SetNearlineCmd splits the command name from its arguments, and sets the name in the FileInfo struct
 func (fileInfoPtr *FileInfo) SetNearlineCmd(nearlineCmd string) {
 	fileInfo := *fileInfoPtr
@@ -45,7 +53,7 @@ func (fileInfoPtr *FileInfo) SetNearlineCmd(nearlineCmd string) {
 	*fileInfoPtr = fileInfo
 	return
 }
-
+*/
 
 // Base paths are special locations on top of which a file system exists
 // These are defined in the classifier config; if a watcher is in use, its path is added to this

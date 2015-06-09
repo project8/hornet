@@ -27,28 +27,22 @@
             {
                 "name": "egg",
                 "match-extension": "egg",
-                "do-hash": true,
-                "do-nearline": true,
-                "nearline-cmd": "echo \"here's an egg file\""
+                "do-hash": true
             },
             {
                 "name": "rsa-mat",
                 "match-extension": "mat",
-                "do-hash": true,
-                "do-nearline": true,
-                "nearline-cmd": "echo \"here's an RSA MAT file\""
+                "do-hash": true 
             },
             {
                 "name": "rsa-setup",
                 "match-extension": "Setup",
-                "do-hash": false,
-                "do-nearline": false
+                "do-hash": false
             },
             {
                 "name": "regexp-example",
                 "match-regexp": "project8is[A-Za-z]*",
-                "do-hash": false,
-                "do-nearline": false
+                "do-hash": false
             }
         ],
 		"base-paths":
@@ -56,7 +50,8 @@
 			"/some/special/path",
 			"/another/path"
 		],
-		"wait-for-sender": 2
+		"wait-for-sender": 2,
+		"max-jobs": 25
     },
 
 	"hash":
@@ -74,6 +69,19 @@
 
     "workers":
     {
+		"jobs":
+		[
+			{
+				"name": "proc-egg",
+				"file-type": "egg",
+				"command": "echo \"here's an egg file\""
+			},
+			{
+				"name": "proc-rsa-mat",
+				"file-type": "rsa-mat",
+				"command": "echo \"here's an RSA MAT file\""
+			}
+		]
     },
 
     "shipper":
