@@ -51,7 +51,7 @@ func ValidateConfig() (e error) {
 	//   1 each for the scheduler, classifier, watcher, mover, amqp sender, amqp receiver = 6
 	//   N nearline workers (specified in scheduler.n-nearline-workers)
 	//   M shippers (specified in scheduler.n-shippers)
-	nThreads := 6 + viper.GetInt("scheduler.n-nearline-workers") + viper.GetInt("scheduler.n-shippers")
+	nThreads := 6 + viper.GetInt("workers.n-workers") + viper.GetInt("shipper.n-shippers")
 	if nThreads > hornet.MaxThreads {
 		e = fmt.Errorf("Maximum number of threads exceeded")
 	}
@@ -66,12 +66,13 @@ func ValidateConfig() (e error) {
 		e = classifierErr
 	}
 
-	if viper.GetInt("scheduler.n-nearline-workers") == 0 {
-		e = fmt.Errorf("Cannot have 0 nearline workers")
+	if viper.GetInt("workers.n-workers") == 0 {
+		e = fmt.Errorf("Cannot have 0 workers")
 	}
 
 	// for now, we require that there's only 1 shipper
-	if viper.GetInt("scheduler.n-shippers") != 1 {
+	if viper.GetInt("shipper.n-shippers") != 1 {
+		e = fmt.Errorf("Must have 1 worker")
 	}
 
 	if viper.GetInt("scheduler.queue-size") == 0 {

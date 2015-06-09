@@ -143,10 +143,6 @@ func Classifier(context OperatorContext) {
 			types[iType].RegexpTemplate = regexp.MustCompile(regexpTemplate.(string))
 		}
 		types[iType].DoHash = typeMap["do-hash"].(bool)
-/*		types[iType].DoNearline = typeMap["do-nearline"].(bool)
-		if types[iType].DoNearline {
-			types[iType].NearlineCmd = typeMap["nearline-cmd"].(string)
-		}*/
 		log.Printf("[classifier] Adding type:\n\t%v", types[iType])
 	}
 
@@ -295,8 +291,6 @@ typeLoop:
 					log.Printf("[classifier] Classifying file <%s> as type <%s>", inputFilename, typeInfo.Name)
 					opReturn.FHeader.FileType = typeInfo.Name
 					opReturn.FHeader.SubPath = getSubPath(opReturn.FHeader.HotPath)
-					//opReturn.FHeader.DoNearline = typeInfo.DoNearline
-					//opReturn.FHeader.SetNearlineCmd(typeInfo.NearlineCmd)
 					opReturn.FHeader.JobQueue = make(chan Job, maxJobs)
 					if typeInfo.DoHash {
 						if hash, hashErr := exec.Command(hashCmd, hashOpt, inputFilePath).CombinedOutput(); hashErr != nil {
@@ -313,8 +307,6 @@ typeLoop:
 						fileInfoMessage.TimeStamp = time.Now().UTC().Format(TimeFormat)
 						fileInfoMessage.Payload.(map[string]interface{})["file_name"] = inputFilename
 						fileInfoMessage.Payload.(map[string]interface{})["file_hash"] = opReturn.FHeader.FileHash
-						//hashMessage.Payload.(map[string]interface{})["run_id"] = ???
-						//log.Printf("[classifier] Sending hash message:\n\t%v", hashMessage)
 						SendMessageQueue <- fileInfoMessage
 					}
 					// jobs for the job queue

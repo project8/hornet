@@ -9,9 +9,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os/exec"
-	//"path/filepath"
 	"strings"
-	//"text/template"
 	"time"
 
 	//"github.com/spf13/viper"
@@ -66,20 +64,6 @@ workLoop:
 				IsFatal:  false,
 			}
 
-			// after moving the worker stage to after the mover stage, this is no longer necessary
-			//opReturn.File, opReturn.Err := RenamePathRelativeTo(inputFile,
-			//	config.WatchDirPath,
-			//	config.DestDirPath)
-			//if opReturn.Err != nil {
-			//	log.Printf("[worker] bad rename request [%s -> %s] [%v]",
-			//		config.WatchDirPath, config.DestDirPath, opReturn.Err)
-			//}
-
-			//outputFile := fmt.Sprintf("%s_%d_%d.h5", inputFile, id, jobCount)
-			//opReturn.FHeader.AddSecondaryFile(outputFile)
-			//localLog(jobCount, fmt.Sprintf("Executing command: %s %v", opReturn.FHeader.NearlineCmdName, opReturn.FHeader.NearlineCmdArgs))
-			//cmd := exec.Command(opReturn.FHeader.NearlineCmdName, opReturn.FHeader.NearlineCmdArgs...)
-
 			// select statement to make a non-blocking receive on the job queue channel
 			select {
 			case job := <-opReturn.FHeader.JobQueue: // get the job
@@ -94,23 +78,6 @@ workLoop:
 				localLog(jobCount, fmt.Sprintf("Executing command: %s %v", job.CommandName, job.CommandArgs))
 				// create the command
 				cmd := exec.Command(job.CommandName, job.CommandArgs...)
-				// (after running) put completed job into FinishedJobs
-
-
-
-			/*
-				cmd := exec.Command(config.KatydidPath,
-					"-c",
-					config.KatydidConfPath,
-					"-e",
-					inputFile,
-					"--hdf5-file",
-					outputFile)
-			*/
-			// for debugging purposes (the println is to avoid an unused variable error for outputPath)
-			//fmt.Println("InputFile:", inputFile)
-			//fmt.Println("OutputFile:",outputFile)
-			//cmd := exec.Command("ls")
 
 				// run the process
 				var outputBytes []byte

@@ -9,10 +9,8 @@
 package hornet
 
 import (
-	//"fmt"
 	"log"
 	"path/filepath"
-	//"strings"
 	"sync"
 
 	"github.com/spf13/viper"
@@ -43,7 +41,7 @@ func Scheduler(schQueue chan string, ctrlQueue chan ControlMessage, reqQueue cha
 	queueSize := viper.GetInt("scheduler.queue-size")
 	log.Println("[scheduler] Queue size:", queueSize)
 
-	nWorkers := viper.GetInt("scheduler.n-nearline-workers")
+	nWorkers := viper.GetInt("workers.n-workers")
 	log.Println("[scheduler] Number of workers:", nWorkers)
 
 	// create the file queues
@@ -177,7 +175,7 @@ scheduleLoop:
 			}
 			if fileRet.IsFatal == false {
 				fileHeader := fileRet.FHeader
-				// only send to the nearline workers if the file requests it and there's a worker available
+				// only send to the workers if the file requests it and there's a worker available
 				if len(fileHeader.JobQueue) > 0 && workersWorking < nWorkers {
 					log.Printf("[scheduler] sending <%s> to the workers", fileHeader.Filename)
 					workersWorking++

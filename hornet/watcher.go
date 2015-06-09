@@ -37,15 +37,6 @@ func shouldIgnore(evt *inotify.Event) bool {
 	return (evt.Mask & inotify.IN_IGNORED) == ignoreMask
 }
 
-// shouldRemoveWatch tests to see if a directory is no longer of interest.
-// NOTE: this functionality has been removed because testing has shown that 
-//       deleted/moved directories are removed from the inotify watch automatically.
-/*func shouldRemoveWatch(evt *inotify.Event) bool {
-	wasDeleted := (evt.Mask & dirDeletedMask) == dirDeletedMask
-	wasMovedFrom := (evt.Mask & dirMovedFromMask) == dirMovedFromMask
-	return wasDeleted || wasMovedFrom
-}*/
-
 // isEintr is exactly what it sounds like.
 func isEintr(e error) bool {
 	return e != nil && strings.Contains(e.Error(), "interrupted system call")
@@ -128,19 +119,7 @@ runLoop:
 				} else {
 					log.Printf("[watcher] added subdirectory to dir watch [%v]", dirname)
 				}
-			} /*else if shouldRemoveWatch(newSubDirEvt) {
-				log.Printf("[watcher] removing watch on %s...", dirname)
-				if err := fileWatch.RemoveWatch(dirname); err != nil {
-					log.Printf("[watcher] can't remove file watch on %s [%v]", dirname, err)
-				} else {
-					log.Printf("[watcher] removed file watch on %s", dirname)
-				}
-				if err := subdWatch.RemoveWatch(dirname); err != nil {
-					log.Printf("[watcher] can't remove dir watch on %s [%v]", dirname, err)
-				} else {
-					log.Printf("[watcher] removed dir watch on %s", dirname)
-				}
-			}*/
+			}
 
 			//	if either of the filesystem watchers gets an error, die
 			//	as gracefully as possible.
