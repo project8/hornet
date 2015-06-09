@@ -9,17 +9,17 @@ Organization
 
 The various functions of hornet are performed by a number of semi-independent modules:
 
-* Watcher -- monitors a portion of the filesystem for new files to process;
+* :doc:`Watcher <watcher>` -- monitors a portion of the filesystem for new files to process;
 
-* Classifier -- recognizes files of certain types and how to proces them;
+* :doc:`Classifier <classifier>` -- recognizes files of certain types and how to proces them;
 
-* Mover -- copies files from the "hot" data storage to the "warm" data storage;
+* :doc:`Mover <mover>` -- copies files from the "hot" data storage to the "warm" data storage;
 
 * Worker -- performs nearline analysis on all or some files;
 
-* Shipper -- move files to a "cold" storage file system;
+* :doc:`Shipper <shipper>` -- move files to a "cold" storage file system;
 
-* Scheduler -- coordinate the processing of the files with the hornet modules.
+* :doc:`Scheduler <scheduler>` -- coordinate the processing of the files with the hornet modules.
 
 
 Operation and Configuration
