@@ -35,57 +35,6 @@ import (
 	"github.com/project8/hornet/hornet"
 )
 
-// Validate checks the sanity of a Config instance
-//   1) the number of threads is sane
-//   2) the provided config file is parsable json
-//   3) the provided watch directory is indeed a directory
-func ValidateConfig() (e error) {
-	indentedConfig, confErr := json.MarshalIndent(viper.AllSettings(), "", "    ")
-	if confErr != nil {
-		e = fmt.Errorf("Error marshaling configuration!")
-		return
-	}
-	log.Printf("[hornet] Full configuration:\n%v", string(indentedConfig))
-
-	// Threads used:
-	//   1 each for the scheduler, classifier, watcher, mover, amqp sender, amqp receiver = 6
-	//   N nearline workers (specified in scheduler.n-nearline-workers)
-	//   M shippers (specified in scheduler.n-shippers)
-	nThreads := 6 + viper.GetInt("workers.n-workers") + viper.GetInt("shipper.n-shippers")
-	if nThreads > hornet.MaxThreads {
-		e = fmt.Errorf("Maximum number of threads exceeded")
-	}
-
-	if amqpErr := hornet.ValidateAmqpConfig(); amqpErr != nil {
-		log.Print(amqpErr.Error())
-		e = amqpErr
-	}
-
-	if classifierErr := hornet.ValidateClassifierConfig(); classifierErr != nil {
-		log.Print(classifierErr.Error())
-		e = classifierErr
-	}
-
-	if viper.GetInt("workers.n-workers") == 0 {
-		e = fmt.Errorf("Cannot have 0 workers")
-	}
-
-	// for now, we require that there's only 1 shipper
-	if viper.GetInt("shipper.n-shippers") != 1 {
-		e = fmt.Errorf("Must have 1 worker")
-	}
-
-	if viper.GetInt("scheduler.queue-size") == 0 {
-		e = fmt.Errorf("Scheduler queue must be greater than 0")
-	}
-
-	if hornet.PathIsDirectory(viper.GetString("mover.dest-dir")) == false {
-		e = fmt.Errorf("Destination directory must exist and be a directory!")
-	}
-
-	return
-}
-
 func main() {
 	// user needs help
 	var needHelp bool
@@ -127,11 +76,23 @@ func main() {
 		log.Fatal("(FATAL) ", parseErr)
 	}
 
-	//fmt.Println(viper.AllSettings())
+	// print the full configuration
+	indentedConfig, confErr := json.MarshalIndent(viper.AllSettings(), "", "    ")
+	if confErr != nil {
+		log.Print("Error marshaling configuration!")
+		return
+	}
+	log.Printf("[hornet] Full configuration:\n%v", string(indentedConfig))
 
-	if configErr := ValidateConfig(); configErr != nil {
-		flag.Usage()
-		log.Fatal("(FATAL) ", configErr)
+	// Check the number of threads to be used
+	// Threads used:
+	//   1 each for the scheduler, classifier, watcher, mover, amqp sender, amqp receiver = 6
+	//   N nearline workers (specified in scheduler.n-nearline-workers)
+	//   M shippers (specified in scheduler.n-shippers)
+	nThreads := 6 + viper.GetInt("workers.n-workers") + viper.GetInt("shipper.n-shippers")
+	if nThreads > hornet.MaxThreads {
+		log.Print("Maximum number of threads exceeded")
+		return
 	}
 
 	// if we've made it this far, it's time to get down to business.

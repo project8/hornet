@@ -74,7 +74,12 @@ func Mover(context OperatorContext) {
 	// keep a running list of all of the directories we know about.
 	ds := make(DirectorySet)
 
-	destDirBase, _ := filepath.Abs(viper.GetString("mover.dest-dir"))
+	destDirBase, dirErr := filepath.Abs(viper.GetString("mover.dest-dir"))
+	if dirErr != nil || PathIsDirectory(destDirBase) == false{
+		log.Print("[mover] Destination directory is not valid: <%v>", destDirBase)
+		context.ReqQueue <- ThreadCannotContinue
+		return
+	}
 
 	log.Print("[mover] started successfully")
 

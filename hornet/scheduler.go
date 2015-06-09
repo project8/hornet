@@ -33,16 +33,33 @@ type OperatorContext struct {
 	PoolCount        *sync.WaitGroup
 }
 
-func Scheduler(schQueue chan string, ctrlQueue chan ControlMessage, reqQueue chan ControlMessage, threadCountQueue chan uint, poolCount *sync.WaitGroup) {
+func Scheduler(schQueue chan string, ctrlQueue, reqQueue chan ControlMessage, threadCountQueue chan uint, poolCount *sync.WaitGroup) {
 	// Decrement the waitgroup counter when done
 	defer poolCount.Done()
 	defer log.Print("[scheduler] finished.")
 
 	queueSize := viper.GetInt("scheduler.queue-size")
 	log.Println("[scheduler] Queue size:", queueSize)
+	if queueSize <= 0 {
+		log.Print("[scheduler] Queue size must be > 0")
+		reqQueue <- ThreadCannotContinue
+		return
+	}
 
 	nWorkers := viper.GetInt("workers.n-workers")
 	log.Println("[scheduler] Number of workers:", nWorkers)
+	if nWorkers <= 0 {
+		log.Print("[scheduler] Number of workers must be > 0")
+		reqQueue <- ThreadCannotContinue
+		return
+	}
+
+	// for now, we require that there's only 1 shipper
+	if viper.GetInt("shipper.n-shippers") != 1 {
+		log.Print("[scheduler] Currently can only have 1 shipper")
+		reqQueue <- ThreadCannotContinue
+		return
+	}
 
 	// create the file queues
 	classifierQueue := make(chan FileInfo, queueSize)

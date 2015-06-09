@@ -113,7 +113,13 @@ func ValidateAmqpConfig() (e error) {
 	return
 }
 
-func StartAmqp(ctrlQueue chan ControlMessage, reqQueue chan ControlMessage, threadCountQueue chan uint, poolCount *sync.WaitGroup) (e error) {
+func StartAmqp(ctrlQueue, reqQueue chan ControlMessage, threadCountQueue chan uint, poolCount *sync.WaitGroup) (e error) {
+	if configErr := ValidateAmqpConfig(); configErr != nil {
+		log.Printf("[amqp] Error in the AMQP configuration: %s", configErr.Error())
+		reqQueue <- ThreadCannotContinue
+		return
+	}
+
 	if viper.GetBool("amqp.active") == false {
 		log.Printf("[amqp] AMQP is inactive")
 		return

@@ -15,7 +15,12 @@
     "watcher":
     {
         "active": true,
-        "dir": "/data"
+        "dir": "/data",
+		"dirs":
+		[
+			"/otherdata1",
+			"/otherdata2"
+		]
     },
 
     "classifier":
@@ -44,7 +49,7 @@
 			"/another/path"
 		],
 		"send-file-info": true,
-		"send-to": "hornet",
+		"send-to": "hornet.print-message",
 		"wait-for-sender": 2,
 		"max-jobs": 25
     },

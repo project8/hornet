@@ -124,6 +124,12 @@ func Classifier(context OperatorContext) {
 	defer context.PoolCount.Done()
 	defer log.Print("[classifier] finished.")
 
+	if configErr := ValidateClassifierConfig(); configErr != nil {
+		log.Printf("[amqp] Error in the classifier configuration: %s", configErr.Error())
+		context.ReqQueue <- ThreadCannotContinue
+		return
+	}
+
 	// Process the file types
 	typesRawIfc := viper.Get("classifier.types")
 	typesRaw := typesRawIfc.([]interface{})
