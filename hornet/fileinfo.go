@@ -15,7 +15,7 @@ import (
 
 type Job struct {
 	CommandTemplate  *template.Template
-	Command          string
+	//Command          string
 	CommandName      string
 	CommandArgs      [] string
 }

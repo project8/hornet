@@ -209,10 +209,11 @@ func Classifier(context OperatorContext) {
 	hashCmd := viper.GetString("hash.command")
 	hashOpt := viper.GetString("hash.cmd-opt")
 
-	hashRoutingKey := viper.GetString("hash.send-to")
-	sendHash := false
-	var hashMessage P8Message
-	if len(hashRoutingKey) > 0 {
+	// Sending the file info
+	sendtoRoutingKey := viper.GetString("classifier.send-to")
+	sendFileInfo := viper.GetBool("classifier.send-file-info")
+	var masterFileInfoMessage P8Message
+	if sendFileInfo {
 		if AmqpSenderIsActive == false {
 			// sometimes the AMQP sender takes a little time to startup, so wait a second
 			var waitTime int = 1
@@ -221,19 +222,17 @@ func Classifier(context OperatorContext) {
 			}
 			time.Sleep(time.Duration(waitTime) * time.Second)
 			if AmqpSenderIsActive == false {
-				log.Printf("[classifier] Cannot start classifier because the AMQP sender routine is not active, and sending hashes has been requested")
+				log.Printf("[classifier] Cannot start classifier because the AMQP sender routine is not active, and sending file info has been requested")
 				context.ReqQueue <- ThreadCannotContinue
 				return
 			}
 		}
-		sendHash = true
-		hashMessage = PrepareRequest([]string{hashRoutingKey}, "application/msgpack", MOCommand, nil)
-		payload := make(map[string]interface{})
-		payload["values"] = []string{"do_insert"}
-		payload["file_name"] = ""
-		payload["file_hash"] = ""
-		payload["run_id"] = 106
-		hashMessage.Payload = payload
+		masterFileInfoMessage = PrepareRequest([]string{sendtoRoutingKey}, "application/msgpack", MOCommand, nil)
+		masterFileInfoMessage.Payload = make(map[string]interface{})
+		masterFileInfoMessage.Payload.(map[string]interface{})["values"] = []string{"do_insert"}
+		masterFileInfoMessage.Payload.(map[string]interface{})["file_name"] = ""
+		masterFileInfoMessage.Payload.(map[string]interface{})["file_hash"] = ""
+		masterFileInfoMessage.Payload.(map[string]interface{})["run_id"] = 0
 	}
 
 	log.Print("[classifier] started successfully")
@@ -267,6 +266,10 @@ classifierLoop:
 			_, inputFilename := filepath.Split(inputFilePath)
 
 			acceptType := bool(false)
+			var fileInfoMessage P8Message
+			if sendFileInfo {
+				fileInfoMessage = masterFileInfoMessage
+			}
 
 typeLoop:
 			for _, typeInfo := range types {
@@ -275,7 +278,17 @@ typeLoop:
 					acceptType = acceptType && strings.HasSuffix(inputFilename, typeInfo.Extension)
 				}
 				if typeInfo.DoMatchRegexp {
-					acceptType = acceptType && typeInfo.RegexpTemplate.MatchString(inputFilename)
+					allSubmatches := typeInfo.RegexpTemplate.FindAllStringSubmatch(inputFilename, -1)
+					acceptType = acceptType && len(allSubmatches) == 1 && len(allSubmatches[0]) > 1 && allSubmatches[0][0] == inputFilename
+					if acceptType && sendFileInfo {
+						subexpNames := typeInfo.RegexpTemplate.SubexpNames()
+						if len(allSubmatches[0]) > 1 {
+							for iSubmatch, submatch := range allSubmatches[0][1:] {
+								log.Printf("[classifier] adding to payload: %s: %s", subexpNames[iSubmatch+1], submatch)
+								fileInfoMessage.Payload.(map[string]interface{})[subexpNames[iSubmatch+1]] = submatch
+							}
+						}
+					}
 				}
 
 				if acceptType {
@@ -294,21 +307,21 @@ typeLoop:
 							hashTokens := strings.Fields(string(hash))
 							opReturn.FHeader.FileHash = hashTokens[0]
 							log.Printf("[classifier] file <%s> hash: %s", inputFilename, opReturn.FHeader.FileHash)
-							if sendHash {
-								hashMessage.TimeStamp = time.Now().UTC().Format(TimeFormat)
-								hashMessage.Payload.(map[string]interface{})["file_name"] = inputFilename
-								hashMessage.Payload.(map[string]interface{})["file_hash"] = opReturn.FHeader.FileHash
-								//hashMessage.Payload.(map[string]interface{})["run_id"] = ???
-								//log.Printf("[classifier] Sending hash message:\n\t%v", hashMessage)
-								SendMessageQueue <- hashMessage
-							}
 						}
-					} // end if do-hash
+					}
+					if sendFileInfo {
+						fileInfoMessage.TimeStamp = time.Now().UTC().Format(TimeFormat)
+						fileInfoMessage.Payload.(map[string]interface{})["file_name"] = inputFilename
+						fileInfoMessage.Payload.(map[string]interface{})["file_hash"] = opReturn.FHeader.FileHash
+						//hashMessage.Payload.(map[string]interface{})["run_id"] = ???
+						//log.Printf("[classifier] Sending hash message:\n\t%v", hashMessage)
+						SendMessageQueue <- fileInfoMessage
+					}
 					// jobs for the job queue
 					log.Printf("[classifier] type %s has %d jobs: %v", typeInfo.Name, len(typeInfo.Jobs), typeInfo.Jobs)
 					for _, jobId := range typeInfo.Jobs {
 						newJob := Job{
-							Command: jobs[jobId].Command,
+							//Command: jobs[jobId].Command,
 							CommandTemplate: jobs[jobId].CommandTemplate,
 						}
 						

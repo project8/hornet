@@ -10,6 +10,7 @@ package hornet
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"os"
 	//"os/exec"
@@ -343,6 +344,40 @@ amqpLoop:
 					switch p8Message.Target[0] {
 					case "quit-hornet":
 						reqQueue <- StopExecution
+					case "print-message":
+						log.Print("[amqp receiver] Message received for printing:")
+						log.Printf("\tEncoding: %v", p8Message.Encoding)
+						log.Printf("\tCorrelation ID: %v", p8Message.CorrId)
+						log.Printf("\tMessage Type: %v", p8Message.MsgType)
+						log.Printf("\tTimestamp: %v", p8Message.TimeStamp)
+						log.Print("\tSenderInfo:")
+						log.Printf("\t\tPackage: %v", p8Message.SenderInfo.Package)
+						log.Printf("\t\tExe: %v", p8Message.SenderInfo.Exe)
+						log.Printf("\t\tVersion: %v", p8Message.SenderInfo.Version)
+						log.Printf("\t\tCommit: %v", p8Message.SenderInfo.Commit)
+						log.Printf("\t\tHostname: %v", p8Message.SenderInfo.Hostname)
+						log.Printf("\t\tUsername: %v", p8Message.SenderInfo.Username)
+						log.Print("\tPayload:")
+						for key, value := range p8Message.Payload.(map[interface{}]interface{}) {
+							switch typedValue := value.(type) {
+								case []byte:
+									log.Printf("\t\t%s (byte sl): %v", key.(string), string(typedValue))
+								case [][]byte:
+									//log.Printf("\t\t%s (byte sl sl): %v", key.(string), [][]string(typedValue))
+									sliceString := "["
+									for _, byteSlice := range typedValue {
+										fmt.Sprintf(sliceString, "%s, %s", sliceString, string(byteSlice))
+									}
+									fmt.Sprintf(sliceString, "%s]", sliceString)
+									log.Printf("\t\t%s (byte sl sl): %s", key.(string), sliceString)
+								case rune, bool, int, uint, float32, float64, complex64, complex128, string:
+									log.Printf("\t\t%s (type): %v", key.(string), typedValue)
+								case []rune, []bool, []int, []uint, []float32, []float64, []complex64, []complex128, []string:
+									log.Printf("\t\t%s (array): %v", key.(string), typedValue)
+								default:
+									log.Printf("\t\t%s (default): %v", key.(string), value)
+							}
+						}
 					default:
 						log.Printf("[amqp receiver] Unknown hornet target for request messages: %v", p8Message.Target)
 					}
