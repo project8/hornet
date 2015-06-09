@@ -286,8 +286,11 @@ typeLoop:
 						subexpNames := typeInfo.RegexpTemplate.SubexpNames()
 						if len(allSubmatches[0]) > 1 {
 							for iSubmatch, submatch := range allSubmatches[0][1:] {
-								log.Printf("[classifier] adding to payload: %s: %s", subexpNames[iSubmatch+1], submatch)
-								fileInfoMessage.Payload.(map[string]interface{})[subexpNames[iSubmatch+1]] = submatch
+								subexpName := subexpNames[iSubmatch+1]
+								if len(subexpName) > 0 {
+									log.Printf("[classifier] adding to payload: %s: %s", subexpName, submatch)
+									fileInfoMessage.Payload.(map[string]interface{})[subexpName] = submatch
+								}
 							}
 						}
 					}
