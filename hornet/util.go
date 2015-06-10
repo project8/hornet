@@ -20,7 +20,16 @@ func PathIsDirectory(path string) bool {
 	}
 
 	return false
+}
 
+// PathIsRegularFile returns true if the string argument is a path to a 
+// regular file on the filesystem.
+func PathIsRegularFile(path string) bool {
+	if info, err := os.Stat(path); err == nil {
+		return info.Mode().IsRegular()
+	}
+
+	return false
 }
 
 // MovedFilePath takes a path to a file as its argument, and the directory to

@@ -132,6 +132,7 @@ moveLoop:
 			destDirPath := filepath.Clean(filepath.Join(destDirBase, fileHeader.SubPath))
 			outputFilePath := filepath.Join(destDirPath, fileHeader.Filename)
 			opReturn.FHeader.WarmPath = destDirPath
+			opReturn.FHeader.FileWarmPath = outputFilePath
 			// check if we already know about the destDirPath
 			if ds[destDirPath] == false {
 				log.Printf("[mover] creating directory %s\n", destDirPath)

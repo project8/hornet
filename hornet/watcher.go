@@ -74,6 +74,7 @@ func Watcher(context OperatorContext) {
 	defer subdWatch.Close()
 
 	// Add the directories specified in the configuration
+	var nOrigDirs uint = 0
 	if viper.IsSet("watcher.dir") {
 		watchDir := viper.GetString("watcher.dir")
 		if PathIsDirectory(watchDir) == false {
@@ -84,6 +85,7 @@ func Watcher(context OperatorContext) {
 		fileWatch.AddWatch(watchDir, fileWatchFlags)
 		subdWatch.AddWatch(watchDir, subdWatchFlags)
 		log.Printf("[watcher] Now watching <%s>", watchDir)
+		nOrigDirs++
 	}
 	if viper.IsSet("watcher.dirs") {
 		watchDirs := viper.GetStringSlice("watcher.dirs")
@@ -96,7 +98,13 @@ func Watcher(context OperatorContext) {
 			fileWatch.AddWatch(watchDir, fileWatchFlags)
 			subdWatch.AddWatch(watchDir, subdWatchFlags)
 			log.Printf("[watcher] Now watching <%s>", watchDir)
+			nOrigDirs++
 		}
+	}
+	if nOrigDirs == 0 {
+		log.Printf("[watcher] No watch directories were specified")
+		context.ReqQueue <- ThreadCannotContinue
+		return
 	}
 
 	log.Print("[watcher] started successfully.  waiting for events...")

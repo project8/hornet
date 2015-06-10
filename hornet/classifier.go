@@ -182,26 +182,37 @@ func Classifier(context OperatorContext) {
 	}
 
 	// Process the base paths
+	BasePaths = make([]string, 0)
+
+	if viper.GetBool("watcher.active") {
+		if viper.IsSet("watcher.dir") {
+			watchDir := viper.GetString("watcher.dir")
+			if PathIsDirectory(watchDir) {
+				watchDirAbs, _ := filepath.Abs(watchDir)
+				BasePaths = append(BasePaths, watchDirAbs)
+			}
+		}
+		if viper.IsSet("watcher.dirs") {
+			watchDirs := viper.GetStringSlice("watcher.dirs")
+			for _, watchDir := range watchDirs {
+				if PathIsDirectory(watchDir) {
+					watchDirAbs, _ := filepath.Abs(watchDir)
+					BasePaths = append(BasePaths, watchDirAbs)
+				}
+			}
+		}
+	}
+
 	basePathsRawIfc := viper.Get("classifier.base-paths")
 	basePathsRaw := make([]interface{}, 0)
 	if basePathsRawIfc != nil {
 		basePathsRaw = basePathsRawIfc.([]interface{})
+		for _, pathIfc := range basePathsRaw {
+			basePathAbs, _ := filepath.Abs(pathIfc.(string))
+			BasePaths = append(BasePaths, basePathAbs)
+		}
 	}
 
-	includeWatcherDir := viper.GetBool("watcher.active")
-
-	nBasePaths := len(basePathsRaw)
-	if includeWatcherDir {nBasePaths++}
-
-	BasePaths = make([]string, nBasePaths)
-	firstPath := 0
-	if includeWatcherDir {
-		BasePaths[0], _ = filepath.Abs(viper.GetString("watcher.dir"))
-		firstPath++
-	}
-	for iPath, pathIfc := range basePathsRaw {
-		BasePaths[firstPath + iPath], _ = filepath.Abs(pathIfc.(string))
-	}
 	//BasePaths = append(BasePaths, []string(basePaths)...)
 	log.Printf("Base paths: %v", BasePaths)
     
