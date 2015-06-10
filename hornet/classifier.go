@@ -182,20 +182,22 @@ func Classifier(context OperatorContext) {
 	}
 
 	// Process the base paths
-	BasePaths = make([]string)
+	BasePaths = make([]string, 0)
 
 	if viper.GetBool("watcher.active") {
 		if viper.IsSet("watcher.dir") {
 			watchDir := viper.GetString("watcher.dir")
 			if PathIsDirectory(watchDir) {
-				BasePaths = append(BasePaths, filepath.Abs(watchDir))
+				watchDirAbs, _ := filepath.Abs(watchDir)
+				BasePaths = append(BasePaths, watchDirAbs)
 			}
 		}
 		if viper.IsSet("watcher.dirs") {
 			watchDirs := viper.GetStringSlice("watcher.dirs")
 			for _, watchDir := range watchDirs {
 				if PathIsDirectory(watchDir) {
-					BasePaths = append(BasePaths, filepath.Abs(watchDir))
+					watchDirAbs, _ := filepath.Abs(watchDir)
+					BasePaths = append(BasePaths, watchDirAbs)
 				}
 			}
 		}
@@ -205,8 +207,9 @@ func Classifier(context OperatorContext) {
 	basePathsRaw := make([]interface{}, 0)
 	if basePathsRawIfc != nil {
 		basePathsRaw = basePathsRawIfc.([]interface{})
-		for iPath, pathIfc := range basePathsRaw {
-			BasePaths = append(BasePaths, filepath.Abs(pathIfc.(string)))
+		for _, pathIfc := range basePathsRaw {
+			basePathAbs, _ := filepath.Abs(pathIfc.(string))
+			BasePaths = append(BasePaths, basePathAbs)
 		}
 	}
 
