@@ -49,3 +49,30 @@ The following examples should cover most situations:
 
 	* Warm path: ``/bigdisk/all-data/month4/week2/day5/run567.egg``
 	* Cold path: ``/coldstorage/month4/week2/day5/run567.egg``
+
+
+File Header Information
+-----------------------
+
+Each file is accompanied in Hornet by information that, primarily, describes where the file was/is/will be located.  It also contains information about the jobs that are to be performed and those that have already finished.
+
+* Filename \* -- without path information.
+* FileType \*\* -- as recognized by the :doc:`Classifier <classifier>`
+* FileHash \*\* -- if calculated
+* SubPath \*\* -- the subdirectory path (see above)
+* HotPath \* -- the absolute directory path in hot storage
+* WarmPath \*\*\* -- the absolute directory path in warm storage
+* ColdPath \*\*\*\* -- the directory path in cold storage (absolute if local; may not be absolute if remote)
+* FileHotPath \* -- the absolute file path in hot storage
+* FileWarmPath \*\*\* -- the absolute file path in warm storage
+* FileColdPath \*\*\*\* -- the file path in cold storage (absolute if local; may not be absolute if remote)
+* JobQueue \*\* -- the jobs that will be performed (empty after processing by a Worker)
+* FinishedJobs -- the jobs that have been completed
+
+\* **(dev)** Filled in by the Scheduler
+
+\*\* **(dev)** Filled in by the Classifier
+
+\*\*\* **(dev)** Filled in by the Mover
+
+\*\*\*\* **(dev)** Filled in by the Shipper
