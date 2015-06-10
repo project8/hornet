@@ -12,7 +12,9 @@ import (
 	"io"
 	"log"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"github.com/spf13/viper"
 )
@@ -43,6 +45,7 @@ func copy(source, destination string) error {
 	return nil
 }
 
+/*
 // Move moves a file from one place to another.  This is equivalent to
 // copy-and-delete.
 func Move(src, dest string) (e error) {
@@ -59,6 +62,26 @@ func Move(src, dest string) (e error) {
 		}
 	}
 
+	return
+}
+*/
+
+// Copy copies a file from one place to another.
+func Copy(src, dest string) (e error) {
+	if copyErr := copy(src, dest); copyErr != nil {
+		log.Printf("[mover] file copy failed! (%v -> %v) [%v]\n",
+			src, dest, copyErr)
+		e = errors.New("failed to copy file")
+	}
+	return
+}
+
+// Remove deletes a file
+func Remove(file string) (e error) {
+	if rmErr := os.Remove(file); rmErr != nil {
+		log.Printf("[mover] file rm failed! (%v) [%v]\n", file, rmErr)
+		e = errors.New("failed to remove  file")
+	}
 	return
 }
 
@@ -80,6 +103,11 @@ func Mover(context OperatorContext) {
 		context.ReqQueue <- ThreadCannotContinue
 		return
 	}
+
+	// Deal with the hash (do we need it, how do we run it, and do we send it somewhere?)
+	requireHash := viper.GetBool("hash.required")
+	hashCmd := viper.GetString("hash.command")
+	hashOpt := viper.GetString("hash.cmd-opt")
 
 	log.Print("[mover] started successfully")
 
@@ -115,11 +143,34 @@ moveLoop:
 					ds[destDirPath] = true
 				}
 			}
-			if moveErr := Move(inputFilePath, outputFilePath); moveErr != nil {
-				opReturn.Err = fmt.Errorf("[mover] error moving (%v -> %v) [%v]", inputFilePath, outputFilePath, moveErr)
+			// copy the file
+			if copyErr := Copy(inputFilePath, outputFilePath); copyErr != nil {
+				opReturn.Err = fmt.Errorf("[mover] error copying (%v -> %v) [%v]", inputFilePath, outputFilePath, copyErr)
 				opReturn.IsFatal = true
 				log.Printf(opReturn.Err.Error())
 			}
+
+			if len(opReturn.FHeader.FileHash) > 0 {
+				if hash, hashErr := exec.Command(hashCmd, hashOpt, inputFilePath).CombinedOutput(); hashErr != nil {
+					opReturn.Err = fmt.Errorf("[mover] error while hashing:\n\t%v", hashErr.Error())
+					opReturn.IsFatal = requireHash
+					log.Printf(opReturn.Err.Error())
+				} else {
+					if opReturn.FHeader.FileHash != strings.Fields(string(hash))[0] {
+						opReturn.Err = fmt.Errorf("[mover] warm and hot copies of the file do not match!\n\tInput: %s\n\tOutput: %s", inputFilePath, outputFilePath)
+						opReturn.IsFatal = true
+						log.Printf(opReturn.Err.Error())
+					} else {
+						// files match; ok to delete the input file
+						if rmErr := Remove(inputFilePath); rmErr != nil {
+							opReturn.Err = fmt.Errorf("[mover] error removing file %s", inputFilePath)
+							opReturn.IsFatal = true
+							log.Printf(opReturn.Err.Error())
+						}
+					}
+				}
+			}
+
 			context.RetStream <- opReturn
 		}
 
