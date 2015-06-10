@@ -161,13 +161,18 @@ scheduleLoop:
 			if absPath, absErr := filepath.Abs(file); absErr != nil {
 				log.Printf("[scheduler] unable to determine an absolute path for <%s>", file)
 			} else {
-				path, filename := filepath.Split(absPath)
-				fileHeader := FileInfo{
-					Filename:   filename,
-					HotPath:    path,
+				if PathIsRegularFile(absPath) {
+					path, filename := filepath.Split(absPath)
+					fileHeader := FileInfo{
+						Filename:     filename,
+						HotPath:      path,
+						FileHotPath:  absPath,
+					}
+					log.Printf("[scheduler] sending <%s> to the classifier", fileHeader.Filename)
+					classifierQueue <- fileHeader
+				} else {
+					log.Printf("[scheduler] <%s> is not a regular file; ignoring", absPath)
 				}
-				log.Printf("[scheduler] sending <%s> to the classifier", fileHeader.Filename)
-				classifierQueue <- fileHeader
 			}
 		case fileRet := <-classifierRetQueue:
 			if fileRet.Err != nil {
