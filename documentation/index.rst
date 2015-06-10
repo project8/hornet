@@ -14,6 +14,7 @@ Hornet is the automatic data-flow software package for the Project 8 experiment.
    hornet
    amqp
    classifier
+   concepts
    hash
    mover
    scheduler
