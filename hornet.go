@@ -99,7 +99,14 @@ func main() {
 
 	var pool sync.WaitGroup
 
-	schedulingQueue := make(chan string, viper.GetInt("scheduler.queue-size"))
+	// get the queue size from the configuration, and increase it if we need to handle lots of files
+	queueSize := viper.GetInt("scheduler.queue-size")
+	if flag.NArg() > queueSize {
+		queueSize = flag.NArg()
+		viper.Set("scheduler.queue-size", queueSize)
+	}
+
+	schedulingQueue := make(chan string, queueSize)
 	controlQueue := make(chan hornet.ControlMessage)
 	requestQueue := make(chan hornet.ControlMessage)
 	threadCountQueue := make(chan uint, hornet.MaxThreads)
