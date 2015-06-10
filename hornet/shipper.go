@@ -58,6 +58,7 @@ shipLoop:
 
 			destDirPath := filepath.Clean(filepath.Join(destDirBase, fileHeader.SubPath))
 			opReturn.FHeader.ColdPath = destDirPath
+			opReturn.FHeader.FileColdPath = filepath.Join(destDirPath, fileHeader.Filename)
 
 			var rsyncDest string
 			if remoteShip {
@@ -70,8 +71,6 @@ shipLoop:
 				rsyncDest = destDirBase
 			}
 			log.Printf("[shipper] rsync dest: %s", rsyncDest)
-
-			//outputFilePath := filepath.Join(destDirPath, fileHeader.Filename)
 
 			cmd := exec.Command("rsync", "-a", "--relative", inputFileSubPath, rsyncDest)
 			// Set the command's working directory to the input basepath, 
