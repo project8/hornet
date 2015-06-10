@@ -28,7 +28,7 @@ Configuration
 Sending to Hornet
 -----------------
 
-Hornet's AMQP receiver will create a queue with the name specified in the configuration.  Hornet is actually listening for messages with any routing key that starts with that name (it's actually subscribed to ``[queue name].#``).  The following routing keys are available:
+Hornet's AMQP receiver will create a queue with the name specified in the configuration.  Hornet is actually listening for messages with any routing key that starts with that name (**(dev)** it is subscribed to ``[queue name].#``).  The following routing keys are available:
 
 * ``[queue name].print-message``: prints the incoming message to the terminal
 * ``[queue name].quit-mantis``: causes mantis to cleanly shutdown

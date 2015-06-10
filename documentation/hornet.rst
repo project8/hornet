@@ -1,9 +1,15 @@
 Hornet
 ======
 
-Hornet is the automatic data-flow software package for the Project 8 experiment.  Hornet is responsible for handling data files after they are created by some DAQ system.  It can move the files to safer storage locations, send information about the files to the run database, and perform nearline processing on some or all of the files.
+Hornet is the automatic data-flow software package for the Project 8 experiment.  It is responsible for handling data files after they are created by some DAQ system, including:
 
-The documentation covers topics that are of interest to both users and developers.  Topics that are not necessary for running Hornet are marked with **(dev)**.
+* Moving files to safer storage locations,
+
+* Sending information about the files to the run database, and 
+
+* Performing nearline processing on some or all of the files.
+
+This documentation covers topics that are of interest to both users and developers.  Topics that are not necessary for running Hornet are marked with **(dev)**.
 
 As you read through the Hornet documentation, you'll probably want to be aware of these :doc:`Concepts <concepts>`.  The Organization section below will take you through the individual modules that make up Hornet.
 
@@ -28,6 +34,8 @@ Organization
 
 The various functions of Hornet are performed by a number of semi-independent modules:
 
+* :doc:`Scheduler <scheduler>` -- coordinate the processing of the files with the hornet modules.
+
 * :doc:`Watcher <watcher>` -- monitors a portion of the filesystem for new files to process;
 
 * :doc:`Classifier <classifier>` -- recognizes files of certain types and how to proces them;
@@ -38,8 +46,7 @@ The various functions of Hornet are performed by a number of semi-independent mo
 
 * :doc:`Shipper <shipper>` -- move files to a "cold" storage file system;
 
-* :doc:`Scheduler <scheduler>` -- coordinate the processing of the files with the hornet modules.
-
+Other components: :doc:`AMQP <amqp>` and :doc:`Hashing <hash>`
 
 Repository
 ----------
@@ -47,7 +54,7 @@ Repository
 
 The directory structure of the ``hornet`` repository is as follows:
 
-* The README, license, source for the ``hornet`` executable, and the makefile for processing the git repository information exist in the top-level directory;
+* The README, license, authors, source for the ``hornet`` executable, and the makefile for processing the git repository information exist in the top-level directory;
 * ``documentation`` includes the documentation you're currently reading;
 * ``examples`` includes the full example configuration file;
 * ``gogitver`` contains the source for the external package ``gogitver``, which is used make hornet aware of the git repository information;

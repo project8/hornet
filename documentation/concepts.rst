@@ -69,10 +69,9 @@ Each file is accompanied in Hornet by information that, primarily, describes whe
 * JobQueue \*\* -- the jobs that will be performed (empty after processing by a Worker)
 * FinishedJobs -- the jobs that have been completed
 
-\* **(dev)** Filled in by the Scheduler
+**(dev)**
 
-\*\* **(dev)** Filled in by the Classifier
-
-\*\*\* **(dev)** Filled in by the Mover
-
-\*\*\*\* **(dev)** Filled in by the Shipper
+| \* Filled in by the Scheduler
+| \*\* Filled in by the Classifier
+| \*\*\* Filled in by the Mover
+| \*\*\*\* Filled in by the Shipper
