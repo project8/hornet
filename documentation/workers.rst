@@ -49,20 +49,18 @@ Hornet also supports limited variable substitution.  The syntax is demonstrated 
 * ``SubPath``: the subdirectory path (see the Directory Structure section of :doc:`Concepts <concepts>`)
 * ``HotPath``: the absolute directory of the file in hot storage
 * ``WarmPath``: the absolute directory of the file in warm storage
-* ``ColdPath``: the directory of the file in cold storage (absolute if local; may not be absolute if remote) 
 * ``FileHotPath``: the absolute path of the file in hot storage
 * ``FileWarmPath``: the absolute path of the file in warm storage
-* ``FileColdPath``: the path of the file in cold storage (absolute if local; may not be absolute if remote)
 
 
-Chained Jobs the Reliable Way
------------------------------
+Chaining Jobs the Reliable Way
+------------------------------
 
 Once a Worker has started working on a particular file, all of the jobs requested for that file will be performed.  For example, if one job is analyzing an egg file and producing a ROOT file, you can specify a second job that analyzes the ROOT file for some sort of meta-analysis as long as you can specify the second job's command based on the original file's information.
 
 
-Chained Jobs the Possibly-Not-So-Reliable Way
----------------------------------------------
+Chaining Jobs the Possibly-Not-So-Reliable Way
+----------------------------------------------
 
 Jobs can be chained together by configuring Hornet to watch for and recognize the output files from one type of job, and use them as input files.
 
