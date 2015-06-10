@@ -5,6 +5,7 @@
 <!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
 <head>
   <meta charset="utf-8">
+  
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
   <title>AMQP &mdash; hornet v1.0.0 documentation</title>
@@ -16,7 +17,6 @@
   
 
   
-  <link href='https://fonts.googleapis.com/css?family=Lato:400,700,400italic,700italic|Roboto+Slab:400,700|Inconsolata:400,700&subset=latin,cyrillic' rel='stylesheet' type='text/css'>
 
   
   
@@ -33,11 +33,11 @@
 
   
     <link rel="top" title="hornet v1.0.0 documentation" href="index.html"/>
-        <link rel="next" title="Hashing" href="hash.html"/>
+        <link rel="next" title="Classifier" href="classifier.html"/>
         <link rel="prev" title="Hornet" href="hornet.html"/> 
 
   
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/modernizr/2.6.2/modernizr.min.js"></script>
+  <script src="_static/js/modernizr.min.js"></script>
 
 </head>
 
@@ -49,8 +49,14 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-nav-search">
         
-          <a href="index.html" class="fa fa-home"> hornet</a>
+
         
+          <a href="index.html" class="icon icon-home"> hornet
+        
+
+        
+        </a>
+
         
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
@@ -59,6 +65,8 @@
     <input type="hidden" name="area" value="default" />
   </form>
 </div>
+
+        
       </div>
 
       <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
@@ -67,24 +75,59 @@
           
               <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="hornet.html">Hornet</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="hornet.html#basic-operation">Basic Operation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="hornet.html#organization">Organization</a></li>
-<li class="toctree-l2"><a class="reference internal" href="hornet.html#operation-and-configuration">Operation and Configuration</a></li>
 <li class="toctree-l2"><a class="reference internal" href="hornet.html#repository">Repository</a></li>
 </ul>
 </li>
 <li class="toctree-l1 current"><a class="current reference internal" href="">AMQP</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#receiver">Receiver</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#sender">Sender</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#configuration">Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sending-to-hornet">Sending to Hornet</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="hash.html">Hashing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="classifier.html">Classifier</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="classifier.html#configuration">Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="classifier.html#regular-expression-matching">Regular Expression Matching</a></li>
+<li class="toctree-l2"><a class="reference internal" href="classifier.html#sending-file-information">Sending File Information</a></li>
 </ul>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="classifier.html">Classifier</a></li>
-<li class="toctree-l1"><a class="reference internal" href="mover.html">Mover</a></li>
-<li class="toctree-l1"><a class="reference internal" href="scheduler.html">Scheduler</a></li>
-<li class="toctree-l1"><a class="reference internal" href="shipper.html">Shipper</a></li>
-<li class="toctree-l1"><a class="reference internal" href="watcher.html">Watcher</a></li>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="concepts.html">Hornet Concepts</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="concepts.html#directory-structure">Directory Structure</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="concepts.html#examples">Examples</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="concepts.html#file-header-information">File Header Information</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="hash.html">Hashing</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="hash.html#configuration">Configuration</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="mover.html">Mover</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="mover.html#configuration">Configuration</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="scheduler.html">Scheduler</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="scheduler.html#configuration">Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="scheduler.html#scheduling-workers">Scheduling Workers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="scheduler.html#inter-module-communication">Inter-Module Communication</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="shipper.html">Shipper</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="shipper.html#configuration">Configuration</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="watcher.html">Watcher</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="watcher.html#configuration">Configuration</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="workers.html">Workers</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="workers.html#configuration">Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="workers.html#job-commands">Job Commands</a></li>
+<li class="toctree-l2"><a class="reference internal" href="workers.html#chaining-jobs-the-reliable-way">Chaining Jobs the Reliable Way</a></li>
+<li class="toctree-l2"><a class="reference internal" href="workers.html#chaining-jobs-the-possibly-not-so-reliable-way">Chaining Jobs the Possibly-Not-So-Reliable Way</a></li>
+</ul>
+</li>
 </ul>
 
           
@@ -112,7 +155,9 @@
     <li>AMQP</li>
       <li class="wy-breadcrumbs-aside">
         
-          <a href="_sources/amqp.txt" rel="nofollow"> View page source</a>
+          
+            <a href="_sources/amqp.txt" rel="nofollow"> View page source</a>
+          
         
       </li>
   </ul>
@@ -122,27 +167,36 @@
             
   <div class="section" id="amqp">
 <h1>AMQP<a class="headerlink" href="#amqp" title="Permalink to this headline">¶</a></h1>
+<p>Communication between Hornet and the other pieces of data-acquisition software is conducted via the AMQP 0.9.1 protocol.  In Hornet, this is used for the following purposes:</p>
+<ul class="simple">
+<li>Receiving remote commands (e.g. to quit);</li>
+<li>Sending file information to the database</li>
+</ul>
+<div class="section" id="configuration">
+<h2>Configuration<a class="headerlink" href="#configuration" title="Permalink to this headline">¶</a></h2>
 <div class="highlight-python"><div class="highlight"><pre>&quot;amqp&quot;:
 {
+    &quot;active&quot;: true,
     &quot;broker&quot;: &quot;my.server&quot;,
     &quot;exchange&quot;: &quot;requests&quot;,
-    &quot;receiver&quot;:
-    {
-        &quot;active&quot;: true,
-        &quot;queue&quot;: &quot;hornet&quot;
-    },
-    &quot;sender&quot;:
-    {
-        &quot;active&quot;: true
-    }
-},
+    &quot;queue&quot;: &quot;hornet&quot;
+}
 </pre></div>
 </div>
-<div class="section" id="receiver">
-<h2>Receiver<a class="headerlink" href="#receiver" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><code class="docutils literal"><span class="pre">active</span></code> (boolean): Determines whether or not AMQP communication is used.  If false, commands can not be received, and file information will not be sent.</li>
+<li><code class="docutils literal"><span class="pre">broker</span></code> (string): The address of the AMQP broker that should be used.</li>
+<li><code class="docutils literal"><span class="pre">exchange</span></code> (string): The name of the exchange that the receiver should listen to (and create, if it doesn&#8217;t already exist).</li>
+<li><code class="docutils literal"><span class="pre">queue</span></code> (string): The name of the queue that will be used to receive messages.  Any messages sent with this queue name as the first element of the routing key will be received by Hornet.  To specify the destination within hornet, further elements of the routing key should be used (see below).</li>
+</ul>
 </div>
-<div class="section" id="sender">
-<h2>Sender<a class="headerlink" href="#sender" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="sending-to-hornet">
+<h2>Sending to Hornet<a class="headerlink" href="#sending-to-hornet" title="Permalink to this headline">¶</a></h2>
+<p>Hornet&#8217;s AMQP receiver will create a queue with the name specified in the configuration.  Hornet is actually listening for messages with any routing key that starts with that name (<strong>(dev)</strong> it is subscribed to <code class="docutils literal"><span class="pre">[queue</span> <span class="pre">name].#</span></code>).  The following routing keys are available:</p>
+<ul class="simple">
+<li><code class="docutils literal"><span class="pre">[queue</span> <span class="pre">name].print-message</span></code>: prints the incoming message to the terminal</li>
+<li><code class="docutils literal"><span class="pre">[queue</span> <span class="pre">name].quit-mantis</span></code>: causes mantis to cleanly shutdown</li>
+</ul>
 </div>
 </div>
 
@@ -152,10 +206,10 @@
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="hash.html" class="btn btn-neutral float-right" title="Hashing">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="classifier.html" class="btn btn-neutral float-right" title="Classifier" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="hornet.html" class="btn btn-neutral" title="Hornet"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="hornet.html" class="btn btn-neutral" title="Hornet" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   
@@ -167,10 +221,10 @@
         &copy; Copyright 2015, J. Kofron and N.S. Oblath.
     </p>
   </div>
-
   Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
-  
+
 </footer>
+
         </div>
       </div>
 

@@ -5,6 +5,7 @@
 <!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
 <head>
   <meta charset="utf-8">
+  
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
   <title>Scheduler &mdash; hornet v1.0.0 documentation</title>
@@ -16,7 +17,6 @@
   
 
   
-  <link href='https://fonts.googleapis.com/css?family=Lato:400,700,400italic,700italic|Roboto+Slab:400,700|Inconsolata:400,700&subset=latin,cyrillic' rel='stylesheet' type='text/css'>
 
   
   
@@ -37,7 +37,7 @@
         <link rel="prev" title="Mover" href="mover.html"/> 
 
   
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/modernizr/2.6.2/modernizr.min.js"></script>
+  <script src="_static/js/modernizr.min.js"></script>
 
 </head>
 
@@ -49,8 +49,14 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-nav-search">
         
-          <a href="index.html" class="fa fa-home"> hornet</a>
+
         
+          <a href="index.html" class="icon icon-home"> hornet
+        
+
+        
+        </a>
+
         
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
@@ -59,32 +65,69 @@
     <input type="hidden" name="area" value="default" />
   </form>
 </div>
+
+        
       </div>
 
       <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
         
           
           
-              <ul>
+              <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="hornet.html">Hornet</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="hornet.html#basic-operation">Basic Operation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="hornet.html#organization">Organization</a></li>
-<li class="toctree-l2"><a class="reference internal" href="hornet.html#operation-and-configuration">Operation and Configuration</a></li>
 <li class="toctree-l2"><a class="reference internal" href="hornet.html#repository">Repository</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="amqp.html">AMQP</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="amqp.html#receiver">Receiver</a></li>
-<li class="toctree-l2"><a class="reference internal" href="amqp.html#sender">Sender</a></li>
+<li class="toctree-l2"><a class="reference internal" href="amqp.html#configuration">Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="amqp.html#sending-to-hornet">Sending to Hornet</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="hash.html">Hashing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="classifier.html">Classifier</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="classifier.html#configuration">Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="classifier.html#regular-expression-matching">Regular Expression Matching</a></li>
+<li class="toctree-l2"><a class="reference internal" href="classifier.html#sending-file-information">Sending File Information</a></li>
 </ul>
-<ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="classifier.html">Classifier</a></li>
-<li class="toctree-l1"><a class="reference internal" href="mover.html">Mover</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="">Scheduler</a></li>
-<li class="toctree-l1"><a class="reference internal" href="shipper.html">Shipper</a></li>
-<li class="toctree-l1"><a class="reference internal" href="watcher.html">Watcher</a></li>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="concepts.html">Hornet Concepts</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="concepts.html#directory-structure">Directory Structure</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="concepts.html#examples">Examples</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="concepts.html#file-header-information">File Header Information</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="hash.html">Hashing</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="hash.html#configuration">Configuration</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="mover.html">Mover</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="mover.html#configuration">Configuration</a></li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="current reference internal" href="">Scheduler</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#configuration">Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#scheduling-workers">Scheduling Workers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#inter-module-communication">Inter-Module Communication</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="shipper.html">Shipper</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="shipper.html#configuration">Configuration</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="watcher.html">Watcher</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="watcher.html#configuration">Configuration</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="workers.html">Workers</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="workers.html#configuration">Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="workers.html#job-commands">Job Commands</a></li>
+<li class="toctree-l2"><a class="reference internal" href="workers.html#chaining-jobs-the-reliable-way">Chaining Jobs the Reliable Way</a></li>
+<li class="toctree-l2"><a class="reference internal" href="workers.html#chaining-jobs-the-possibly-not-so-reliable-way">Chaining Jobs the Possibly-Not-So-Reliable Way</a></li>
+</ul>
+</li>
 </ul>
 
           
@@ -112,7 +155,9 @@
     <li>Scheduler</li>
       <li class="wy-breadcrumbs-aside">
         
-          <a href="_sources/scheduler.txt" rel="nofollow"> View page source</a>
+          
+            <a href="_sources/scheduler.txt" rel="nofollow"> View page source</a>
+          
         
       </li>
   </ul>
@@ -122,13 +167,29 @@
             
   <div class="section" id="scheduler">
 <h1>Scheduler<a class="headerlink" href="#scheduler" title="Permalink to this headline">¶</a></h1>
+<p>The Scheduler is responsible for shuffling files around between the various Hornet modules.  It is responsible for starting up all of the modules that process files, and connecting them to each other with &#8220;file&#8221; and &#8220;return&#8221; streams.</p>
+<div class="section" id="configuration">
+<h2>Configuration<a class="headerlink" href="#configuration" title="Permalink to this headline">¶</a></h2>
 <div class="highlight-python"><div class="highlight"><pre>&quot;scheduler&quot;:
 {
-    &quot;queue-size&quot;: 100,
-    &quot;n-nearline-workers&quot;: 5,
-    &quot;n-shippers&quot;: 1
-},
+    &quot;queue-size&quot;: 100
+}
 </pre></div>
+</div>
+<ul class="simple">
+<li><code class="docutils literal"><span class="pre">queue-size</span></code> (unsigned int): minimum size of the queues to which files are submitted, and which are used to pass files between the Scheduler and the various modules. If more files than this are submitted to Hornet on the command line, then the queue size will be increased to compensate for all of them.</li>
+</ul>
+</div>
+<div class="section" id="scheduling-workers">
+<h2>Scheduling Workers<a class="headerlink" href="#scheduling-workers" title="Permalink to this headline">¶</a></h2>
+<p>The workers have a load-limiting system that prevents them from becoming the bottleneck of the data flow.  This precaution is taken because the nearline analysis jobs may be slow compared to the rate at which data is taken.</p>
+<p>Unlike the other modules, which each process all of the files that Hornet is handling, a file is only passed to a worker if there&#8217;s a worker available at the time it passes through that stage of the data flow.  If all of the workers are procesing other files when a file returns from the Mover, then that file is passed directly on to the Shipper.  Once a worker becomes free, it will be available to process the next file that comes through.</p>
+</div>
+<div class="section" id="inter-module-communication">
+<h2>Inter-Module Communication<a class="headerlink" href="#inter-module-communication" title="Permalink to this headline">¶</a></h2>
+<p><strong>(dev)</strong></p>
+<p>Information is passed from the Scheduler to the modules with a <code class="docutils literal"><span class="pre">channel</span></code> called the FileStream, which transmits the <code class="docutils literal"><span class="pre">FileInfo</span></code> headers.</p>
+<p>Information is passed back from the modules to the Scheduler with a <code class="docutils literal"><span class="pre">channel</span></code> called the RetStream, which transmits <code class="docutils literal"><span class="pre">OperatorReturn</span></code> structs.  The <code class="docutils literal"><span class="pre">OperatorReturn</span></code> includes the name of the module, the <code class="docutils literal"><span class="pre">FileInfo</span></code> header, an <code class="docutils literal"><span class="pre">error</span></code> if one occurred, and a <code class="docutils literal"><span class="pre">bool</span></code> specifying whether the error is fatal for that file.</p>
 </div>
 </div>
 
@@ -138,10 +199,10 @@
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="shipper.html" class="btn btn-neutral float-right" title="Shipper">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="shipper.html" class="btn btn-neutral float-right" title="Shipper" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="mover.html" class="btn btn-neutral" title="Mover"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="mover.html" class="btn btn-neutral" title="Mover" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   
@@ -153,10 +214,10 @@
         &copy; Copyright 2015, J. Kofron and N.S. Oblath.
     </p>
   </div>
-
   Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
-  
+
 </footer>
+
         </div>
       </div>
 

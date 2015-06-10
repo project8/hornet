@@ -1,0 +1,290 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Workers &mdash; hornet v1.0.0 documentation</title>
+  
+
+  
+  
+    <link rel="shortcut icon" href="_static/favicon.ico"/>
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+    <link rel="top" title="hornet v1.0.0 documentation" href="index.html"/>
+        <link rel="prev" title="Watcher" href="watcher.html"/> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-nav-search">
+        
+
+        
+          <a href="index.html" class="icon icon-home"> hornet
+        
+
+        
+        </a>
+
+        
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+        
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+        
+          
+          
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="hornet.html">Hornet</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="hornet.html#basic-operation">Basic Operation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="hornet.html#organization">Organization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="hornet.html#repository">Repository</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="amqp.html">AMQP</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="amqp.html#configuration">Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="amqp.html#sending-to-hornet">Sending to Hornet</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="classifier.html">Classifier</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="classifier.html#configuration">Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="classifier.html#regular-expression-matching">Regular Expression Matching</a></li>
+<li class="toctree-l2"><a class="reference internal" href="classifier.html#sending-file-information">Sending File Information</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="concepts.html">Hornet Concepts</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="concepts.html#directory-structure">Directory Structure</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="concepts.html#examples">Examples</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="concepts.html#file-header-information">File Header Information</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="hash.html">Hashing</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="hash.html#configuration">Configuration</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="mover.html">Mover</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="mover.html#configuration">Configuration</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="scheduler.html">Scheduler</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="scheduler.html#configuration">Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="scheduler.html#scheduling-workers">Scheduling Workers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="scheduler.html#inter-module-communication">Inter-Module Communication</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="shipper.html">Shipper</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="shipper.html#configuration">Configuration</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="watcher.html">Watcher</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="watcher.html#configuration">Configuration</a></li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="current reference internal" href="">Workers</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#configuration">Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#job-commands">Job Commands</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#chaining-jobs-the-reliable-way">Chaining Jobs the Reliable Way</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#chaining-jobs-the-possibly-not-so-reliable-way">Chaining Jobs the Possibly-Not-So-Reliable Way</a></li>
+</ul>
+</li>
+</ul>
+
+          
+        
+      </div>
+      &nbsp;
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="index.html">hornet</a>
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="index.html">Docs</a> &raquo;</li>
+      
+    <li>Workers</li>
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="_sources/workers.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document">
+            
+  <div class="section" id="workers">
+<h1>Workers<a class="headerlink" href="#workers" title="Permalink to this headline">¶</a></h1>
+<p>The Workers are responsible for performing nearline analysis &#8220;jobs&#8221; on the files processed by Hornet.</p>
+<div class="section" id="configuration">
+<h2>Configuration<a class="headerlink" href="#configuration" title="Permalink to this headline">¶</a></h2>
+<p><strong>(dev)</strong> Note that all of these configuration values are processed by the Classifier, but pertain specifically to the workers.</p>
+<div class="highlight-python"><div class="highlight"><pre>&quot;workers&quot;:
+{
+    &quot;n-workers&quot;: 5,
+    &quot;jobs&quot;:
+    [
+        {
+            &quot;name&quot;: &quot;proc-egg&quot;,
+            &quot;file-type&quot;: &quot;egg&quot;,
+            &quot;command&quot;: &quot;echo \&quot;here&#39;s an egg file: {{.Filename}}\&quot;&quot;
+        },
+        {
+            &quot;name&quot;: &quot;proc-rsa-mat&quot;,
+            &quot;file-type&quot;: &quot;rsa-mat&quot;,
+            &quot;command&quot;: &quot;echo \&quot;here&#39;s an RSA MAT file {{.Filename}}\&quot;&quot;
+        }
+    ]
+}
+</pre></div>
+</div>
+<ul class="simple">
+<li><code class="docutils literal"><span class="pre">n-workers</span></code> (unsigned integer): specifies the number of workers available to process files.</li>
+<li><code class="docutils literal"><span class="pre">jobs</span></code> (array): lists the jobs that are performed for each file type.</li>
+<li><code class="docutils literal"><span class="pre">[job].name</span></code> (string): unique identifier for each job type.</li>
+<li><code class="docutils literal"><span class="pre">[job].file-type</span></code> (string): the file type that this job should be applied to. See <a class="reference internal" href="classifier.html"><em>Classifier</em></a> for information about file types.</li>
+<li><code class="docutils literal"><span class="pre">[job].command</span></code> (string): the command that will be run to execute this job (see below).</li>
+</ul>
+</div>
+<div class="section" id="job-commands">
+<h2>Job Commands<a class="headerlink" href="#job-commands" title="Permalink to this headline">¶</a></h2>
+<p>The job command should be a command that can be run on the command line.  Quotation marks can be escaped with <a href="#id1"><span class="problematic" id="id2">`</span></a>`.</p>
+<p>Hornet also supports limited variable substitution.  The syntax is demonstrated in the Configuration section above.  Before a job is processed, <code class="docutils literal"><span class="pre">{{.Filename}}</span></code> will be replaced by the value of the <code class="docutils literal"><span class="pre">Filename</span></code> variable.  The following variables are available:</p>
+<ul class="simple">
+<li><code class="docutils literal"><span class="pre">Filename</span></code>: the filename (no directory path included)</li>
+<li><code class="docutils literal"><span class="pre">FileType</span></code>: the file type, as identified by the <a class="reference internal" href="classifier.html"><em>Classifier</em></a></li>
+<li><code class="docutils literal"><span class="pre">FileHash</span></code>: the file hash, if it was calculated (see the <a class="reference internal" href="classifier.html"><em>Classifier</em></a>)</li>
+<li><code class="docutils literal"><span class="pre">SubPath</span></code>: the subdirectory path (see the Directory Structure section of <a class="reference internal" href="concepts.html"><em>Concepts</em></a>)</li>
+<li><code class="docutils literal"><span class="pre">HotPath</span></code>: the absolute directory of the file in hot storage</li>
+<li><code class="docutils literal"><span class="pre">WarmPath</span></code>: the absolute directory of the file in warm storage</li>
+<li><code class="docutils literal"><span class="pre">FileHotPath</span></code>: the absolute path of the file in hot storage</li>
+<li><code class="docutils literal"><span class="pre">FileWarmPath</span></code>: the absolute path of the file in warm storage</li>
+</ul>
+</div>
+<div class="section" id="chaining-jobs-the-reliable-way">
+<h2>Chaining Jobs the Reliable Way<a class="headerlink" href="#chaining-jobs-the-reliable-way" title="Permalink to this headline">¶</a></h2>
+<p>Once a Worker has started working on a particular file, all of the jobs requested for that file will be performed.  For example, if one job is analyzing an egg file and producing a ROOT file, you can specify a second job that analyzes the ROOT file for some sort of meta-analysis as long as you can specify the second job&#8217;s command based on the original file&#8217;s information.</p>
+</div>
+<div class="section" id="chaining-jobs-the-possibly-not-so-reliable-way">
+<h2>Chaining Jobs the Possibly-Not-So-Reliable Way<a class="headerlink" href="#chaining-jobs-the-possibly-not-so-reliable-way" title="Permalink to this headline">¶</a></h2>
+<p>Jobs can be chained together by configuring Hornet to watch for and recognize the output files from one type of job, and use them as input files.</p>
+<p>In the current version of Hornet (2.0.0) this feature is only patially useful, depending on the workers&#8217; workload.  If all of the Workers are busy, files will bypass the Worker stage. Let&#8217;s say that you are processing raw egg files and producing ROOT files at one stage of the analysis, and you would like a second stage that processes the ROOT files produced in the first stage.   If the Workers&#8217; load is limiting the number of files that actually get analyzed, then only some of the ROOT files that are produced will be analyzed.  Hopefully this situation will be improved in the future.</p>
+</div>
+</div>
+
+
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+      
+        <a href="watcher.html" class="btn btn-neutral" title="Watcher" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2015, J. Kofron and N.S. Oblath.
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'v1.0.0',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>
