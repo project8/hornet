@@ -31,20 +31,25 @@ const TimeFormat = "2006-01-02T22:04:05Z"
 
 
 // Project 8 Wire Protocol Standards
-type MsgType uint64
+type MsgCodeT uint64
+
 const (
-	Reply   MsgType = 2
-	Request MsgType = 3
-	Alert   MsgType = 4
-	Info    MsgType = 5
+	MTReply   MsgCodeT = 2
+	MTRequest MsgCodeT = 3
+	MTAlert   MsgCodeT = 4
+	MTInfo    MsgCodeT = 5
 )
 
-type MsgOp uint64
 const (
-	Set     MsgOp = 0
-	Get     MsgOp = 1
-	Config  MsgOp = 6
-	Send    MsgOp = 7
-	Run     MsgOp = 8
-	Command MsgOp = 9
+	MOSet     MsgCodeT = 0
+	MOGet     MsgCodeT = 1
+	MOConfig  MsgCodeT = 6
+	MOSend    MsgCodeT = 7
+	MORun     MsgCodeT = 8
+	MOCommand MsgCodeT = 9
 )
+
+const (
+	RCSuccess MsgCodeT = 0
+)
+

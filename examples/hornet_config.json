@@ -1,30 +1,26 @@
 {
     "scheduler":
     {
-        "queue-size": 100,
-        "n-nearline-workers": 5,
-        "n-shippers": 1
+        "queue-size": 100
     },
 
     "amqp":
     {
+        "active": true,
         "broker": "my.server",
         "exchange": "requests",
-        "receiver":
-        {
-            "active": true,
-            "queue": "hornet"
-        },
-        "sender":
-        {
-            "active": true
-        }
-    },
+        "queue": "hornet"
+     },
 
     "watcher":
     {
         "active": true,
-        "dir": "/data"
+        "dir": "/data",
+		"dirs":
+		[
+			"/otherdata1",
+			"/otherdata2"
+		]
     },
 
     "classifier":
@@ -33,37 +29,34 @@
         [
             {
                 "name": "egg",
-                "match-extension": "egg",
-                "do-hash": true,
-                "do-nearline": true,
-                "nearline-cmd": "echo \"here's an egg file\""
+                "match-regexp": "runid(?P<run_id>[0-9]*)_(?P<fname_other>[A-Za-z0-9_]*).egg",
+                "do-hash": true
             },
             {
                 "name": "rsa-mat",
-                "match-extension": "mat",
-                "do-hash": true,
-                "do-nearline": true,
-                "nearline-cmd": "echo \"here's an RSA MAT file\""
+                "match-regexp": "runid(?P<run_id>[0-9]*)_(?P<fname_other>[A-Za-z0-9_]*).mat",
+                "do-hash": true 
             },
             {
                 "name": "rsa-setup",
                 "match-extension": "Setup",
-                "do-hash": false,
-                "do-nearline": false
-            },
-            {
-                "name": "regexp-example",
-                "match-regexp": "project8is[A-Za-z]*",
-                "do-hash": false,
-                "do-nearline": false
+                "do-hash": false
             }
-        ]
+        ],
+		"base-paths":
+		[
+			"/some/special/path",
+			"/another/path"
+		],
+		"send-file-info": true,
+		"send-to": "hornet.print-message",
+		"wait-for-sender": 2,
+		"max-jobs": 25
     },
 
 	"hash":
 	{
 		"required": true,
-		"send-to": "hornet",
 		"command": "md5sum",
 		"cmd-opt": "-b"
 	},
@@ -75,10 +68,27 @@
 
     "workers":
     {
+        "n-workers": 5,
+		"jobs":
+		[
+			{
+				"name": "proc-egg",
+				"file-type": "egg",
+				"command": "echo \"here's an egg file\""
+			},
+			{
+				"name": "proc-rsa-mat",
+				"file-type": "rsa-mat",
+				"command": "echo \"here's an RSA MAT file\""
+			}
+		]
     },
 
     "shipper":
     {
-        "dest-dir": "/remote-data"
+        "n-shippers": 1,
+        "dest-dir": "/remote-data",
+		"hostname": "my.server",
+		"username": "aphysicist"
     }
 }

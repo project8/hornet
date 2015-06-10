@@ -37,12 +37,14 @@ Aside from standard go libraries, several external packages are used, which you'
 * [codec](https://github.com/ugorji/go/codec) for encoding and decoding JSON and msgpack;
 * [inotify](https://golang.org/x/exp/inotify) for tracking file system events (Linux only);
 * [osext](https://github.com/kardianos/osext) for finding the absolute executable path in a platform-independent way;
+* [uuid](https://code.google.com/p/go-uuid/uuid) for getting UUIDs (note that you may need Mercurial on your system to get this package);
 * [viper](https://github.com/spf13/viper) for the application configuration.
 ```
   > go get github.com/streadway/amqp
   > go get github.com/ugorji/go/codec
   > go get golang.org/x/exp/inotify
   > go get github.com/kardianos/osext
+  > go get code.google.com/p/go-uuid/uuid
   > go get github.com/spf13/viper
 ```
 
