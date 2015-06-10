@@ -20,6 +20,7 @@ Hornet is the automatic data-flow software package for the Project 8 experiment.
    scheduler
    shipper
    watcher
+   workers
 
    
    
