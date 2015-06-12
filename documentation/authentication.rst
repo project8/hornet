@@ -5,7 +5,7 @@ Hornet loads the standard Project 8 authentication file: ``~/.project8_authentic
 
 Current authentications used by Hornet include:
 
-* AMQP (user/password)
+* AMQP (username/password)
 
 * Slack (token)
 

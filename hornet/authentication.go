@@ -19,7 +19,7 @@ import (
 )
 
 type AmqpCredentialType struct {
-	Username string `json:"user"`
+	Username string `json:"username"`
 	Password string `json:"password"`
 	Available bool
 }
