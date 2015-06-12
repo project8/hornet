@@ -23,7 +23,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"log"
+	//"log"
 	"os"
 	"os/signal"
 	"sync"
@@ -35,7 +35,11 @@ import (
 	"github.com/project8/hornet/hornet"
 )
 
+
 func main() {
+	// setup logging, first thing
+	hornet.InitializeLogging()
+
 	// user needs help
 	var needHelp bool
 
@@ -70,21 +74,31 @@ func main() {
 	fmt.Println("/ / /   / / // / /____\\/ // / /  \\ \\ \\/ / /    / / // / /_______\\/_/ /")
 	fmt.Println("\\/_/    \\/_/ \\/_________/ \\/_/    \\_\\/\\/_/     \\/_/ \\/__________/\\_\\/\n")
 
-	log.Print("[hornet] Reading config file: ", configFile)
+	hornet.Log.Debug("Reading config file: %v", configFile)
 	viper.SetConfigFile(configFile)
 	if parseErr := viper.ReadInConfig(); parseErr != nil {
-		log.Fatal("(FATAL) ", parseErr)
+		hornet.Log.Critical("%v", parseErr)
 	}
 
 	// print the full configuration
 	indentedConfig, confErr := json.MarshalIndent(viper.AllSettings(), "", "    ")
 	if confErr != nil {
-		log.Print("Error marshaling configuration!")
+		hornet.Log.Critical("Error marshaling configuration!")
 		return
 	}
-	log.Printf("[hornet] Full configuration:\n%v", string(indentedConfig))
+	hornet.Log.Debug("Full configuration:\n%v", string(indentedConfig))
 
-	hornet.LoadAuthenticators()
+	// get the authenticator credentials
+	if authErr := hornet.LoadAuthenticators(); authErr != nil {
+		hornet.Log.Critical("Error getting authentication credentials:\n\t%s", authErr.Error())
+		return
+	}
+
+	// Setup the connection to slack
+	if slackErr := hornet.InitializeSlack(); slackErr != nil {
+		hornet.Log.Critical("Error initializing slack: %v", slackErr.Error())
+		return
+	}
 
 	// Check the number of threads to be used
 	// Threads used:
@@ -93,7 +107,7 @@ func main() {
 	//   M shippers (specified in scheduler.n-shippers)
 	nThreads := 6 + viper.GetInt("workers.n-workers") + viper.GetInt("shipper.n-shippers")
 	if nThreads > hornet.MaxThreads {
-		log.Print("Maximum number of threads exceeded")
+		hornet.Log.Critical("Maximum number of threads exceeded")
 		return
 	}
 
@@ -134,16 +148,16 @@ stopLoop:
 	for {
 		select {
 		case <-sigChan:
-			log.Printf("[hornet] termination requested...\n")
+			hornet.Log.Notice("Termination requested...\n")
 			break stopLoop
 
 		case requestMsg := <-requestQueue:
 			switch requestMsg {
 			case hornet.ThreadCannotContinue:
-				log.Print("[hornet] thread error!  cannot continue running")
+				hornet.Log.Notice("Thread error!  Cannot continue running")
 				break stopLoop
 			case hornet.StopExecution:
-				log.Print("[hornet] stop-execution request received")
+				hornet.Log.Notice("Stop-execution request received")
 				break stopLoop
 			}
 		}
@@ -152,7 +166,7 @@ stopLoop:
 	// Close all of the worker threads gracefully
 	// Use the select/default idiom to avoid the problem where one of the threads has already
 	// closed and we can't send to the control queue
-	log.Printf("[hornet] stopping %d threads", len(threadCountQueue)-1)
+	hornet.Log.Info("Stopping %d threads", len(threadCountQueue)-1)
 	for i := 0; i < len(threadCountQueue); i++ {
 		select {
 		case controlQueue <- hornet.StopExecution:
@@ -170,8 +184,8 @@ stopLoop:
 	}()
 	select {
 	case <-waitChan:
-		log.Print("[hornet] All goroutines finished.")
+		hornet.Log.Info("All goroutines finished.")
 	case <-time.After(1 * time.Second):
-		log.Print("[hornet] Timed out waiting for goroutines to finish.")
+		hornet.Log.Info("Timed out waiting for goroutines to finish.")
 	}
 }

@@ -5,7 +5,7 @@
 *
 * The current set of authenticators is:
 *   - AMQP (username/password)
-*   - Stack (token)
+*   - Slack (token)
 */
 
 package hornet
@@ -13,7 +13,6 @@ package hornet
 import (
 	"encoding/json"
 	"io/ioutil"
-	"log"
 	"os/user"
 	"path/filepath"
 )
@@ -24,23 +23,24 @@ type AmqpCredentialType struct {
 	Available bool
 }
 
-type StackCredentialType struct {
+type SlackCredentialType struct {
 	Token string `json:"token"`
 	Available bool
 }
 
 type AuthenticatorsType struct {
 	Amqp AmqpCredentialType `json:"amqp"`
-	Stack StackCredentialType `json:"stack"`
+	Slack SlackCredentialType `json:"slack"`
 }
 
 var Authenticators AuthenticatorsType
 
-func LoadAuthenticators() {
+func LoadAuthenticators() (e error) {
 	// Get the home directory, where the authenticators live
-    usr, err := user.Current()
-    if err != nil {
-        log.Fatal(err)
+    usr, usrErr := user.Current()
+    if usrErr != nil {
+        e = usrErr
+		Log.Error(e.Error())
     }
     //log.Println( usr.HomeDir )
 
@@ -48,12 +48,14 @@ func LoadAuthenticators() {
 	authFilePath := filepath.Join(usr.HomeDir, ".project8_authentications.json")
 	authFileData, fileErr := ioutil.ReadFile(authFilePath)
 	if fileErr != nil {
-		log.Fatal(fileErr)
+		e = fileErr
+		Log.Error(e.Error())
 	}
 
 	// Unmarshal the JSON data
 	if jsonErr := json.Unmarshal(authFileData, &Authenticators); jsonErr != nil {
-		log.Fatal(jsonErr)
+		e = jsonErr
+		Log.Error(e.Error())
 	}
 
 	// Check which autheticators are actually available
@@ -62,14 +64,14 @@ func LoadAuthenticators() {
 		Authenticators.Amqp.Available = true
 	}
 
-	// Stack
-	if len(Authenticators.Stack.Token) > 0 {
-		Authenticators.Stack.Available = true
+	// Slack
+	if len(Authenticators.Slack.Token) > 0 {
+		Authenticators.Slack.Available = true
 	}
 
-	log.Printf("[authentication] authenticators ready for use:\n\t%s%t\n\t%s%t",
+	Log.Info("Authenticators ready for use:\n\t%s%t\n\t%s%t",
 		"AMQP: ", Authenticators.Amqp.Available,
-		"Stack: ", Authenticators.Stack.Available,
+		"Slack: ", Authenticators.Slack.Available,
 	)
 
 	return

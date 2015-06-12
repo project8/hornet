@@ -11,7 +11,6 @@ package hornet
 import (
 	"errors"
 	"fmt"
-	"log"
 	"os"
 	"os/user"
 	"strings"
@@ -69,18 +68,18 @@ func fillMasterSenderInfo() (e error) {
 	MasterSenderInfo.Package = "hornet"
 	MasterSenderInfo.Exe, e = osext.Executable()
 	if e != nil {
-		log.Printf("[amqp] Error in getting the executable:\n\t%v", e)
+		Log.Error("Error while getting the executable:\n\t%v", e)
 	}
 	MasterSenderInfo.Version = gogitver.Tag()
 	MasterSenderInfo.Commit = gogitver.Git()
 	MasterSenderInfo.Hostname, e = os.Hostname()
 	if e != nil {
-		log.Printf("[amqp] Error in getting the hostname:\n\t%v", e)
+		Log.Error("Error while getting the hostname:\n\t%v", e)
 	}
 	user, userErr := user.Current()
 	e = userErr
 	if e != nil {
-		log.Printf("[amqp] Error in getting the username:\n\t%v", e)
+		Log.Error("Error while getting the username:\n\t%v", e)
 	} else {
 		MasterSenderInfo.Username = user.Username
 	}
@@ -93,21 +92,21 @@ func fillMasterSenderInfo() (e error) {
 //   2) If the receiver is present and active, then the queue and exchange are set.
 func ValidateAmqpConfig() (e error) {
 	if viper.IsSet("amqp.active") == false {
-		e = errors.New("[amqp] amqp.active is not set")
-		log.Print(e.Error())
+		e = errors.New("amqp.active is not set")
+		Log.Error(e.Error())
 	}
 	if viper.GetBool("amqp.active") == false {
 		return
 	}
 
 	if viper.IsSet("amqp.queue") == false {
-		e = errors.New("[amqp] Queue name is not set (amqp.queue)")
-		log.Print(e.Error())
+		e = errors.New("Queue name is not set (amqp.queue)")
+		Log.Error(e.Error())
 	}
 
 	if (viper.IsSet("amqp.broker") == false || viper.IsSet("amqp.exchange") == false) {
-		e = errors.New("[amqp] AMQP sender/receiver cannot be used without the broker and exchange being set")
-		log.Print(e.Error())
+		e = errors.New("AMQP sender/receiver cannot be used without the broker and exchange being set")
+		Log.Error(e.Error())
 	}
 
 	return
@@ -115,30 +114,30 @@ func ValidateAmqpConfig() (e error) {
 
 func StartAmqp(ctrlQueue, reqQueue chan ControlMessage, threadCountQueue chan uint, poolCount *sync.WaitGroup) (e error) {
 	if configErr := ValidateAmqpConfig(); configErr != nil {
-		log.Printf("[amqp] Error in the AMQP configuration: %s", configErr.Error())
+		Log.Critical("Error in the AMQP configuration: %s", configErr.Error())
 		reqQueue <- ThreadCannotContinue
 		return
 	}
 
 	if viper.GetBool("amqp.active") == false {
-		log.Printf("[amqp] AMQP is inactive")
+		Log.Notice("AMQP is inactive")
 		return
 	}
 
-	log.Print("[amqp] Starting AMQP components")
+	Log.Info("Starting AMQP components")
 
 	e = fillMasterSenderInfo()
 	if e != nil {
-		log.Printf("[amqp] Cannot start AMQP; failed to get master sender info")
+		Log.Critical("Cannot start AMQP; failed to get master sender info")
 		return
 	}
 
-	log.Print("[amqp] Starting AMQP receiver")
+	Log.Info("Starting AMQP receiver")
 	poolCount.Add(1)
 	threadCountQueue <- 1
 	go AmqpReceiver(ctrlQueue, reqQueue, poolCount)
 
-	log.Print("[amqp] Starting AMQP sender")
+	Log.Info("Starting AMQP sender")
 	poolCount.Add(1)
 	threadCountQueue <- 1
 	go AmqpSender(ctrlQueue, reqQueue, poolCount)
@@ -150,14 +149,14 @@ func StartAmqp(ctrlQueue, reqQueue chan ControlMessage, threadCountQueue chan ui
 func AmqpReceiver(ctrlQueue chan ControlMessage, reqQueue chan ControlMessage, poolCount *sync.WaitGroup) {
 	// decrement the wg counter at the end
 	defer poolCount.Done()
-	defer log.Print("[amqp receiver] finished.")
+	defer Log.Info("[AMQP receiver is finished.")
 
 	// Connect to the AMQP broker
 	// Deferred command: close the connection
 	brokerAddress := viper.GetString("amqp.broker")
 	if viper.GetBool("amqp.use-auth") {
 		if Authenticators.Amqp.Available == false {
-			log.Printf("[amqp receiver] AMQP authentication is not available")
+			Log.Critical("AMQP authentication is not available")
 			reqQueue <- StopExecution
 			return
 		}
@@ -169,7 +168,7 @@ func AmqpReceiver(ctrlQueue chan ControlMessage, reqQueue chan ControlMessage, p
 	}
 	connection, receiveErr := amqp.Dial(brokerAddress)
 	if receiveErr != nil {
-		log.Printf("[amqp receiver] Unable to connect to the AMQP broker at (%s) for receiving:\n\t%v", brokerAddress, receiveErr.Error())
+		Log.Critical("Unable to connect to the AMQP broker at (%s) for receiving:\n\t%v", brokerAddress, receiveErr.Error())
 		reqQueue <- StopExecution
 		return
 	}
@@ -179,7 +178,7 @@ func AmqpReceiver(ctrlQueue chan ControlMessage, reqQueue chan ControlMessage, p
 	// Deferred command: close the channel
 	channel, chanErr := connection.Channel()
 	if chanErr != nil {
-		log.Printf("[amqp receiver] Unable to get the AMQP channel:\n\t%v", chanErr.Error())
+		Log.Critical("Unable to get the AMQP channel:\n\t%v", chanErr.Error())
 		reqQueue <- StopExecution
 		return
 	}
@@ -189,7 +188,7 @@ func AmqpReceiver(ctrlQueue chan ControlMessage, reqQueue chan ControlMessage, p
 	exchangeName := viper.GetString("amqp.exchange")
 	exchDeclErr := channel.ExchangeDeclare(exchangeName, "topic", false, false, false, false, nil)
 	if exchDeclErr != nil {
-		log.Printf("[amqp receiver] Unable to declare exchange <%s>:\n\t%v", exchangeName, exchDeclErr.Error())
+		Log.Critical("Unable to declare exchange <%s>:\n\t%v", exchangeName, exchDeclErr.Error())
 		reqQueue <- StopExecution
 		return
 	}
@@ -199,13 +198,13 @@ func AmqpReceiver(ctrlQueue chan ControlMessage, reqQueue chan ControlMessage, p
 	queueName := viper.GetString("amqp.queue")
 	_, queueDeclErr := channel.QueueDeclare(queueName, false, true, true, false, nil)
 	if queueDeclErr != nil {
-		log.Printf("[amqp receiver] Unable to declare queue <%s>:\n\t%v", queueName, queueDeclErr.Error())
+		Log.Critical("Unable to declare queue <%s>:\n\t%v", queueName, queueDeclErr.Error())
 		reqQueue <- StopExecution
 		return
 	}
 	defer func() {
 		if _, err := channel.QueueDelete(queueName, false, false, false); err != nil {
-			log.Printf("[amqp receiver] Error while deleting queue:\n\t%v", err)
+			Log.Error("Error while deleting queue:\n\t%v", err)
 		}
 	}()
 
@@ -213,13 +212,13 @@ func AmqpReceiver(ctrlQueue chan ControlMessage, reqQueue chan ControlMessage, p
 	// Deferred command: unbind the "hornet" queue from the exchange
 	queueBindErr := channel.QueueBind(queueName, queueName+".#", exchangeName, false, nil)
 	if queueBindErr != nil {
-		log.Printf("[amqp receiver] Unable to bind queue <%s> to exchange <%s>:\n\t%v", queueName, exchangeName, queueBindErr.Error())
+		Log.Critical("Unable to bind queue <%s> to exchange <%s>:\n\t%v", queueName, exchangeName, queueBindErr.Error())
 		reqQueue <- StopExecution
 		return
 	}
 	defer func() {
 		if err := channel.QueueUnbind(queueName, queueName+".#", exchangeName, nil); err != nil {
-			log.Printf("[amqp receiver] Error while unbinding queue:\n\t%v", err)
+			Log.Error("Error while unbinding queue:\n\t%v", err)
 		}
 	}()
 
@@ -227,12 +226,12 @@ func AmqpReceiver(ctrlQueue chan ControlMessage, reqQueue chan ControlMessage, p
 	// Channel::Cancel is not executed as a deferred command, because consuming will be stopped by Channel.Close
 	messageQueue, consumeErr := channel.Consume(queueName, "", false, true, true, false, nil)
 	if consumeErr != nil {
-		log.Printf("[amqp receiver] Unable start consuming from queue <%s>:\n\t%v", queueName, queueBindErr.Error())
+		Log.Critical("Unable start consuming from queue <%s>:\n\t%v", queueName, queueBindErr.Error())
 		reqQueue <- StopExecution
 		return
 	}
 
-	log.Print("[amqp receiver] started successfully")
+	Log.Info("AMQP Receiver started successfully")
 	AmqpReceiverIsActive = true
 	defer func() {AmqpReceiverIsActive = false}()
 
@@ -242,7 +241,7 @@ amqpLoop:
 		// the control messages can stop execution
 		case controlMsg := <-ctrlQueue:
 			if controlMsg == StopExecution {
-				log.Print("[amqp receiver] stopping on interrupt.")
+				Log.Info("AMQP receiver stopping on interrupt.")
 				break amqpLoop
 			}
 		// process any AMQP messages that are received
@@ -260,7 +259,7 @@ amqpLoop:
 				decoder := codec.NewDecoderBytes(message.Body, handle)
 				jsonErr := decoder.Decode(&body)
 				if jsonErr != nil {
-					log.Printf("[amqp receiver] Unable to decode JSON-encoded message:\n\t%v", jsonErr)
+					Log.Error("Unable to decode JSON-encoded message:\n\t%v", jsonErr)
 					continue amqpLoop
 				}
 			case "application/msgpack":
@@ -269,11 +268,11 @@ amqpLoop:
 				decoder := codec.NewDecoderBytes(message.Body, handle)
 				msgpackErr := decoder.Decode(&body)
 				if msgpackErr != nil {
-					log.Printf("[amqp receiver] Unable to decode msgpack-encoded message:\n\t%v", msgpackErr)
+					Log.Error("Unable to decode msgpack-encoded message:\n\t%v", msgpackErr)
 					continue amqpLoop
 				}
 			default:
-				log.Printf("[amqp receiver] Message content encoding is not understood: %s", message.ContentEncoding)
+				Log.Error("Message content encoding is not understood: %s", message.ContentEncoding)
 				continue amqpLoop
 			}
 			//log.Printf("[amqp receiver] Message body:\n\t%v", body)
@@ -284,7 +283,7 @@ amqpLoop:
 			timestampIfc, timestampPresent := body["timestamp"]
 			senderInfoIfc, senderInfoPresent := body["sender_info"]
 			if msgtypePresent && timestampPresent && senderInfoPresent == false {
-				log.Printf("[amqp receiver] Message is missing a required element:\n\tmsgtype: %v\n\ttimestamp: %v\n\tsender_info: %v", msgtypePresent, timestampPresent, senderInfoPresent)
+				Log.Error("Message is missing a required element:\n\tmsgtype: %v\n\ttimestamp: %v\n\tsender_info: %v", msgtypePresent, timestampPresent, senderInfoPresent)
 				continue amqpLoop
 			}
 			msgType := ConvertToMsgCode(msgTypeIfc)
@@ -314,7 +313,7 @@ amqpLoop:
 			switch msgType {
 			case MTReply:
 				if retcodeIfc, retcodePresent := body["retcode"]; retcodePresent == false {
-					log.Printf("[amqp receiver] Message is missing a required element:\n\tretcode: %v", retcodePresent)
+					Log.Error("Message is missing a required element:\n\tretcode: %v", retcodePresent)
 					continue amqpLoop
 				} else {
 					p8Message.RetCode = ConvertToMsgCode(retcodeIfc)
@@ -322,17 +321,17 @@ amqpLoop:
 			case MTRequest:
 				
 				if msgopIfc, msgopPresent := body["msgop"]; msgopPresent == false {
-					log.Printf("[amqp receiver] Request message is missing a required element:\n\tmsgop: %v", msgopPresent)
+					Log.Error("Request message is missing a required element:\n\tmsgop: %v", msgopPresent)
 					continue amqpLoop
 				} else {
 					p8Message.MsgOp = ConvertToMsgCode(msgopIfc)
 				}
 			case MTAlert:
-				log.Printf("[amqp receiver] Cannot handle Alert messages")
+				Log.Error("Cannot handle Alert messages")
 			case MTInfo:
-				log.Printf("[amqp receiver] Cannot handle Info messages")
+				Log.Error("Cannot handle Info messages")
 			default:
-				log.Printf("[amqp receiver] Unknown message type: %v", msgType)
+				Log.Error("Unknown message type: %v", msgType)
 			}
 
 			routingKeyParts := strings.Split(message.RoutingKey, TargetSeparator)
@@ -345,36 +344,36 @@ amqpLoop:
 			// Handle with the message according to the message type
 			switch msgType {
 			case MTReply:
-				log.Printf("[amqp receiver] Received reply message: %d", p8Message.RetCode)
+				Log.Info("Received reply message: %d", p8Message.RetCode)
 				if replyHandlerChan, canReply := replyMap[message.CorrelationId]; canReply {
 					replyHandlerChan <- p8Message
 				}
 			case MTRequest:
 				// Handle with the request message according to the target
 				if len(p8Message.Target) == 0 {
-					log.Printf("[amqp receiver] No Hornet target provided")
+					Log.Error("No Hornet target provided")
 				} else {
 					switch p8Message.Target[0] {
 					case "quit-hornet":
 						reqQueue <- StopExecution
 					case "print-message":
-						log.Print("[amqp receiver] Message received for printing:")
-						log.Printf("\tEncoding: %v", p8Message.Encoding)
-						log.Printf("\tCorrelation ID: %v", p8Message.CorrId)
-						log.Printf("\tMessage Type: %v", p8Message.MsgType)
-						log.Printf("\tTimestamp: %v", p8Message.TimeStamp)
-						log.Print("\tSenderInfo:")
-						log.Printf("\t\tPackage: %v", p8Message.SenderInfo.Package)
-						log.Printf("\t\tExe: %v", p8Message.SenderInfo.Exe)
-						log.Printf("\t\tVersion: %v", p8Message.SenderInfo.Version)
-						log.Printf("\t\tCommit: %v", p8Message.SenderInfo.Commit)
-						log.Printf("\t\tHostname: %v", p8Message.SenderInfo.Hostname)
-						log.Printf("\t\tUsername: %v", p8Message.SenderInfo.Username)
-						log.Print("\tPayload:")
+						Log.Notice("Message received for printing:")
+						Log.Notice("\tEncoding: %v", p8Message.Encoding)
+						Log.Notice("\tCorrelation ID: %v", p8Message.CorrId)
+						Log.Notice("\tMessage Type: %v", p8Message.MsgType)
+						Log.Notice("\tTimestamp: %v", p8Message.TimeStamp)
+						Log.Notice("\tSenderInfo:")
+						Log.Notice("\t\tPackage: %v", p8Message.SenderInfo.Package)
+						Log.Notice("\t\tExe: %v", p8Message.SenderInfo.Exe)
+						Log.Notice("\t\tVersion: %v", p8Message.SenderInfo.Version)
+						Log.Notice("\t\tCommit: %v", p8Message.SenderInfo.Commit)
+						Log.Notice("\t\tHostname: %v", p8Message.SenderInfo.Hostname)
+						Log.Notice("\t\tUsername: %v", p8Message.SenderInfo.Username)
+						Log.Notice("\tPayload:")
 						for key, value := range p8Message.Payload.(map[interface{}]interface{}) {
 							switch typedValue := value.(type) {
 								case []byte:
-									log.Printf("\t\t%s (byte sl): %v", key.(string), string(typedValue))
+									Log.Notice("\t\t%s (byte sl): %v", key.(string), string(typedValue))
 								case [][]byte:
 									//log.Printf("\t\t%s (byte sl sl): %v", key.(string), [][]string(typedValue))
 									sliceString := "["
@@ -382,17 +381,17 @@ amqpLoop:
 										fmt.Sprintf(sliceString, "%s, %s", sliceString, string(byteSlice))
 									}
 									fmt.Sprintf(sliceString, "%s]", sliceString)
-									log.Printf("\t\t%s (byte sl sl): %s", key.(string), sliceString)
+									Log.Notice("\t\t%s (byte sl sl): %s", key.(string), sliceString)
 								case rune, bool, int, uint, float32, float64, complex64, complex128, string:
-									log.Printf("\t\t%s (type): %v", key.(string), typedValue)
+									Log.Notice("\t\t%s (type): %v", key.(string), typedValue)
 								case []rune, []bool, []int, []uint, []float32, []float64, []complex64, []complex128, []string:
-									log.Printf("\t\t%s (array): %v", key.(string), typedValue)
+									Log.Notice("\t\t%s (array): %v", key.(string), typedValue)
 								default:
-									log.Printf("\t\t%s (default): %v", key.(string), value)
+									Log.Notice("\t\t%s (default): %v", key.(string), value)
 							}
 						}
 					default:
-						log.Printf("[amqp receiver] Unknown hornet target for request messages: %v", p8Message.Target)
+						Log.Error("Unknown hornet target for request messages: %v", p8Message.Target)
 					}
 				}
 			}
@@ -404,7 +403,7 @@ amqpLoop:
 func AmqpSender(ctrlQueue chan ControlMessage, reqQueue chan ControlMessage, poolCount *sync.WaitGroup) {
 	// decrement the wg counter at the end
 	defer poolCount.Done()
-	defer log.Print("[amqp sender] finished.")
+	defer Log.Info("AMQP sender is finished.")
 
 
 	// Connect to the AMQP broker
@@ -412,7 +411,7 @@ func AmqpSender(ctrlQueue chan ControlMessage, reqQueue chan ControlMessage, poo
 	brokerAddress := viper.GetString("amqp.broker")
 	if viper.GetBool("amqp.use-auth") {
 		if Authenticators.Amqp.Available == false {
-			log.Printf("[amqp receiver] AMQP authentication is not available")
+			Log.Critical("AMQP authentication is not available")
 			reqQueue <- StopExecution
 			return
 		}
@@ -424,7 +423,7 @@ func AmqpSender(ctrlQueue chan ControlMessage, reqQueue chan ControlMessage, poo
 	}
 	connection, receiveErr := amqp.Dial(brokerAddress)
 	if receiveErr != nil {
-		log.Printf("[amqp sender] Unable to connect to the AMQP broker at (%s) for receiving:\n\t%v", brokerAddress, receiveErr.Error())
+		Log.Critical("Unable to connect to the AMQP broker at (%s) for receiving:\n\t%v", brokerAddress, receiveErr.Error())
 		reqQueue <- StopExecution
 		return
 	}
@@ -434,7 +433,7 @@ func AmqpSender(ctrlQueue chan ControlMessage, reqQueue chan ControlMessage, poo
 	// Deferred command: close the channel
 	channel, chanErr := connection.Channel()
 	if chanErr != nil {
-		log.Printf("[amqp sender] Unable to get the AMQP channel:\n\t%v", chanErr.Error())
+		Log.Critical("Unable to get the AMQP channel:\n\t%v", chanErr.Error())
 		reqQueue <- StopExecution
 		return
 	}
@@ -444,7 +443,7 @@ func AmqpSender(ctrlQueue chan ControlMessage, reqQueue chan ControlMessage, poo
 
 	replyTo := viper.GetString("amqp.queue")
 
-	log.Print("[amqp sender] started successfully")
+	Log.Info("AMQP sender started successfully")
 	AmqpSenderIsActive = true
 	defer func() {AmqpSenderIsActive = false}()
 
@@ -454,7 +453,7 @@ amqpLoop:
 		// the control messages can stop execution
 		case controlMsg := <-ctrlQueue:
 			if controlMsg == StopExecution {
-				log.Print("[amqp sender] stopping on interrupt.")
+				Log.Info("AMQP sender stopping on interrupt.")
 				break amqpLoop
 			}
 		// process any message reuqests receivec on the send-messsage queue
@@ -506,7 +505,7 @@ amqpLoop:
 				encoder := codec.NewEncoderBytes(&(message.Body), handle)
 				jsonErr := encoder.Encode(&body)
 				if jsonErr != nil {
-					log.Printf("[amqp sender] Unable to decode JSON-encoded message:\n\t%v", jsonErr)
+					Log.Error("Unable to decode JSON-encoded message:\n\t%v", jsonErr)
 					continue amqpLoop
 				}
 			case "application/msgpack":
@@ -515,23 +514,23 @@ amqpLoop:
 				encoder := codec.NewEncoderBytes(&(message.Body), handle)
 				msgpackErr := encoder.Encode(&body)
 				if msgpackErr != nil {
-					log.Printf("[amqp sender] Unable to decode msgpack-encoded message:\n\t%v", msgpackErr)
+					Log.Error("Unable to decode msgpack-encoded message:\n\t%v", msgpackErr)
 					continue amqpLoop
 				}
 			default:
-				log.Printf("[amqp sender] Message content cannot be encoded with type <%s>", p8Message.Encoding)
+				Log.Error("Message content cannot be encoded with type <%s>", p8Message.Encoding)
 				continue amqpLoop
 			}
 
 			routingKey := strings.Join(p8Message.Target, TargetSeparator)
 
 			//log.Printf("[amqp sender] Encoded message:\n\t%v", message)
-			log.Printf("[amqp sender] Sending message to routing key <%s>", routingKey)
+			Log.Debug("Sending message to routing key <%s>", routingKey)
 
 			// Publish!
 			pubErr := channel.Publish(exchangeName, routingKey, false, false, message)
 			if pubErr != nil {
-				log.Printf("[amqp sender] Error while sending message:\n\t%v", pubErr)
+				Log.Error("Error while sending message:\n\t%v", pubErr)
 			}
 
 		} // end select block

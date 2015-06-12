@@ -9,7 +9,6 @@
 package hornet
 
 import (
-	"log"
 	"path/filepath"
 	"sync"
 
@@ -36,27 +35,27 @@ type OperatorContext struct {
 func Scheduler(schQueue chan string, ctrlQueue, reqQueue chan ControlMessage, threadCountQueue chan uint, poolCount *sync.WaitGroup) {
 	// Decrement the waitgroup counter when done
 	defer poolCount.Done()
-	defer log.Print("[scheduler] finished.")
+	defer Log.Info("Scheduler is finished.")
 
 	queueSize := viper.GetInt("scheduler.queue-size")
-	log.Println("[scheduler] Queue size:", queueSize)
+	Log.Debug("Queue size: %d", queueSize)
 	if queueSize <= 0 {
-		log.Print("[scheduler] Queue size must be > 0")
+		Log.Critical("Queue size must be > 0")
 		reqQueue <- ThreadCannotContinue
 		return
 	}
 
 	nWorkers := viper.GetInt("workers.n-workers")
-	log.Println("[scheduler] Number of workers:", nWorkers)
+	Log.Debug("Number of workers: %d", nWorkers)
 	if nWorkers <= 0 {
-		log.Print("[scheduler] Number of workers must be > 0")
+		Log.Critical("Number of workers must be > 0")
 		reqQueue <- ThreadCannotContinue
 		return
 	}
 
 	// for now, we require that there's only 1 shipper
 	if viper.GetInt("shipper.n-shippers") != 1 {
-		log.Print("[scheduler] Currently can only have 1 shipper")
+		Log.Critical("Currently can only have 1 shipper")
 		reqQueue <- ThreadCannotContinue
 		return
 	}
@@ -152,14 +151,14 @@ scheduleLoop:
 		select {
 		case controlMsg := <-ctrlQueue:
 			if controlMsg == StopExecution {
-				log.Print("[scheduler] stopping on interrupt")
+				Log.Info("Scheduler stopping on interrupt")
 				// close the worker queue to stop the workers
 				close(workerQueue)
 				break scheduleLoop
 			}
 		case file := <-schQueue:
 			if absPath, absErr := filepath.Abs(file); absErr != nil {
-				log.Printf("[scheduler] unable to determine an absolute path for <%s>", file)
+				Log.Error("Unable to determine an absolute path for <%s>", file)
 			} else {
 				if PathIsRegularFile(absPath) {
 					path, filename := filepath.Split(absPath)
@@ -168,10 +167,10 @@ scheduleLoop:
 						HotPath:      path,
 						FileHotPath:  absPath,
 					}
-					log.Printf("[scheduler] sending <%s> to the classifier", fileHeader.Filename)
+					Log.Notice("Sending <%s> to the classifier", fileHeader.Filename)
 					classifierQueue <- fileHeader
 				} else {
-					log.Printf("[scheduler] <%s> is not a regular file; ignoring", absPath)
+					Log.Info("<%s> is not a regular file; ignoring", absPath)
 				}
 			}
 		case fileRet := <-classifierRetQueue:
@@ -180,11 +179,11 @@ scheduleLoop:
 				if fileRet.IsFatal {
 					severity = "error"
 				}
-				log.Printf("[scheduler] %s received from the classifier:\n\t%v", severity, fileRet.Err)
+				Log.Info("Received %s from the classifier:\n\t%v", severity, fileRet.Err)
 			}
 			if fileRet.IsFatal == false {
 				fileHeader := fileRet.FHeader
-				log.Printf("[scheduler] sending <%s> to the mover", fileHeader.Filename)
+				Log.Info("Sending <%s> to the mover", fileHeader.Filename)
 				moverQueue <- fileHeader
 			}
 		case fileRet := <-moverRetQueue:
@@ -193,18 +192,18 @@ scheduleLoop:
 				if fileRet.IsFatal {
 					severity = "error"
 				}
-				log.Printf("[scheduler] %s received from the mover:\n\t%v", severity, fileRet.Err)
+				Log.Info("Received %s from the mover:\n\t%v", severity, fileRet.Err)
 			}
 			if fileRet.IsFatal == false {
 				fileHeader := fileRet.FHeader
 				// only send to the workers if the file requests it and there's a worker available
 				if len(fileHeader.JobQueue) > 0 && workersWorking < nWorkers {
-					log.Printf("[scheduler] sending <%s> to the workers", fileHeader.Filename)
+					Log.Info("Sending <%s> to the workers", fileHeader.Filename)
 					workersWorking++
 					workerQueue <- fileHeader
 					//fmt.Println("[scheduler] workers working:", workersWorking)
 				} else {
-					log.Printf("[scheduler] sending <%s> to shipper (skipping nearline)", fileHeader.Filename)
+					Log.Info("Sending <%s> to shipper (skipping nearline)", fileHeader.Filename)
 					shipperQueue <- fileHeader
 				}
 			}
@@ -215,11 +214,11 @@ scheduleLoop:
 				if fileRet.IsFatal {
 					severity = "error"
 				}
-				log.Printf("[scheduler] %s received from the workers:\n\t%v", severity, fileRet.Err)
+				Log.Info("Received %s from the workers:\n\t%v", severity, fileRet.Err)
 			}
 			if fileRet.IsFatal == false {
 				fileHeader := fileRet.FHeader // original data file is still the input file from the worker
-				log.Printf("[scheduler] sending <%s> to the shipper", fileHeader.Filename)
+				Log.Info("Sending <%s> to the shipper", fileHeader.Filename)
 				shipperQueue <- fileHeader
 			}
 		case fileRet := <-shipperRetQueue:
@@ -228,10 +227,10 @@ scheduleLoop:
 				if fileRet.IsFatal {
 					severity = "error"
 				}
-				log.Printf("[scheduler] %s received from the shipper:\n\t%v", severity, fileRet.Err)
+				Log.Info("Received %s from the shipper:\n\t%v", severity, fileRet.Err)
 			}
 			if fileRet.IsFatal == false {
-				log.Printf("[scheduler] completed work on file <%s>", fileRet.FHeader.Filename)
+				Log.Notice("Completed work on file <%s>", fileRet.FHeader.Filename)
 			}
 		}
 	}
