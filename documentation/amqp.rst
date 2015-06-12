@@ -14,9 +14,9 @@ Configuration
     "amqp":
     {
         "active": true,
-		"use-auth": true,
+        "use-auth": true,
         "broker": "my.server",
-		"port": 5672,
+        "port": 5672,
         "exchange": "requests",
         "queue": "hornet"
     }
