@@ -44,7 +44,7 @@ import (
 	"net/http"
 	"net/url"
 
-	"log"
+	"github.com/op/go-logging"
 	"github.com/spf13/viper"
 )
 
@@ -107,11 +107,45 @@ func (c *SlackClient) sendSlackMessage(channel, message, username string) error 
 
 // Hornet-specific Slack usage
 
+// configuration
 var slackActive bool
-var slackClient *SlackClient
 var slackAlertsChannel, slackNoticesChannel string
 var slackUsername string
 var slackPrefix string
+
+var slackFormat = logging.MustStringFormatter(
+    "%{level} > %{message}",
+)
+
+// Notice writer
+type SlackNoticeWriter struct {
+	client *SlackClient
+}
+var slackNoticeWriter SlackNoticeWriter
+
+func (writer SlackNoticeWriter) Write(p []byte) (n int, err error) {
+	n = 0
+	if slackActive == false {return}
+	if err = writer.client.sendSlackMessage(slackNoticesChannel, string(p), slackUsername); err == nil {
+		n = len(p)
+	}
+	return
+}
+
+// Alert writer
+type SlackAlertWriter struct {
+	client *SlackClient
+}
+var slackAlertWriter SlackAlertWriter
+
+func (writer SlackAlertWriter) Write(p []byte) (n int, err error) {
+	n = 0
+	if slackActive == false {return}
+	if err = writer.client.sendSlackMessage(slackAlertsChannel, string(p), slackUsername); err == nil {
+		n = len(p)
+	}
+	return
+}
 
 // InitializeSlack creates the SlackClient object, gets the API token, and sends an initial 
 // message to the notice channel to ensure that the connection works.
@@ -146,18 +180,39 @@ func InitializeSlack() (e error) {
 	slackAlertsChannel = viper.GetString("slack.alerts-channel")
 	slackNoticesChannel = viper.GetString("slack.notices-channel")
 
-	slackClient = createNewSlackClient(Authenticators.Slack.Token)
+	slackClient := createNewSlackClient(Authenticators.Slack.Token)
 
+	/*
 	if SendSlackNotice("Hello Slack!") == false {
 		e = errors.New("[slack] unable to send a message to slack")
 		Log.Error(e.Error())
 		return
 	}
+	*/
 
-	log.Print("[slack] initialization complete")
+	// Notice logging
+	slackNoticeWriter.client = slackClient
+	slackNoticeBackend := logging.NewLogBackend(slackNoticeWriter, slackPrefix, 0)
+	slackNoticeBackendFormatter := logging.NewBackendFormatter(slackNoticeBackend, slackFormat)
+	slackNoticeBackendLeveled := logging.AddModuleLevel(slackNoticeBackendFormatter)
+	slackNoticeBackendLeveled.SetLevel(logging.NOTICE, "")
+	AddBackend(slackNoticeBackendLeveled)
+	Log.Notice("Test Notice")
+
+	// Alert logging
+	slackAlertWriter.client = slackClient
+	slackAlertBackend := logging.NewLogBackend(slackAlertWriter, slackPrefix, 0)
+	slackAlertBackendFormatter := logging.NewBackendFormatter(slackAlertBackend, slackFormat)
+	slackAlertBackendLeveled := logging.AddModuleLevel(slackAlertBackendFormatter)
+	slackAlertBackendLeveled.SetLevel(logging.ERROR, "")
+	AddBackend(slackAlertBackendLeveled)
+	Log.Error("Test Alert")
+
+	Log.Info("Slack initialization complete")
 	return
 }
 
+/*
 // SendSlackAlert sends a message to the alert channel.
 // Returns true if the message is sent, or if slack is not active.
 func SendSlackAlert(message string) bool {
@@ -179,3 +234,5 @@ func SendSlackNotice(message string) bool {
 	}
 	return true
 }
+*/
+

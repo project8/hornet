@@ -45,7 +45,7 @@ workLoop:
 		case controlMsg := <-context.CtrlQueue:
 			if controlMsg == StopExecution {
 				//localLog(jobCount, "stopping on interrupt.")
-				Log.Notice(withState("stopping on interrupt."))
+				Log.Info(withState("Stopping on interrupt."))
 				break workLoop
 			}
 		case fileHeader := <-context.FileStream:
