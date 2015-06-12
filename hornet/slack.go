@@ -197,7 +197,7 @@ func InitializeSlack() (e error) {
 	slackNoticeBackendLeveled := logging.AddModuleLevel(slackNoticeBackendFormatter)
 	slackNoticeBackendLeveled.SetLevel(logging.NOTICE, "")
 	AddBackend(slackNoticeBackendLeveled)
-	Log.Notice("Test Notice")
+	//Log.Notice("Test Notice")
 
 	// Alert logging
 	slackAlertWriter.client = slackClient
@@ -206,7 +206,7 @@ func InitializeSlack() (e error) {
 	slackAlertBackendLeveled := logging.AddModuleLevel(slackAlertBackendFormatter)
 	slackAlertBackendLeveled.SetLevel(logging.ERROR, "")
 	AddBackend(slackAlertBackendLeveled)
-	Log.Error("Test Alert")
+	//Log.Error("Test Alert")
 
 	Log.Info("Slack initialization complete")
 	return
