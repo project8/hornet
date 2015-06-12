@@ -84,6 +84,8 @@ func main() {
 	}
 	log.Printf("[hornet] Full configuration:\n%v", string(indentedConfig))
 
+	hornet.LoadAuthenticators()
+
 	// Check the number of threads to be used
 	// Threads used:
 	//   1 each for the scheduler, classifier, watcher, mover, amqp sender, amqp receiver = 6
