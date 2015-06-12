@@ -121,14 +121,14 @@ func InitializeSlack() (e error) {
 	// check whether slack activation has been requested in the config
 	slackActive = viper.GetBool("slack.active")
 	if slackActive == false {
-		log.Print("[slack] not activated")
+		Log.Info("Slack not activated")
 		return
 	}
 
 	// get the authentication token
 	if Authenticators.Slack.Available == false {
-		e = errors.New("[slack] authentication not available")
-		log.Print(e.Error())
+		e = errors.New("Authentication not available for Slack")
+		Log.Error(e.Error())
 		return
 	}
 
@@ -150,7 +150,7 @@ func InitializeSlack() (e error) {
 
 	if SendSlackNotice("Hello Slack!") == false {
 		e = errors.New("[slack] unable to send a message to slack")
-		log.Print(e.Error())
+		Log.Error(e.Error())
 		return
 	}
 
@@ -163,7 +163,7 @@ func InitializeSlack() (e error) {
 func SendSlackAlert(message string) bool {
 	if slackActive == false {return true}
 	if slackErr := slackClient.sendSlackMessage(slackAlertsChannel, slackPrefix + message, slackUsername); slackErr != nil {
-		log.Printf("[slack] Error sending Slack alert: %v", slackErr.Error())
+		Log.Error("Unable to send Slack alert: %v", slackErr.Error())
 		return false
 	}
 	return true
@@ -174,7 +174,7 @@ func SendSlackAlert(message string) bool {
 func SendSlackNotice(message string) bool {
 	if slackActive == false {return true}
 	if slackErr := slackClient.sendSlackMessage(slackNoticesChannel, slackPrefix + message, slackUsername); slackErr != nil {
-		log.Printf("[slack] Error sending Slack notice: %v", slackErr.Error())
+		Log.Error("Unable to send Slack notice: %v", slackErr.Error())
 		return false
 	}
 	return true

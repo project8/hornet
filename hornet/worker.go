@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os/exec"
 	"strings"
 	"time"
@@ -21,13 +20,6 @@ type WorkerID uint
 // JobID is an identifier for a particular processing job.
 type JobID uint
 
-//func workerLog(format string, id WorkerID, job JobID, args ...interface{}) {
-func workerLog(id WorkerID, job JobID, msg string) {
-	//s := fmt.Sprintf(format, args)
-	//log.Printf("[worker %d.%d] %s\n", id, job, s)
-	log.Printf("[worker %d.%d] %s\n", id, job, msg)
-}
-
 // Worker waits for strings on a channel, and launches a Katydid process for
 // each string it receives, which should be the name of the file to process.
 func Worker(context OperatorContext, id WorkerID) {
@@ -35,15 +27,15 @@ func Worker(context OperatorContext, id WorkerID) {
 	// to process
 	defer context.PoolCount.Done()
 
-	// Close workerLog over known parameters
-	//localLog := func(job JobID, format string, args ...interface{}) {
-	localLog := func(job JobID, msg string) {
-		//workerLog(format, id, job, args...)
-		workerLog(id, job, msg)
-	}
-	log.Printf("[worker] worker (%d) started.  waiting for work...\n", id)
+	Log.Info("Worker (%d) started.  waiting for work...", id)
 
 	var jobCount JobID
+
+	// adds worker state to the beginning of a format string, for use with logging
+	withState := func(format string) string {
+		return fmt.Sprintf("[worker %d.%d] %s", id, jobCount, format)
+	}
+
 	//	for inputFile := range context.FileStream {
 workLoop:
 	for {
@@ -52,7 +44,8 @@ workLoop:
 		// TODO: should finish pending jobs before dying.
 		case controlMsg := <-context.CtrlQueue:
 			if controlMsg == StopExecution {
-				localLog(jobCount, "stopping on interrupt.")
+				//localLog(jobCount, "stopping on interrupt.")
+				Log.Notice(withState("stopping on interrupt."))
 				break workLoop
 			}
 		case fileHeader := <-context.FileStream:
@@ -77,7 +70,7 @@ jobLoop:
 					commandParts := strings.Fields(command)
 					job.CommandName = commandParts[0]
 					job.CommandArgs = commandParts[1:len(commandParts)]
-					localLog(jobCount, fmt.Sprintf("Executing command: %s %v", job.CommandName, job.CommandArgs))
+					Log.Info(withState("Executing command: %s %v"), job.CommandName, job.CommandArgs)
 					// create the command
 					cmd := exec.Command(job.CommandName, job.CommandArgs...)
 
@@ -88,37 +81,37 @@ jobLoop:
 						var startTime time.Time
 						if procErr := cmd.Start(); procErr != nil {
 							opReturn.Err = fmt.Errorf("couldn't start command: %v", procErr)
-							localLog(jobCount, opReturn.Err.Error())
+							Log.Error(withState(opReturn.Err.Error()))
 						} else {
 							startTime = time.Now()
 							outputBytes, outputError = ioutil.ReadAll(stdout)
 							if outputError != nil {
 								opReturn.Err = fmt.Errorf("Error running process: %v", string(outputBytes[:]))
-								localLog(jobCount, opReturn.Err.Error())
+								Log.Error(withState(opReturn.Err.Error()))
 							}
 						}
 						if runErr := cmd.Wait(); runErr != nil {
 							if exitErr, ok := runErr.(*exec.ExitError); !ok {
 								opReturn.Err = fmt.Errorf("Nonzero exit status on process [%v].  Log: %v", exitErr, string(outputBytes[:]))
-								localLog(jobCount, opReturn.Err.Error())
+								Log.Error(withState(opReturn.Err.Error()))
 							}
 						}
 						// if we're here, the job succeeded
-						localLog(jobCount, fmt.Sprintf("Execution finished.  Elapsed time: %v", time.Since(startTime)))
-						localLog(jobCount, fmt.Sprintf("Job output:\n%s", string(outputBytes)))
+						Log.Info(withState("Execution finished.  Elapsed time: %v"), time.Since(startTime))
+						Log.Debug(withState("Job output:\n%s"), string(outputBytes))
 						opReturn.FHeader.FinishedJobs = append(opReturn.FHeader.FinishedJobs, job)
 					} else {
 						opReturn.Err = fmt.Errorf("error opening stdout: %v", stdoutErr)
-						localLog(jobCount, opReturn.Err.Error())
+						Log.Error(withState(opReturn.Err.Error()))
 					}
 					jobCount++
 				default: // non-blocking receive on the job queue
-					localLog(jobCount, "Finished processing jobs for this file")
+					Log.Info(withState("Finished processing jobs for this file"))
 					context.RetStream <- opReturn
 					break jobLoop
 				} // end secondary select (non-blocking receive on the job queue
 			} // end the job loop
 		} // end main select
 	} // end the worker loop
-	localLog(jobCount, fmt.Sprintf("no work remaining.  total of %d jobs processed.", jobCount))
+	Log.Info(withState("No work remaining.  Total of %d jobs processed."), jobCount)
 }

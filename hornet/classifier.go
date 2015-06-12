@@ -14,7 +14,6 @@ package hornet
 import (
 	"errors"
 	"fmt"
-	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -33,8 +32,6 @@ type TypeInfo struct {
 	DoMatchRegexp    bool
 	RegexpTemplate   *regexp.Regexp
 	DoHash           bool
-	//DoNearline       bool
-	//NearlineCmd      string
 	Jobs             []int
 }
 
@@ -53,8 +50,8 @@ type JobInfo struct {
 func ValidateClassifierConfig() (e error) {
 	typesRawIfc := viper.Get("classifier.types")
 	if typesRawIfc == nil {
-		e = errors.New("[classifier] No types were provided")
-		log.Print(e.Error())
+		e = errors.New("No types were provided")
+		Log.Critical(e.Error())
 		return
 	}
 	typesRaw := typesRawIfc.([]interface{})
@@ -64,8 +61,8 @@ func ValidateClassifierConfig() (e error) {
 	for iType, typeMapIfc := range typesRaw {
 		typeMap := typeMapIfc.(map[string](interface{}))
 		if typeMap["name"].(string) == "" {
-			e = fmt.Errorf("[classifier] Type %d is missing its name", iType)
-			log.Print(e.Error())
+			e = fmt.Errorf("Type %d is missing its name", iType)
+			Log.Critical(e.Error())
 		}
 		if _, hasExt := typeMap["match-extension"]; hasExt {
 			nTestsPresent++
@@ -73,13 +70,13 @@ func ValidateClassifierConfig() (e error) {
 		if regexpTemplate, hasRegexp := typeMap["match-regexp"]; hasRegexp {
 			nTestsPresent++
 			if _, regexpErr := regexp.Compile(regexpTemplate.(string)); regexpErr != nil {
-				e = fmt.Errorf("[classifier] Invalid regular expression: %s\n\t%v", regexpTemplate.(string), regexpErr.Error())
-				log.Printf(e.Error())
+				e = fmt.Errorf("Invalid regular expression: %s\n\t%v", regexpTemplate.(string), regexpErr.Error())
+				Log.Critical(e.Error())
 			}
 		}
 		if nTestsPresent == 0 {
-			e = fmt.Errorf("[classifier] No tests are present for type %d", iType)
-			log.Print(e.Error())
+			e = fmt.Errorf("No tests are present for type %d", iType)
+			Log.Critical(e.Error())
 		}
 	}
 
@@ -88,20 +85,21 @@ func ValidateClassifierConfig() (e error) {
 		basePathsRaw := basePathsRawIfc.([]interface{})
 		for _, pathIfc := range basePathsRaw {
 			if _, fpErr := filepath.Abs(pathIfc.(string)); fpErr != nil {
-				e = fmt.Errorf("[classifier] Invalid base path: <%v>", pathIfc.(string))
-				log.Printf(e.Error())
+				e = fmt.Errorf("Invalid base path: <%v>", pathIfc.(string))
+				Log.Critical(e.Error())
 			}
 		}
 	}
 
 	if viper.IsSet("hash") == false {
-		e = errors.New("[classifier] Hash configuration not provided")
-		log.Print(e.Error())
+		e = errors.New("Hash configuration not provided")
+		Log.Critical(e.Error())
 		return
 	}
 	return
 }
 
+// getSubPath extracts the sub path from a file's full path by comparing it to the (ordered) list of base paths
 func getSubPath(path string) (subPath string) {
 	subPath = ""
 	for _, basePath := range BasePaths {
@@ -109,7 +107,7 @@ func getSubPath(path string) (subPath string) {
 			var relErr error
 			subPath, relErr = filepath.Rel(basePath, path)
 			if relErr != nil {
-				log.Printf("[classifier] Unable to get relative path after checking prefix:\n\t%s\n\t%s\n\t%v", basePath, path, relErr)
+				Log.Debug("Unable to get relative path after checking prefix:\n\t%s\n\t%s\n\t%v", basePath, path, relErr)
 				subPath = ""
 			} else {
 				break
@@ -122,10 +120,10 @@ func getSubPath(path string) (subPath string) {
 func Classifier(context OperatorContext) {
 	// decrement the wg counter at the end
 	defer context.PoolCount.Done()
-	defer log.Print("[classifier] finished.")
+	defer Log.Info("Classifier is finished.")
 
 	if configErr := ValidateClassifierConfig(); configErr != nil {
-		log.Printf("[amqp] Error in the classifier configuration: %s", configErr.Error())
+		Log.Critical("Error in the classifier configuration: %s", configErr.Error())
 		context.ReqQueue <- ThreadCannotContinue
 		return
 	}
@@ -149,7 +147,7 @@ func Classifier(context OperatorContext) {
 			types[iType].RegexpTemplate = regexp.MustCompile(regexpTemplate.(string))
 		}
 		types[iType].DoHash = typeMap["do-hash"].(bool)
-		log.Printf("[classifier] Adding type:\n\t%v", types[iType])
+		Log.Info("Adding type:\n\t%v", types[iType])
 	}
 
 	// Process the jobs
@@ -166,17 +164,17 @@ func Classifier(context OperatorContext) {
 		jobs[iJob].FileType = jobMap["file-type"].(string)
 		jobs[iJob].Command = jobMap["command"].(string)
 		if jobs[iJob].CommandTemplate, cmdErr = template.New("cmd").Parse(jobs[iJob].Command); cmdErr != nil {
-			log.Printf("[classifier] template error while processing <%v>", jobs[iJob].Command)
+			Log.Critical("Template error while processing <%v>", jobs[iJob].Command)
 			context.ReqQueue <- ThreadCannotContinue;
 			return
 		}
-		log.Printf("[classifier] Adding job:\n\t%v", jobs[iJob])
+		Log.Debug("Adding job:\n\t%v", jobs[iJob])
 
 		// add this job to the list of jobs for its file type
 		for iType, _ := range types {
 			if types[iType].Name == jobs[iJob].FileType {
 				types[iType].Jobs = append(types[iType].Jobs, iJob)
-				log.Printf("[classifier] type <%s> will now perform job %d <%s>: %v", types[iType].Name, iJob, jobs[iJob].Name, types[iType].Jobs)
+				Log.Info("Type <%s> will now perform job %d <%s>: %v", types[iType].Name, iJob, jobs[iJob].Name, types[iType].Jobs)
 			}
 		}
 	}
@@ -214,7 +212,7 @@ func Classifier(context OperatorContext) {
 	}
 
 	//BasePaths = append(BasePaths, []string(basePaths)...)
-	log.Printf("Base paths: %v", BasePaths)
+	Log.Info("Base paths: %v", BasePaths)
     
 
 	// Deal with the hash (do we need it, how do we run it, and do we send it somewhere?)
@@ -235,7 +233,7 @@ func Classifier(context OperatorContext) {
 			}
 			time.Sleep(time.Duration(waitTime) * time.Second)
 			if AmqpSenderIsActive == false {
-				log.Printf("[classifier] Cannot start classifier because the AMQP sender routine is not active, and sending file info has been requested")
+				Log.Critical("Cannot start classifier because the AMQP sender routine is not active, and sending file info has been requested")
 				context.ReqQueue <- ThreadCannotContinue
 				return
 			}
@@ -248,7 +246,7 @@ func Classifier(context OperatorContext) {
 		masterFileInfoMessage.Payload.(map[string]interface{})["run_id"] = 0
 	}
 
-	log.Print("[classifier] started successfully")
+	Log.Info("Classifier started successfully")
 
 classifierLoop:
 	for {
@@ -256,7 +254,7 @@ classifierLoop:
 		// the control messages can stop execution
 		case controlMsg := <-context.CtrlQueue:
 			if controlMsg == StopExecution {
-				log.Print("[classifier] stopping on interrupt.")
+				Log.Info("Classifier stopping on interrupt.")
 				break classifierLoop
 			}
 		case fileHeader := <-context.FileStream:
@@ -271,7 +269,7 @@ classifierLoop:
 			if _, existsErr := os.Stat(inputFilePath); os.IsNotExist(existsErr) {
 				opReturn.Err = fmt.Errorf("[classifier] file <%s> does not exist", inputFilePath)
 				opReturn.IsFatal = true
-				log.Printf(opReturn.Err.Error())
+				Log.Critical(opReturn.Err.Error())
 				context.RetStream <- opReturn
 				break
 			}
@@ -299,7 +297,7 @@ typeLoop:
 							for iSubmatch, submatch := range allSubmatches[0][1:] {
 								subexpName := subexpNames[iSubmatch+1]
 								if len(subexpName) > 0 {
-									log.Printf("[classifier] adding to payload: %s: %s", subexpName, submatch)
+									Log.Debug("Adding to payload: %s: %s", subexpName, submatch)
 									fileInfoMessage.Payload.(map[string]interface{})[subexpName] = submatch
 								}
 							}
@@ -308,7 +306,7 @@ typeLoop:
 				}
 
 				if acceptType {
-					log.Printf("[classifier] Classifying file <%s> as type <%s>", inputFilename, typeInfo.Name)
+					Log.Info("Classifying file <%s> as type <%s>", inputFilename, typeInfo.Name)
 					opReturn.FHeader.FileType = typeInfo.Name
 					opReturn.FHeader.SubPath = getSubPath(opReturn.FHeader.HotPath)
 					opReturn.FHeader.JobQueue = make(chan Job, maxJobs)
@@ -316,11 +314,11 @@ typeLoop:
 						if hash, hashErr := exec.Command(hashCmd, hashOpt, inputFilePath).CombinedOutput(); hashErr != nil {
 							opReturn.Err = fmt.Errorf("[classifier] error while hashing:\n\t%v", hashErr.Error())
 							opReturn.IsFatal = requireHash
-							log.Printf(opReturn.Err.Error())
+							Log.Error(opReturn.Err.Error())
 						} else {
 							hashTokens := strings.Fields(string(hash))
 							opReturn.FHeader.FileHash = hashTokens[0]
-							log.Printf("[classifier] file <%s> hash: %s", inputFilename, opReturn.FHeader.FileHash)
+							Log.Debug("File <%s> hash: %s", inputFilename, opReturn.FHeader.FileHash)
 						}
 					}
 					if sendFileInfo {
@@ -330,7 +328,7 @@ typeLoop:
 						SendMessageQueue <- fileInfoMessage
 					}
 					// jobs for the job queue
-					log.Printf("[classifier] type %s has %d jobs: %v", typeInfo.Name, len(typeInfo.Jobs), typeInfo.Jobs)
+					Log.Debug("Type %s has %d jobs: %v", typeInfo.Name, len(typeInfo.Jobs), typeInfo.Jobs)
 					for _, jobId := range typeInfo.Jobs {
 						newJob := Job{
 							//Command: jobs[jobId].Command,
@@ -341,7 +339,7 @@ typeLoop:
 						case opReturn.FHeader.JobQueue <- newJob:
 							// do nothing
 						default:
-							log.Printf("[classifier] attempting to submit more than the maximum number of jobs for a file; aborting")
+							Log.Critical("Attempting to submit more than the maximum number of jobs for a file; aborting")
 							context.ReqQueue <- ThreadCannotContinue
 							break classifierLoop
 						}
@@ -354,7 +352,7 @@ typeLoop:
 			}
 
 			if acceptType == false {
-				log.Printf("[classifier] Unable to classify file <%s>", inputFilename)
+				Log.Error("Unable to classify file <%s>", inputFilename)
 				opReturn.Err = errors.New("[Classifier] Unable to classify")
 				opReturn.IsFatal = true
 				context.RetStream <- opReturn

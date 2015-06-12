@@ -7,7 +7,6 @@
 package hornet
 
 import (
-	"log"
 	"strings"
 
 	"github.com/spf13/viper"
@@ -51,12 +50,12 @@ const subdWatchFlags = inotify.IN_ONLYDIR | inotify.IN_CREATE | inotify.IN_MOVED
 func Watcher(context OperatorContext) {
 	// Decrement the waitgroup counter when done
 	defer context.PoolCount.Done()
-	defer log.Print("[watcher] finished.")
+	defer Log.Info("Watcher is finished.")
 
 	// Start up the file watching
 	fileWatch, fileWatchErr := inotify.NewWatcher()
 	if fileWatchErr != nil {
-		log.Printf("[watcher] error creating file watcher! %v", fileWatchErr)
+		Log.Critical("Could not create the file watcher! %v", fileWatchErr)
 		context.ReqQueue <- ThreadCannotContinue
 		return
 	}
@@ -67,7 +66,7 @@ func Watcher(context OperatorContext) {
 	// Start up the subdirectory watching
 	subdWatch, subdWatchErr := inotify.NewWatcher()
 	if subdWatchErr != nil {
-		log.Printf("[watcher] error creating subdir watcher! %v", subdWatchErr)
+		Log.Critical("Could not create the subdirectory watcher! %v", subdWatchErr)
 		context.ReqQueue <- ThreadCannotContinue
 		return
 	}
@@ -78,36 +77,36 @@ func Watcher(context OperatorContext) {
 	if viper.IsSet("watcher.dir") {
 		watchDir := viper.GetString("watcher.dir")
 		if PathIsDirectory(watchDir) == false {
-			log.Printf("[watcher] Watch directory does not exist or is not a directory:\n\t%s", watchDir)
+			Log.Critical("Watch directory does not exist or is not a directory:\n\t%s", watchDir)
 			context.ReqQueue <- ThreadCannotContinue
 			return
 		}
 		fileWatch.AddWatch(watchDir, fileWatchFlags)
 		subdWatch.AddWatch(watchDir, subdWatchFlags)
-		log.Printf("[watcher] Now watching <%s>", watchDir)
+		Log.Notice("Now watching <%s>", watchDir)
 		nOrigDirs++
 	}
 	if viper.IsSet("watcher.dirs") {
 		watchDirs := viper.GetStringSlice("watcher.dirs")
 		for _, watchDir := range watchDirs {
 			if PathIsDirectory(watchDir) == false {
-				log.Printf("[watcher] Watch directory does not exist or is not a directory:\n\t%s", watchDir)
+				Log.Critical("[Watch directory does not exist or is not a directory:\n\t%s", watchDir)
 				context.ReqQueue <- ThreadCannotContinue
 				return
 			}
 			fileWatch.AddWatch(watchDir, fileWatchFlags)
 			subdWatch.AddWatch(watchDir, subdWatchFlags)
-			log.Printf("[watcher] Now watching <%s>", watchDir)
+			Log.Notice("Now watching <%s>", watchDir)
 			nOrigDirs++
 		}
 	}
 	if nOrigDirs == 0 {
-		log.Printf("[watcher] No watch directories were specified")
+		Log.Critical("No watch directories were specified")
 		context.ReqQueue <- ThreadCannotContinue
 		return
 	}
 
-	log.Print("[watcher] started successfully.  waiting for events...")
+	Log.Info("Started successfully.  Waiting for events...")
 
 runLoop:
 	for {
@@ -115,7 +114,7 @@ runLoop:
 		// First check for any control messages.
 		case control := <-context.CtrlQueue:
 			if control == StopExecution {
-				log.Print("[watcher] stopping on interrupt.")
+				Log.Info("Stopping on interrupt.")
 				break runLoop
 			}
 
@@ -138,35 +137,30 @@ runLoop:
 			dirname := newSubDirEvt.Name
 			if shouldAddWatch(newSubDirEvt) {
 				if err := fileWatch.AddWatch(dirname, fileWatchFlags); err != nil {
-					log.Printf("[watcher] couldn't add subdir file watch [%v]", err)
+					Log.Critical("Couldn't add subdir file watch [%v]", err)
 					context.ReqQueue <- ThreadCannotContinue
 					break runLoop
-				} else {
-					log.Printf("[watcher] added subdirectory to file watch [%v]", dirname)
 				}
 				if err := subdWatch.AddWatch(dirname, subdWatchFlags); err != nil {
-					log.Printf("[watcher] couldn't add subdir dir watch [%v]", err)
+					Log.Critical("Couldn't add subdir dir watch [%v]", err)
 					context.ReqQueue <- ThreadCannotContinue
 					break runLoop
-				} else {
-					log.Printf("[watcher] added subdirectory to dir watch [%v]", dirname)
 				}
+				Log.Notice("Added subdirectory to file & subdirectory watches [%v]", dirname)
 			}
 
 			//	if either of the filesystem watchers gets an error, die
 			//	as gracefully as possible.
 		case fileWatchErr = <-fileWatch.Error:
 			if isEintr(fileWatchErr) == false {
-				log.Printf("[watcher] inotify error on file watch %v",
-					fileWatchErr)
+				Log.Critical("inotify error on file watch %v", fileWatchErr)
 				context.ReqQueue <- ThreadCannotContinue
 				break runLoop
 			}
 
 		case subdWatchErr = <-subdWatch.Error:
 			if isEintr(fileWatchErr) == false {
-				log.Printf("[watcher] inotify error on directory watch %v",
-					subdWatchErr)
+				Log.Critical("inotify error on directory watch %v", subdWatchErr)
 				context.ReqQueue <- ThreadCannotContinue
 				break runLoop
 			}

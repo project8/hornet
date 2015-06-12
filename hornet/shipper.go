@@ -8,7 +8,6 @@ package hornet
 
 import (
 	"fmt"
-	"log"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -19,7 +18,7 @@ import (
 func Shipper(context OperatorContext) {
 	// decrement the wg counter at the end
 	defer context.PoolCount.Done()
-	defer log.Print("[shipper] finished.")
+	defer Log.Info("Shipper is finished.")
 
 	remoteShip := false
 	var destDirBase, hostname, username string
@@ -33,7 +32,7 @@ func Shipper(context OperatorContext) {
 		destDirBase, _ = filepath.Abs(viper.GetString("shipper.dest-dir"))
 	}
 
-	log.Print("[shipper] started successfully")
+	Log.Info("Shipper started successfully")
 
 shipLoop:
 	for {
@@ -42,7 +41,7 @@ shipLoop:
 		// TODO: should finish pending jobs before dying.
 		case controlMsg := <-context.CtrlQueue:
 			if controlMsg == StopExecution {
-				log.Print("[shipper] stopping on interrupt.")
+				Log.Info("Shipper stopping on interrupt.")
 				break shipLoop
 			}
 		case fileHeader := <-context.FileStream:
@@ -70,7 +69,7 @@ shipLoop:
 			} else {
 				rsyncDest = destDirBase
 			}
-			log.Printf("[shipper] rsync dest: %s", rsyncDest)
+			Log.Debug("rsync dest: %s", rsyncDest)
 
 			cmd := exec.Command("rsync", "-a", "--relative", inputFileSubPath, rsyncDest)
 			// Set the command's working directory to the input basepath, 
@@ -78,13 +77,13 @@ shipLoop:
 			// The input basepath is the warm path minus the subpath
 			inputBaseDir := strings.TrimSuffix(filepath.Clean(opReturn.FHeader.WarmPath), filepath.Clean(fileHeader.SubPath))
 			cmd.Dir = filepath.Clean(inputBaseDir)
-			log.Printf("[shipper] rsync command is: %v", cmd)
+			Log.Debug("rsync command is: %v", cmd)
 
 			// run the process
 			outputError := cmd.Run()
 			if outputError != nil {
 				opReturn.Err = fmt.Errorf("Error on running rsync for <%s>: %v", fileHeader.Filename, outputError)
-				log.Print("[shipper]", opReturn.Err.Error())
+				Log.Error(opReturn.Err.Error())
 			}
 
 			context.RetStream <- opReturn
