@@ -155,8 +155,17 @@ func AmqpReceiver(ctrlQueue chan ControlMessage, reqQueue chan ControlMessage, p
 	// Connect to the AMQP broker
 	// Deferred command: close the connection
 	brokerAddress := viper.GetString("amqp.broker")
-	if strings.HasPrefix(brokerAddress, "amqp://") == false {
-		brokerAddress = "amqp://" + brokerAddress
+	if viper.GetBool("amqp.use-auth") {
+		if Authenticators.Amqp.Available == false {
+			log.Printf("[amqp receiver] AMQP authentication is not available")
+			reqQueue <- StopExecution
+			return
+		}
+		brokerAddress = Authenticators.Amqp.Username + ":" + Authenticators.Amqp.Password + "@" + brokerAddress
+	}
+	brokerAddress = "amqp://" + brokerAddress
+	if viper.IsSet("amqp.port") {
+		brokerAddress = brokerAddress + ":" + viper.GetString("amqp.port")
 	}
 	connection, receiveErr := amqp.Dial(brokerAddress)
 	if receiveErr != nil {
@@ -401,8 +410,17 @@ func AmqpSender(ctrlQueue chan ControlMessage, reqQueue chan ControlMessage, poo
 	// Connect to the AMQP broker
 	// Deferred command: close the connection
 	brokerAddress := viper.GetString("amqp.broker")
-	if strings.HasPrefix(brokerAddress, "amqp://") == false {
-		brokerAddress = "amqp://" + brokerAddress
+	if viper.GetBool("amqp.use-auth") {
+		if Authenticators.Amqp.Available == false {
+			log.Printf("[amqp receiver] AMQP authentication is not available")
+			reqQueue <- StopExecution
+			return
+		}
+		brokerAddress = Authenticators.Amqp.Username + ":" + Authenticators.Amqp.Password + "@" + brokerAddress
+	}
+	brokerAddress = "amqp://" + brokerAddress
+	if viper.IsSet("amqp.port") {
+		brokerAddress = brokerAddress + ":" + viper.GetString("amqp.port")
 	}
 	connection, receiveErr := amqp.Dial(brokerAddress)
 	if receiveErr != nil {
