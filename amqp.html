@@ -33,8 +33,8 @@
 
   
     <link rel="top" title="hornet v1.0.0 documentation" href="index.html"/>
-        <link rel="next" title="Classifier" href="classifier.html"/>
-        <link rel="prev" title="Hornet" href="hornet.html"/> 
+        <link rel="next" title="Authentication" href="authentication.html"/>
+        <link rel="prev" title="Welcome to hornet’s documentation!" href="index.html"/> 
 
   
   <script src="_static/js/modernizr.min.js"></script>
@@ -74,17 +74,12 @@
           
           
               <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="hornet.html">Hornet</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="hornet.html#basic-operation">Basic Operation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="hornet.html#organization">Organization</a></li>
-<li class="toctree-l2"><a class="reference internal" href="hornet.html#repository">Repository</a></li>
-</ul>
-</li>
 <li class="toctree-l1 current"><a class="current reference internal" href="">AMQP</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#configuration">Configuration</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#sending-to-hornet">Sending to Hornet</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="authentication.html">Authentication</a></li>
 <li class="toctree-l1"><a class="reference internal" href="classifier.html">Classifier</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="classifier.html#configuration">Configuration</a></li>
 <li class="toctree-l2"><a class="reference internal" href="classifier.html#regular-expression-matching">Regular Expression Matching</a></li>
@@ -101,6 +96,12 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="hash.html">Hashing</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="hash.html#configuration">Configuration</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="hornet.html">Hornet</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="hornet.html#basic-operation">Basic Operation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="hornet.html#organization">Organization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="hornet.html#repository">Repository</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="mover.html">Mover</a><ul>
@@ -177,7 +178,9 @@
 <div class="highlight-python"><div class="highlight"><pre>&quot;amqp&quot;:
 {
     &quot;active&quot;: true,
+    &quot;use-auth&quot;: true,
     &quot;broker&quot;: &quot;my.server&quot;,
+    &quot;port&quot;: 5672,
     &quot;exchange&quot;: &quot;requests&quot;,
     &quot;queue&quot;: &quot;hornet&quot;
 }
@@ -185,7 +188,9 @@
 </div>
 <ul class="simple">
 <li><code class="docutils literal"><span class="pre">active</span></code> (boolean): Determines whether or not AMQP communication is used.  If false, commands can not be received, and file information will not be sent.</li>
+<li><code class="docutils literal"><span class="pre">use-auth</span></code> (boolean): Determines whether user/password authentication is used.</li>
 <li><code class="docutils literal"><span class="pre">broker</span></code> (string): The address of the AMQP broker that should be used.</li>
+<li><code class="docutils literal"><span class="pre">port</span></code> (unsigned int; optional): The port used to connect to the AMQP broker; Default is 5672.</li>
 <li><code class="docutils literal"><span class="pre">exchange</span></code> (string): The name of the exchange that the receiver should listen to (and create, if it doesn&#8217;t already exist).</li>
 <li><code class="docutils literal"><span class="pre">queue</span></code> (string): The name of the queue that will be used to receive messages.  Any messages sent with this queue name as the first element of the routing key will be received by Hornet.  To specify the destination within hornet, further elements of the routing key should be used (see below).</li>
 </ul>
@@ -206,10 +211,10 @@
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="classifier.html" class="btn btn-neutral float-right" title="Classifier" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="authentication.html" class="btn btn-neutral float-right" title="Authentication" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="hornet.html" class="btn btn-neutral" title="Hornet" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="index.html" class="btn btn-neutral" title="Welcome to hornet’s documentation!" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   

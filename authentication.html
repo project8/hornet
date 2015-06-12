@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Hornet &mdash; hornet v1.0.0 documentation</title>
+  <title>Authentication &mdash; hornet v1.0.0 documentation</title>
   
 
   
@@ -33,8 +33,8 @@
 
   
     <link rel="top" title="hornet v1.0.0 documentation" href="index.html"/>
-        <link rel="next" title="Mover" href="mover.html"/>
-        <link rel="prev" title="Hashing" href="hash.html"/> 
+        <link rel="next" title="Classifier" href="classifier.html"/>
+        <link rel="prev" title="AMQP" href="amqp.html"/> 
 
   
   <script src="_static/js/modernizr.min.js"></script>
@@ -79,7 +79,7 @@
 <li class="toctree-l2"><a class="reference internal" href="amqp.html#sending-to-hornet">Sending to Hornet</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="authentication.html">Authentication</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="">Authentication</a></li>
 <li class="toctree-l1"><a class="reference internal" href="classifier.html">Classifier</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="classifier.html#configuration">Configuration</a></li>
 <li class="toctree-l2"><a class="reference internal" href="classifier.html#regular-expression-matching">Regular Expression Matching</a></li>
@@ -98,10 +98,10 @@
 <li class="toctree-l2"><a class="reference internal" href="hash.html#configuration">Configuration</a></li>
 </ul>
 </li>
-<li class="toctree-l1 current"><a class="current reference internal" href="">Hornet</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#basic-operation">Basic Operation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#organization">Organization</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#repository">Repository</a></li>
+<li class="toctree-l1"><a class="reference internal" href="hornet.html">Hornet</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="hornet.html#basic-operation">Basic Operation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="hornet.html#organization">Organization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="hornet.html#repository">Repository</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="mover.html">Mover</a><ul>
@@ -153,11 +153,11 @@
   <ul class="wy-breadcrumbs">
     <li><a href="index.html">Docs</a> &raquo;</li>
       
-    <li>Hornet</li>
+    <li>Authentication</li>
       <li class="wy-breadcrumbs-aside">
         
           
-            <a href="_sources/hornet.txt" rel="nofollow"> View page source</a>
+            <a href="_sources/authentication.txt" rel="nofollow"> View page source</a>
           
         
       </li>
@@ -166,51 +166,14 @@
 </div>
           <div role="main" class="document">
             
-  <div class="section" id="hornet">
-<h1>Hornet<a class="headerlink" href="#hornet" title="Permalink to this headline">¶</a></h1>
-<p>Hornet is the automatic data-flow software package for the Project 8 experiment.  It is responsible for handling data files after they are created by some DAQ system, including:</p>
+  <div class="section" id="authentication">
+<h1>Authentication<a class="headerlink" href="#authentication" title="Permalink to this headline">¶</a></h1>
+<p>Hornet loads the standard Project 8 authentication file: <code class="docutils literal"><span class="pre">~/.project8_authentications.json</span></code></p>
+<p>Current authentications used by Hornet include:</p>
 <ul class="simple">
-<li>Moving files to safer storage locations,</li>
-<li>Sending information about the files to the run database, and</li>
-<li>Performing nearline processing on some or all of the files.</li>
+<li>AMQP (user/password)</li>
+<li>Slack (token)</li>
 </ul>
-<p>This documentation covers topics that are of interest to both users and developers.  Topics that are not necessary for running Hornet are marked with <strong>(dev)</strong>.</p>
-<p>As you read through the Hornet documentation, you&#8217;ll probably want to be aware of these <a class="reference internal" href="concepts.html"><em>Concepts</em></a>.  The Organization section below will take you through the individual modules that make up Hornet.</p>
-<div class="section" id="basic-operation">
-<h2>Basic Operation<a class="headerlink" href="#basic-operation" title="Permalink to this headline">¶</a></h2>
-<p>For obtaining and building hornet, please see the README file.</p>
-<p>The hornet executable is, appropriately, called <code class="docutils literal"><span class="pre">hornet</span></code>.  It is configured with a JSON configuration file that is supplied at runtime:</p>
-<div class="highlight-python"><div class="highlight"><pre>&gt; hornet --config my_config.json
-</pre></div>
-</div>
-<p>You can find an example configuration file that includes settings for all of the available options in the <code class="docutils literal"><span class="pre">examples</span></code> directory.</p>
-<p>The links in the Organization section will provide details on how to configure each module.  File hashing is performed in multiple places, and has its own configuration as well.</p>
-</div>
-<div class="section" id="organization">
-<h2>Organization<a class="headerlink" href="#organization" title="Permalink to this headline">¶</a></h2>
-<p>The various functions of Hornet are performed by a number of semi-independent modules:</p>
-<ul class="simple">
-<li><a class="reference internal" href="scheduler.html"><em>Scheduler</em></a> &#8211; coordinate the processing of the files with the hornet modules.</li>
-<li><a class="reference internal" href="watcher.html"><em>Watcher</em></a> &#8211; monitors a portion of the filesystem for new files to process;</li>
-<li><a class="reference internal" href="classifier.html"><em>Classifier</em></a> &#8211; recognizes files of certain types and how to proces them;</li>
-<li><a class="reference internal" href="mover.html"><em>Mover</em></a> &#8211; copies files from the &#8220;hot&#8221; data storage to the &#8220;warm&#8221; data storage;</li>
-<li><a class="reference internal" href="workers.html"><em>Workers</em></a> &#8211; performs nearline analysis on some or all files;</li>
-<li><a class="reference internal" href="shipper.html"><em>Shipper</em></a> &#8211; move files to a &#8220;cold&#8221; storage file system;</li>
-</ul>
-<p>Other components: <a class="reference internal" href="amqp.html"><em>AMQP</em></a>, <a class="reference internal" href="authentication.html"><em>Authentication</em></a>, and <a class="reference internal" href="hash.html"><em>Hashing</em></a></p>
-</div>
-<div class="section" id="repository">
-<h2>Repository<a class="headerlink" href="#repository" title="Permalink to this headline">¶</a></h2>
-<p><strong>(dev)</strong></p>
-<p>The directory structure of the <code class="docutils literal"><span class="pre">hornet</span></code> repository is as follows:</p>
-<ul class="simple">
-<li>The README, license, authors, source for the <code class="docutils literal"><span class="pre">hornet</span></code> executable, and the makefile for processing the git repository information exist in the top-level directory;</li>
-<li><code class="docutils literal"><span class="pre">documentation</span></code> includes the documentation you&#8217;re currently reading;</li>
-<li><code class="docutils literal"><span class="pre">examples</span></code> includes the full example configuration file;</li>
-<li><code class="docutils literal"><span class="pre">gogitver</span></code> contains the source for the external package <code class="docutils literal"><span class="pre">gogitver</span></code>, which is used make hornet aware of the git repository information;</li>
-<li><code class="docutils literal"><span class="pre">hornet</span></code> contains the source files for the <code class="docutils literal"><span class="pre">hornet</span></code> library, including all of the modules.</li>
-</ul>
-</div>
 </div>
 
 
@@ -219,10 +182,10 @@
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="mover.html" class="btn btn-neutral float-right" title="Mover" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="classifier.html" class="btn btn-neutral float-right" title="Classifier" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="hash.html" class="btn btn-neutral" title="Hashing" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="amqp.html" class="btn btn-neutral" title="AMQP" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   
