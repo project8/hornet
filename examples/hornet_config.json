@@ -14,6 +14,15 @@
         "queue": "hornet",
      },
 
+	"slack":
+	{
+		"active": false,
+		"prefix": "[hornet] ",
+		"username": "project8",
+		"alerts-channel": "#p8_alerts",
+		"notices-channel": "#p8_notices"
+	},
+
     "watcher":
     {
         "active": true,

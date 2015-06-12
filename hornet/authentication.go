@@ -5,7 +5,7 @@
 *
 * The current set of authenticators is:
 *   - AMQP (username/password)
-*   - Stack (token)
+*   - Slack (token)
 */
 
 package hornet
@@ -24,14 +24,14 @@ type AmqpCredentialType struct {
 	Available bool
 }
 
-type StackCredentialType struct {
+type SlackCredentialType struct {
 	Token string `json:"token"`
 	Available bool
 }
 
 type AuthenticatorsType struct {
 	Amqp AmqpCredentialType `json:"amqp"`
-	Stack StackCredentialType `json:"stack"`
+	Slack SlackCredentialType `json:"slack"`
 }
 
 var Authenticators AuthenticatorsType
@@ -62,14 +62,14 @@ func LoadAuthenticators() {
 		Authenticators.Amqp.Available = true
 	}
 
-	// Stack
-	if len(Authenticators.Stack.Token) > 0 {
-		Authenticators.Stack.Available = true
+	// Slack
+	if len(Authenticators.Slack.Token) > 0 {
+		Authenticators.Slack.Available = true
 	}
 
 	log.Printf("[authentication] authenticators ready for use:\n\t%s%t\n\t%s%t",
 		"AMQP: ", Authenticators.Amqp.Available,
-		"Stack: ", Authenticators.Stack.Available,
+		"Slack: ", Authenticators.Slack.Available,
 	)
 
 	return

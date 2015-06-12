@@ -79,12 +79,19 @@ func main() {
 	// print the full configuration
 	indentedConfig, confErr := json.MarshalIndent(viper.AllSettings(), "", "    ")
 	if confErr != nil {
-		log.Print("Error marshaling configuration!")
+		log.Print("[Hornet] Error marshaling configuration!")
 		return
 	}
 	log.Printf("[hornet] Full configuration:\n%v", string(indentedConfig))
 
+	// get the authenticator credentials
 	hornet.LoadAuthenticators()
+
+	// Setup the connection to slack
+	if slackErr := hornet.InitializeSlack(); slackErr != nil {
+		log.Printf("[hornet] Error initializing slack: %v", slackErr.Error())
+		return
+	}
 
 	// Check the number of threads to be used
 	// Threads used:

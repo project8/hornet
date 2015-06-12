@@ -412,7 +412,7 @@ func AmqpSender(ctrlQueue chan ControlMessage, reqQueue chan ControlMessage, poo
 	brokerAddress := viper.GetString("amqp.broker")
 	if viper.GetBool("amqp.use-auth") {
 		if Authenticators.Amqp.Available == false {
-			log.Printf("[amqp receiver] AMQP authentication is not available")
+			log.Printf("[amqp sender] AMQP authentication is not available")
 			reqQueue <- StopExecution
 			return
 		}
