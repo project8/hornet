@@ -1,4 +1,7 @@
 *~
 *#
 
+*.swp
+
 build*/
+documentation/_build/*

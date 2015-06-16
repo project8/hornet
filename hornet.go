@@ -20,130 +20,124 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
-	"log"
+	//"log"
 	"os"
 	"os/signal"
 	"sync"
 	"syscall"
+	"time"
 
-        "github.com/spf13/viper"
+	"github.com/spf13/viper"
+
+	"github.com/project8/hornet/hornet"
 )
 
-// Global config
-var (
-	MaxThreads int = 25
-)
-
-// A ControlMessage is sent between the main thread and the worker threads
-// to indicate system events (such as termination) that must be handled.
-type ControlMessage uint
-
-const (
-	// StopExecution asks the worker threads to finish what they are doing
-	// and return gracefully.
-	StopExecution = 0
-
-	// ThreadCannotContinue signals that the sending thread cannot continue
-	// executing due to an error, and hornet should shut down.
-	ThreadCannotContinue = 1
-)
-
-// Validate checks the sanity of a Config instance
-//   1) the number of threads is sane
-//   2) the provided config file is parsable json
-//   3) the provided watch directory is indeed a directory
-func ValidateConfig() (e error) {
-        fmt.Println("[hornet] Scheduler queue size:", viper.GetInt("scheduler.queue-size"))
-        fmt.Println("[hornet] Number of nearline workers:", viper.GetInt("scheduler.n-nearline-workers"))
-        fmt.Println("[hornet] Number of shippers:", viper.GetInt("scheduler.n-shippers"))
-        fmt.Println("[hornet] Watcher directory:", viper.GetString("watcher.dir"))
-        fmt.Println("[hornet] Worker command:", viper.GetString("workers.command"))
-        fmt.Println("[hornet] Destination directory:", viper.GetString("mover.dest-dir"))
-
-        nThreads := 1/*scheduler*/ + 1/*watcher*/ + 1/*mover*/ + viper.GetInt("scheduler.n-nearline-workers") + viper.GetInt("scheduler.n-shippers")
-        if nThreads > MaxThreads {
-                e = fmt.Errorf("Maximum number of threads exceeded")
-        }
-
-        if viper.GetInt("scheduler.n-nearline-workers") == 0 {
-                e = fmt.Errorf("Cannot have 0 nearline workers")
-        }
-
-        // for now, we require that there's only 1 shipper
-        if viper.GetInt("scheduler.n-shippers") != 1 {
-        }
-
-        if viper.GetInt("scheduler.queue-size") == 0 {
-                e = fmt.Errorf("Scheduler queue must be greater than 0")
-        }
-
-	if PathIsDirectory(viper.GetString("mover.dest-dir")) == false {
-		e = fmt.Errorf("Destination directory must exist and be a directory!")
-	}
-
-	if PathIsDirectory(viper.GetString("watcher.dir")) == false {
-		e = fmt.Errorf("Watch directory must exist and be a directory!")
-	}
-
-	return
-}
 
 func main() {
+	// setup logging, first thing
+	hornet.InitializeLogging()
+
 	// user needs help
 	var needHelp bool
 
-        // configuration file
-        var configFile string
+	// configuration file
+	var configFile string
 
 	// set up flag to point at conf, parse arguments and then verify
 	flag.BoolVar(&needHelp,
 		"help",
 		false,
 		"display this dialog")
-        flag.StringVar(&configFile,
-                "config",
-                "",
-                "JSON configuration file")
+	flag.StringVar(&configFile,
+		"config",
+		"",
+		"JSON configuration file")
 	flag.Parse()
 
 	if needHelp {
 		flag.Usage()
 		os.Exit(1)
-	} 
+	}
 
-        log.Print("[hornet] Reading config file: ", configFile)
-        viper.SetConfigFile(configFile)
-        if parseErr := viper.ReadInConfig(); parseErr != nil {
-                log.Fatal("(FATAL) ", parseErr)
-        }
+	fmt.Println("         _       _    _            _           _             _          _")
+	fmt.Println("        / /\\    / /\\ /\\ \\         /\\ \\        /\\ \\     _    /\\ \\       /\\ \\")
+	fmt.Println("       / / /   / / //  \\ \\       /  \\ \\      /  \\ \\   /\\_\\ /  \\ \\      \\_\\ \\")
+	fmt.Println("      / /_/   / / // /\\ \\ \\     / /\\ \\ \\    / /\\ \\ \\_/ / // /\\ \\ \\     /\\__ \\")
+	fmt.Println("     / /\\ \\__/ / // / /\\ \\ \\   / / /\\ \\_\\  / / /\\ \\___/ // / /\\ \\_\\   / /_ \\ \\")
+	fmt.Println("    / /\\ \\___\\/ // / /  \\ \\_\\ / / /_/ / / / / /  \\/____// /_/_ \\/_/  / / /\\ \\ \\")
+	fmt.Println("   / / /\\/___/ // / /   / / // / /__\\/ / / / /    / / // /____/\\    / / /  \\/_/")
+	fmt.Println("  / / /   / / // / /   / / // / /_____/ / / /    / / // /\\____\\/   / / /")
+	fmt.Println(" / / /   / / // / /___/ / // / /\\ \\ \\  / / /    / / // / /______  / / /")
+	fmt.Println("/ / /   / / // / /____\\/ // / /  \\ \\ \\/ / /    / / // / /_______\\/_/ /")
+	fmt.Println("\\/_/    \\/_/ \\/_________/ \\/_/    \\_\\/\\/_/     \\/_/ \\/__________/\\_\\/\n")
 
-        //fmt.Println(viper.AllSettings())
+	hornet.Log.Debug("Reading config file: %v", configFile)
+	viper.SetConfigFile(configFile)
+	if parseErr := viper.ReadInConfig(); parseErr != nil {
+		hornet.Log.Critical("%v", parseErr)
+	}
 
-	if configErr := ValidateConfig(); configErr != nil {
-               	flag.Usage()
-		log.Fatal("(FATAL) ", configErr)
+	// print the full configuration
+	indentedConfig, confErr := json.MarshalIndent(viper.AllSettings(), "", "    ")
+	if confErr != nil {
+		hornet.Log.Critical("Error marshaling configuration!")
+		return
+	}
+	hornet.Log.Debug("Full configuration:\n%v", string(indentedConfig))
+
+	// get the authenticator credentials
+	if authErr := hornet.LoadAuthenticators(); authErr != nil {
+		hornet.Log.Critical("Error getting authentication credentials:\n\t%s", authErr.Error())
+		return
+	}
+
+	// Setup the connection to slack
+	if slackErr := hornet.InitializeSlack(); slackErr != nil {
+		hornet.Log.Critical("Error initializing slack: %v", slackErr.Error())
+		return
+	}
+
+	// Check the number of threads to be used
+	// Threads used:
+	//   1 each for the scheduler, classifier, watcher, mover, amqp sender, amqp receiver = 6
+	//   N nearline workers (specified in scheduler.n-nearline-workers)
+	//   M shippers (specified in scheduler.n-shippers)
+	nThreads := 6 + viper.GetInt("workers.n-workers") + viper.GetInt("shipper.n-shippers")
+	if nThreads > hornet.MaxThreads {
+		hornet.Log.Critical("Maximum number of threads exceeded")
+		return
 	}
 
 	// if we've made it this far, it's time to get down to business.
 
 	var pool sync.WaitGroup
 
-        schedulingQueue := make(chan string, viper.GetInt("scheduler.queue-size"))
-        controlQueue := make(chan ControlMessage)
-        requestQueue := make(chan ControlMessage)
-        threadCountQueue := make(chan uint, MaxThreads)
+	// get the queue size from the configuration, and increase it if we need to handle lots of files
+	queueSize := viper.GetInt("scheduler.queue-size")
+	if flag.NArg() > queueSize {
+		queueSize = flag.NArg()
+		viper.Set("scheduler.queue-size", queueSize)
+	}
 
-        // check to see if any files are being scheduled via the command line
-        for iFile := 0; iFile < flag.NArg(); iFile++ {
-                fmt.Println("Scheduling", flag.Arg(iFile))
-                schedulingQueue <- flag.Arg(iFile)
-        }
+	schedulingQueue := make(chan string, queueSize)
+	controlQueue := make(chan hornet.ControlMessage)
+	requestQueue := make(chan hornet.ControlMessage)
+	threadCountQueue := make(chan uint, hornet.MaxThreads)
 
-        pool.Add(1)
-        threadCountQueue <- 1
-        go Scheduler(schedulingQueue, controlQueue, requestQueue, threadCountQueue, &pool)
+	hornet.StartAmqp(controlQueue, requestQueue, threadCountQueue, &pool)
+
+	// check to see if any files are being scheduled via the command line
+	for iFile := 0; iFile < flag.NArg(); iFile++ {
+		fmt.Println("Scheduling", flag.Arg(iFile))
+		schedulingQueue <- flag.Arg(iFile)
+	}
+
+	pool.Add(1)
+	threadCountQueue <- 1
+	go hornet.Scheduler(schedulingQueue, controlQueue, requestQueue, threadCountQueue, &pool)
 
 	// now just wait for the signal to stop.  this is either a ctrl+c
 	// or a SIGTERM.
@@ -154,23 +148,44 @@ stopLoop:
 	for {
 		select {
 		case <-sigChan:
-			log.Printf("[hornet] termination requested...\n")
+			hornet.Log.Notice("Termination requested...\n")
 			break stopLoop
 
-		case threadMsg := <-requestQueue:
-			if threadMsg == ThreadCannotContinue {
-				log.Print("[hornet] thread error!  cannot continue...")
+		case requestMsg := <-requestQueue:
+			switch requestMsg {
+			case hornet.ThreadCannotContinue:
+				hornet.Log.Notice("Thread error!  Cannot continue running")
+				break stopLoop
+			case hornet.StopExecution:
+				hornet.Log.Notice("Stop-execution request received")
 				break stopLoop
 			}
 		}
 	}
 
 	// Close all of the worker threads gracefully
-        log.Printf("[hornet] stopping %d threads", len(threadCountQueue))
+	// Use the select/default idiom to avoid the problem where one of the threads has already
+	// closed and we can't send to the control queue
+	hornet.Log.Info("Stopping %d threads", len(threadCountQueue)-1)
 	for i := 0; i < len(threadCountQueue); i++ {
-		controlQueue <- StopExecution
+		select {
+		case controlQueue <- hornet.StopExecution:
+		default:
+		}
 	}
-	pool.Wait()
 
-	log.Print("[hornet] All goroutines finished.  terminating...")
+	// Timed call to pool.Wait() in case one or more of the threads refuses to close
+	// Use the channel-based concurrency pattern (http://blog.golang.org/go-concurrency-patterns-timing-out-and)
+	// We have to wrap pool.Wait() in a go routine that sends on a channel
+	waitChan := make(chan bool, 1)
+	go func() {
+		pool.Wait()
+		waitChan <- true
+	}()
+	select {
+	case <-waitChan:
+		hornet.Log.Info("All goroutines finished.")
+	case <-time.After(1 * time.Second):
+		hornet.Log.Info("Timed out waiting for goroutines to finish.")
+	}
 }

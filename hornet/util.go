@@ -1,11 +1,11 @@
 // Utility functions for the hornet package go here.
-package main
+package hornet
 
 import (
 	//"errors"
-        "fmt"
+	//"fmt"
 	"os"
-        "path/filepath"
+	"path/filepath"
 	"strings"
 )
 
@@ -20,7 +20,16 @@ func PathIsDirectory(path string) bool {
 	}
 
 	return false
+}
 
+// PathIsRegularFile returns true if the string argument is a path to a 
+// regular file on the filesystem.
+func PathIsRegularFile(path string) bool {
+	if info, err := os.Stat(path); err == nil {
+		return info.Mode().IsRegular()
+	}
+
+	return false
 }
 
 // MovedFilePath takes a path to a file as its argument, and the directory to
@@ -41,30 +50,57 @@ func MovedFilePath(orig, newdir string) (newpath string) {
 }
 
 // RenamePathRelativeTo takes a base path, a target path, and a filename which
-// has as part of it the base path.  
+// has as part of it the base path.
 // It behaves in one of two ways:
 //  1. If the filename starts with the base path, it renames the file by replacing
-//     the base path with the target path, and maintaining any subdirectory structure 
-//     that the filename may have: 
+//     the base path with the target path, and maintaining any subdirectory structure
+//     that the filename may have:
 //        e.g. RenamePathRelativeTo("/abc/def/foo.bar", "/abc", "/ghi") ->
-//             "/ghi/def/foo.bar".  
+//             "/ghi/def/foo.bar".
 //  2. If base is not a prefix of filename, the filename, minus its diretory path,
 //     is postfixed onto the target path; there will be no subdirectory structure.
 func RenamePathRelativeTo(filename, base, dest string) (s string, e error) {
 	if strings.HasPrefix(filename, base) {
-                subpath, relErr := filepath.Rel(base, filename)
-                if relErr != nil {
-                        e = relErr
-                        return
-                }
-                s = filepath.Join(dest, subpath)
-                fmt.Printf("RPRT opt 1: %s --> %s\n", filename, s)
+		subpath, relErr := filepath.Rel(base, filename)
+		if relErr != nil {
+			e = relErr
+			return
+		}
+		s = filepath.Join(dest, subpath)
+		//fmt.Printf("RPRT opt 1: %s --> %s\n", filename, s)
 		//e = errors.New("filename does not contain base as a prefix")
 		return
 	} else {
-                _, file := filepath.Split(filename)
-                s = filepath.Join(dest, file)
-                fmt.Printf("RPRT opt 2: %s --> %s\n", filename, s)
-                return
-        }
+		_, file := filepath.Split(filename)
+		s = filepath.Join(dest, file)
+		//fmt.Printf("RPRT opt 2: %s --> %s\n", filename, s)
+		return
+	}
 }
+
+// ConvertToMsgCode converts interface{} values with the types that typically underly JSON-encoded integers
+func ConvertToMsgCode(ifcVal interface{}) (MsgCodeT) {
+	switch val := ifcVal.(type) {
+		case int64:
+			return MsgCodeT(val)
+		case uint64:
+			return MsgCodeT(val)
+		default:
+			return 999
+	}
+}
+
+// ConvertToMsgCode converts interface{} values with the types that typically underly JSON-encoded integers
+func ConvertToString(ifcVal interface{}) (string) {
+	switch val := ifcVal.(type) {
+		case string:
+			return val
+		case []uint8:
+			return string(val)
+		default:
+			return "UNKNOWN MESSAGE TYPE"
+	}
+}
+
+
+
