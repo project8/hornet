@@ -4,6 +4,7 @@ FROM golang:1.4
 RUN apt-get update && apt-get install -y rsync
 # install development debian components (comment this out for minimal/production)
 RUN apt-get install -y vim \
+                       tree \
                        less
 
 # add the local source and build the application
@@ -14,11 +15,15 @@ RUN echo "{\n}" > ~/.project8_authentications.json && \
     mkdir /data && \
     mkdir /data/hot && \
     mkdir /data/warm && \
+    mkdir /data/cold && \
     sed -e '9s/true/false/' \
         -e '19s/true/false/' \
         -e 's@"dir": "/data"@"dir": "/data/hot"@' \
         -e 's@"/warm-data"@"/data/warm"@' \
         -e 's@"send-file-info": true@"send-file-info": false@' \
+        -e 's@"/remote-data"@"/data/cold"@' \
+        -e '101s/,//' \
+        -e '102,103d' \
         -e '59,60d' \
         -e '30,34d' \
         -e '29s/,//' \
