@@ -42,6 +42,7 @@ Aside from standard go libraries, several external packages are used, which you'
 ```
   > go get github.com/streadway/amqp
   > go get github.com/ugorji/go/codec
+  > go get github.com/op/go-logging
   > go get golang.org/x/exp/inotify
   > go get github.com/kardianos/osext
   > go get code.google.com/p/go-uuid/uuid
