@@ -7,31 +7,31 @@
     "amqp":
     {
         "active": true,
- 		"use-auth": "true",
+         "use-auth": "true",
         "broker": "my.server",
-		"port": 5672,
+        "port": 5672,
         "exchange": "requests",
-        "queue": "hornet",
+        "queue": "hornet"
      },
 
-	"slack":
-	{
-		"active": false,
-		"prefix": "[hornet] ",
-		"username": "project8",
-		"alerts-channel": "#p8_alerts",
-		"notices-channel": "#p8_notices"
-	},
+    "slack":
+    {
+        "active": false,
+        "prefix": "[hornet] ",
+        "username": "project8",
+        "alerts-channel": "#p8_alerts",
+        "notices-channel": "#p8_notices"
+    },
 
     "watcher":
     {
         "active": true,
         "dir": "/data",
-		"dirs":
-		[
-			"/otherdata1",
-			"/otherdata2"
-		]
+        "dirs":
+        [
+            "/otherdata1",
+            "/otherdata2"
+        ]
     },
 
     "classifier":
@@ -54,23 +54,23 @@
                 "do-hash": false
             }
         ],
-		"base-paths":
-		[
-			"/some/special/path",
-			"/another/path"
-		],
-		"send-file-info": true,
-		"send-to": "hornet.print-message",
-		"wait-for-sender": 2,
-		"max-jobs": 25
+        "base-paths":
+        [
+            "/some/special/path",
+            "/another/path"
+        ],
+        "send-file-info": true,
+        "send-to": "hornet.print-message",
+        "wait-for-sender": 2,
+        "max-jobs": 25
     },
 
-	"hash":
-	{
-		"required": true,
-		"command": "md5sum",
-		"cmd-opt": "-b"
-	},
+    "hash":
+    {
+        "required": true,
+        "command": "md5sum",
+        "cmd-opt": "-b"
+    },
 
     "mover":
     {
@@ -80,26 +80,26 @@
     "workers":
     {
         "n-workers": 5,
-		"jobs":
-		[
-			{
-				"name": "proc-egg",
-				"file-type": "egg",
-				"command": "echo \"here's an egg file\""
-			},
-			{
-				"name": "proc-rsa-mat",
-				"file-type": "rsa-mat",
-				"command": "echo \"here's an RSA MAT file\""
-			}
-		]
+        "jobs":
+        [
+            {
+                "name": "proc-egg",
+                "file-type": "egg",
+                "command": "echo \"here's an egg file\""
+            },
+            {
+                "name": "proc-rsa-mat",
+                "file-type": "rsa-mat",
+                "command": "echo \"here's an RSA MAT file\""
+            }
+        ]
     },
 
     "shipper":
     {
         "n-shippers": 1,
         "dest-dir": "/remote-data",
-		"hostname": "my.server",
-		"username": "aphysicist"
+        "hostname": "my.server",
+        "username": "aphysicist"
     }
 }
