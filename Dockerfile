@@ -14,10 +14,11 @@ RUN echo "{\n}" > ~/.project8_authentications.json && \
     mkdir /data && \
     mkdir /data/hot && \
     mkdir /data/warm && \
-    sed -e 's/"active": true/"active": false/' \
-        -e '28s/false/true/' \
+    sed -e '9s/true/false/' \
+        -e '19s/true/false/' \
         -e 's@"dir": "/data"@"dir": "/data/hot"@' \
         -e 's@"/warm-data"@"/data/warm"@' \
+        -e 's@"send-file-info": true@"send-file-info": false@' \
         -e '59,60d' \
         -e '30,34d' \
         -e '29s/,//' \
