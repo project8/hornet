@@ -51,3 +51,5 @@ RUN go get github.com/streadway/amqp \
 RUN cd /go/src/github.com/project8/hornet && make remove_older_describe_go
 
 RUN go install github.com/project8/hornet
+
+CMD ["hornet", "-config", "hornet_config.json"]
