@@ -17,5 +17,5 @@ Configuration
         "dest-dir": "/warm-data"
     },
 
-* ``dest-dir`` (string): destination directory to which files are moved.  See the :doc:`Concepts <concepts>` page for details about the directory structure.  This must be a valid path or Hornet will exit.
+* ``dest-dir`` (string): destination directory to which files are moved.  See the :doc:`Concepts <../concepts>` page for details about the directory structure.  This must be a valid path or Hornet will exit.
 

@@ -9,22 +9,12 @@ Welcome to hornet's documentation!
 Hornet is the automatic data-flow software package for the Project 8 experiment.
 
 .. toctree::
-   :maxdepth: 3
+   :maxdepth: 2
 
-   amqp
-   authentication
-   classifier
-   concepts
-   hash
    hornet
-   mover
-   scheduler
-   shipper
-   watcher
-   workers
-
-   
-   
+   concepts
+   authentication
+   modules/modules
 
 
 Indices and tables
