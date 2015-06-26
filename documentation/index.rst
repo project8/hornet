@@ -9,7 +9,7 @@ Welcome to hornet's documentation!
 Hornet is the automatic data-flow software package for the Project 8 experiment.
 
 .. toctree::
-   :maxdepth: 3
+   :maxdepth: 2
 
    hornet
    concepts
