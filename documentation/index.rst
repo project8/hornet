@@ -13,7 +13,7 @@ Hornet is the automatic data-flow software package for the Project 8 experiment.
 
    hornet
    concepts
-   modules/configurations
+   modules/modules
 
 
 Indices and tables
