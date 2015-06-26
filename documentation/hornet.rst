@@ -34,19 +34,19 @@ Organization
 
 The various functions of Hornet are performed by a number of semi-independent modules:
 
-* :doc:`Scheduler <scheduler>` -- coordinate the processing of the files with the hornet modules.
+* :doc:`Scheduler <modules/scheduler>` -- coordinate the processing of the files with the hornet modules.
 
-* :doc:`Watcher <watcher>` -- monitors a portion of the filesystem for new files to process;
+* :doc:`Watcher <modules/watcher>` -- monitors a portion of the filesystem for new files to process;
 
-* :doc:`Classifier <classifier>` -- recognizes files of certain types and how to proces them;
+* :doc:`Classifier <modules/classifier>` -- recognizes files of certain types and how to proces them;
 
-* :doc:`Mover <mover>` -- copies files from the "hot" data storage to the "warm" data storage;
+* :doc:`Mover <modules/mover>` -- copies files from the "hot" data storage to the "warm" data storage;
 
-* :doc:`Workers <workers>` -- performs nearline analysis on some or all files;
+* :doc:`Workers <modules/workers>` -- performs nearline analysis on some or all files;
 
-* :doc:`Shipper <shipper>` -- move files to a "cold" storage file system;
+* :doc:`Shipper <modules/shipper>` -- move files to a "cold" storage file system;
 
-Other components: :doc:`AMQP <amqp>` and :doc:`Hashing <hash>`
+Other components: :doc:`AMQP <modules/amqp>` and :doc:`Hashing <modules/hash>`
 
 Repository
 ----------
