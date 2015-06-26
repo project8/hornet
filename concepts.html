@@ -33,8 +33,8 @@
 
   
     <link rel="top" title="hornet v1.0.0 documentation" href="index.html"/>
-        <link rel="next" title="Hashing" href="hash.html"/>
-        <link rel="prev" title="Classifier" href="classifier.html"/> 
+        <link rel="next" title="Authentication" href="authentication.html"/>
+        <link rel="prev" title="Hornet" href="hornet.html"/> 
 
   
   <script src="_static/js/modernizr.min.js"></script>
@@ -74,16 +74,11 @@
           
           
               <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="amqp.html">AMQP</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="amqp.html#configuration">Configuration</a></li>
-<li class="toctree-l2"><a class="reference internal" href="amqp.html#sending-to-hornet">Sending to Hornet</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="authentication.html">Authentication</a></li>
-<li class="toctree-l1"><a class="reference internal" href="classifier.html">Classifier</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="classifier.html#configuration">Configuration</a></li>
-<li class="toctree-l2"><a class="reference internal" href="classifier.html#regular-expression-matching">Regular Expression Matching</a></li>
-<li class="toctree-l2"><a class="reference internal" href="classifier.html#sending-file-information">Sending File Information</a></li>
+<li class="toctree-l1"><a class="reference internal" href="hornet.html">Hornet</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="hornet.html#basic-operation">Basic Operation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="hornet.html#organization">Organization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="hornet.html#repository">Repository</a></li>
+<li class="toctree-l2"><a class="reference internal" href="hornet.html#logging">Logging</a></li>
 </ul>
 </li>
 <li class="toctree-l1 current"><a class="current reference internal" href="">Hornet Concepts</a><ul>
@@ -94,39 +89,48 @@
 <li class="toctree-l2"><a class="reference internal" href="#file-header-information">File Header Information</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="hash.html">Hashing</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="hash.html#configuration">Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="authentication.html">Authentication</a></li>
+<li class="toctree-l1"><a class="reference internal" href="modules/modules.html">Modules</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="modules/amqp.html">AMQP</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="modules/amqp.html#configuration">Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="modules/amqp.html#sending-to-hornet">Sending to Hornet</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="hornet.html">Hornet</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="hornet.html#basic-operation">Basic Operation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="hornet.html#organization">Organization</a></li>
-<li class="toctree-l2"><a class="reference internal" href="hornet.html#repository">Repository</a></li>
+<li class="toctree-l2"><a class="reference internal" href="modules/classifier.html">Classifier</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="modules/classifier.html#configuration">Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="modules/classifier.html#regular-expression-matching">Regular Expression Matching</a></li>
+<li class="toctree-l3"><a class="reference internal" href="modules/classifier.html#sending-file-information">Sending File Information</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="mover.html">Mover</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="mover.html#configuration">Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="modules/hash.html">Hashing</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="modules/hash.html#configuration">Configuration</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="scheduler.html">Scheduler</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="scheduler.html#configuration">Configuration</a></li>
-<li class="toctree-l2"><a class="reference internal" href="scheduler.html#scheduling-workers">Scheduling Workers</a></li>
-<li class="toctree-l2"><a class="reference internal" href="scheduler.html#inter-module-communication">Inter-Module Communication</a></li>
+<li class="toctree-l2"><a class="reference internal" href="modules/mover.html">Mover</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="modules/mover.html#configuration">Configuration</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="shipper.html">Shipper</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="shipper.html#configuration">Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="modules/scheduler.html">Scheduler</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="modules/scheduler.html#configuration">Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="modules/scheduler.html#scheduling-workers">Scheduling Workers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="modules/scheduler.html#inter-module-communication">Inter-Module Communication</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="watcher.html">Watcher</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="watcher.html#configuration">Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="modules/shipper.html">Shipper</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="modules/shipper.html#configuration">Configuration</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="workers.html">Workers</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="workers.html#configuration">Configuration</a></li>
-<li class="toctree-l2"><a class="reference internal" href="workers.html#job-commands">Job Commands</a></li>
-<li class="toctree-l2"><a class="reference internal" href="workers.html#chaining-jobs-the-reliable-way">Chaining Jobs the Reliable Way</a></li>
-<li class="toctree-l2"><a class="reference internal" href="workers.html#chaining-jobs-the-possibly-not-so-reliable-way">Chaining Jobs the Possibly-Not-So-Reliable Way</a></li>
+<li class="toctree-l2"><a class="reference internal" href="modules/watcher.html">Watcher</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="modules/watcher.html#configuration">Configuration</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="modules/workers.html">Workers</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="modules/workers.html#configuration">Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="modules/workers.html#job-commands">Job Commands</a></li>
+<li class="toctree-l3"><a class="reference internal" href="modules/workers.html#chaining-jobs-the-reliable-way">Chaining Jobs the Reliable Way</a></li>
+<li class="toctree-l3"><a class="reference internal" href="modules/workers.html#chaining-jobs-the-possibly-not-so-reliable-way">Chaining Jobs the Possibly-Not-So-Reliable Way</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -236,7 +240,7 @@ shipper.dest-dir = &quot;/coldstorage&quot;
 <p>Each file is accompanied in Hornet by information that, primarily, describes where the file was/is/will be located.  It also contains information about the jobs that are to be performed and those that have already finished.</p>
 <ul class="simple">
 <li>Filename * &#8211; without path information.</li>
-<li>FileType ** &#8211; as recognized by the <a class="reference internal" href="classifier.html"><em>Classifier</em></a></li>
+<li>FileType ** &#8211; as recognized by the <a class="reference internal" href="modules/classifier.html"><em>Classifier</em></a></li>
 <li>FileHash ** &#8211; if calculated</li>
 <li>SubPath ** &#8211; the subdirectory path (see above)</li>
 <li>HotPath * &#8211; the absolute directory path in hot storage</li>
@@ -264,10 +268,10 @@ shipper.dest-dir = &quot;/coldstorage&quot;
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="hash.html" class="btn btn-neutral float-right" title="Hashing" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="authentication.html" class="btn btn-neutral float-right" title="Authentication" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="classifier.html" class="btn btn-neutral" title="Classifier" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="hornet.html" class="btn btn-neutral" title="Hornet" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   

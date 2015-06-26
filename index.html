@@ -33,7 +33,7 @@
 
   
     <link rel="top" title="hornet v1.0.0 documentation" href="#"/>
-        <link rel="next" title="AMQP" href="amqp.html"/> 
+        <link rel="next" title="Hornet" href="hornet.html"/> 
 
   
   <script src="_static/js/modernizr.min.js"></script>
@@ -73,16 +73,11 @@
           
           
               <ul>
-<li class="toctree-l1"><a class="reference internal" href="amqp.html">AMQP</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="amqp.html#configuration">Configuration</a></li>
-<li class="toctree-l2"><a class="reference internal" href="amqp.html#sending-to-hornet">Sending to Hornet</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="authentication.html">Authentication</a></li>
-<li class="toctree-l1"><a class="reference internal" href="classifier.html">Classifier</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="classifier.html#configuration">Configuration</a></li>
-<li class="toctree-l2"><a class="reference internal" href="classifier.html#regular-expression-matching">Regular Expression Matching</a></li>
-<li class="toctree-l2"><a class="reference internal" href="classifier.html#sending-file-information">Sending File Information</a></li>
+<li class="toctree-l1"><a class="reference internal" href="hornet.html">Hornet</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="hornet.html#basic-operation">Basic Operation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="hornet.html#organization">Organization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="hornet.html#repository">Repository</a></li>
+<li class="toctree-l2"><a class="reference internal" href="hornet.html#logging">Logging</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="concepts.html">Hornet Concepts</a><ul>
@@ -93,39 +88,48 @@
 <li class="toctree-l2"><a class="reference internal" href="concepts.html#file-header-information">File Header Information</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="hash.html">Hashing</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="hash.html#configuration">Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="authentication.html">Authentication</a></li>
+<li class="toctree-l1"><a class="reference internal" href="modules/modules.html">Modules</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="modules/amqp.html">AMQP</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="modules/amqp.html#configuration">Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="modules/amqp.html#sending-to-hornet">Sending to Hornet</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="hornet.html">Hornet</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="hornet.html#basic-operation">Basic Operation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="hornet.html#organization">Organization</a></li>
-<li class="toctree-l2"><a class="reference internal" href="hornet.html#repository">Repository</a></li>
+<li class="toctree-l2"><a class="reference internal" href="modules/classifier.html">Classifier</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="modules/classifier.html#configuration">Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="modules/classifier.html#regular-expression-matching">Regular Expression Matching</a></li>
+<li class="toctree-l3"><a class="reference internal" href="modules/classifier.html#sending-file-information">Sending File Information</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="mover.html">Mover</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="mover.html#configuration">Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="modules/hash.html">Hashing</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="modules/hash.html#configuration">Configuration</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="scheduler.html">Scheduler</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="scheduler.html#configuration">Configuration</a></li>
-<li class="toctree-l2"><a class="reference internal" href="scheduler.html#scheduling-workers">Scheduling Workers</a></li>
-<li class="toctree-l2"><a class="reference internal" href="scheduler.html#inter-module-communication">Inter-Module Communication</a></li>
+<li class="toctree-l2"><a class="reference internal" href="modules/mover.html">Mover</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="modules/mover.html#configuration">Configuration</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="shipper.html">Shipper</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="shipper.html#configuration">Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="modules/scheduler.html">Scheduler</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="modules/scheduler.html#configuration">Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="modules/scheduler.html#scheduling-workers">Scheduling Workers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="modules/scheduler.html#inter-module-communication">Inter-Module Communication</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="watcher.html">Watcher</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="watcher.html#configuration">Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="modules/shipper.html">Shipper</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="modules/shipper.html#configuration">Configuration</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="workers.html">Workers</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="workers.html#configuration">Configuration</a></li>
-<li class="toctree-l2"><a class="reference internal" href="workers.html#job-commands">Job Commands</a></li>
-<li class="toctree-l2"><a class="reference internal" href="workers.html#chaining-jobs-the-reliable-way">Chaining Jobs the Reliable Way</a></li>
-<li class="toctree-l2"><a class="reference internal" href="workers.html#chaining-jobs-the-possibly-not-so-reliable-way">Chaining Jobs the Possibly-Not-So-Reliable Way</a></li>
+<li class="toctree-l2"><a class="reference internal" href="modules/watcher.html">Watcher</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="modules/watcher.html#configuration">Configuration</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="modules/workers.html">Workers</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="modules/workers.html#configuration">Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="modules/workers.html#job-commands">Job Commands</a></li>
+<li class="toctree-l3"><a class="reference internal" href="modules/workers.html#chaining-jobs-the-reliable-way">Chaining Jobs the Reliable Way</a></li>
+<li class="toctree-l3"><a class="reference internal" href="modules/workers.html#chaining-jobs-the-possibly-not-so-reliable-way">Chaining Jobs the Possibly-Not-So-Reliable Way</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -170,59 +174,28 @@
 <p>Hornet is the automatic data-flow software package for the Project 8 experiment.</p>
 <div class="toctree-wrapper compound">
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="amqp.html">AMQP</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="amqp.html#configuration">Configuration</a></li>
-<li class="toctree-l2"><a class="reference internal" href="amqp.html#sending-to-hornet">Sending to Hornet</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="authentication.html">Authentication</a></li>
-<li class="toctree-l1"><a class="reference internal" href="classifier.html">Classifier</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="classifier.html#configuration">Configuration</a></li>
-<li class="toctree-l2"><a class="reference internal" href="classifier.html#regular-expression-matching">Regular Expression Matching</a></li>
-<li class="toctree-l2"><a class="reference internal" href="classifier.html#sending-file-information">Sending File Information</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="concepts.html">Hornet Concepts</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="concepts.html#directory-structure">Directory Structure</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="concepts.html#examples">Examples</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="concepts.html#file-header-information">File Header Information</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="hash.html">Hashing</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="hash.html#configuration">Configuration</a></li>
-</ul>
-</li>
 <li class="toctree-l1"><a class="reference internal" href="hornet.html">Hornet</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="hornet.html#basic-operation">Basic Operation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="hornet.html#organization">Organization</a></li>
 <li class="toctree-l2"><a class="reference internal" href="hornet.html#repository">Repository</a></li>
+<li class="toctree-l2"><a class="reference internal" href="hornet.html#logging">Logging</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="mover.html">Mover</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="mover.html#configuration">Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="concepts.html">Hornet Concepts</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="concepts.html#directory-structure">Directory Structure</a></li>
+<li class="toctree-l2"><a class="reference internal" href="concepts.html#file-header-information">File Header Information</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="scheduler.html">Scheduler</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="scheduler.html#configuration">Configuration</a></li>
-<li class="toctree-l2"><a class="reference internal" href="scheduler.html#scheduling-workers">Scheduling Workers</a></li>
-<li class="toctree-l2"><a class="reference internal" href="scheduler.html#inter-module-communication">Inter-Module Communication</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="shipper.html">Shipper</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="shipper.html#configuration">Configuration</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="watcher.html">Watcher</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="watcher.html#configuration">Configuration</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="workers.html">Workers</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="workers.html#configuration">Configuration</a></li>
-<li class="toctree-l2"><a class="reference internal" href="workers.html#job-commands">Job Commands</a></li>
-<li class="toctree-l2"><a class="reference internal" href="workers.html#chaining-jobs-the-reliable-way">Chaining Jobs the Reliable Way</a></li>
-<li class="toctree-l2"><a class="reference internal" href="workers.html#chaining-jobs-the-possibly-not-so-reliable-way">Chaining Jobs the Possibly-Not-So-Reliable Way</a></li>
+<li class="toctree-l1"><a class="reference internal" href="authentication.html">Authentication</a></li>
+<li class="toctree-l1"><a class="reference internal" href="modules/modules.html">Modules</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="modules/amqp.html">AMQP</a></li>
+<li class="toctree-l2"><a class="reference internal" href="modules/classifier.html">Classifier</a></li>
+<li class="toctree-l2"><a class="reference internal" href="modules/hash.html">Hashing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="modules/mover.html">Mover</a></li>
+<li class="toctree-l2"><a class="reference internal" href="modules/scheduler.html">Scheduler</a></li>
+<li class="toctree-l2"><a class="reference internal" href="modules/shipper.html">Shipper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="modules/watcher.html">Watcher</a></li>
+<li class="toctree-l2"><a class="reference internal" href="modules/workers.html">Workers</a></li>
 </ul>
 </li>
 </ul>
@@ -243,7 +216,7 @@
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="amqp.html" class="btn btn-neutral float-right" title="AMQP" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="hornet.html" class="btn btn-neutral float-right" title="Hornet" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
     </div>

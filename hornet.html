@@ -33,8 +33,8 @@
 
   
     <link rel="top" title="hornet v1.0.0 documentation" href="index.html"/>
-        <link rel="next" title="Mover" href="mover.html"/>
-        <link rel="prev" title="Hashing" href="hash.html"/> 
+        <link rel="next" title="Hornet Concepts" href="concepts.html"/>
+        <link rel="prev" title="Welcome to hornet’s documentation!" href="index.html"/> 
 
   
   <script src="_static/js/modernizr.min.js"></script>
@@ -74,16 +74,11 @@
           
           
               <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="amqp.html">AMQP</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="amqp.html#configuration">Configuration</a></li>
-<li class="toctree-l2"><a class="reference internal" href="amqp.html#sending-to-hornet">Sending to Hornet</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="authentication.html">Authentication</a></li>
-<li class="toctree-l1"><a class="reference internal" href="classifier.html">Classifier</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="classifier.html#configuration">Configuration</a></li>
-<li class="toctree-l2"><a class="reference internal" href="classifier.html#regular-expression-matching">Regular Expression Matching</a></li>
-<li class="toctree-l2"><a class="reference internal" href="classifier.html#sending-file-information">Sending File Information</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="">Hornet</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#basic-operation">Basic Operation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#organization">Organization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#repository">Repository</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#logging">Logging</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="concepts.html">Hornet Concepts</a><ul>
@@ -94,39 +89,48 @@
 <li class="toctree-l2"><a class="reference internal" href="concepts.html#file-header-information">File Header Information</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="hash.html">Hashing</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="hash.html#configuration">Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="authentication.html">Authentication</a></li>
+<li class="toctree-l1"><a class="reference internal" href="modules/modules.html">Modules</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="modules/amqp.html">AMQP</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="modules/amqp.html#configuration">Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="modules/amqp.html#sending-to-hornet">Sending to Hornet</a></li>
 </ul>
 </li>
-<li class="toctree-l1 current"><a class="current reference internal" href="">Hornet</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#basic-operation">Basic Operation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#organization">Organization</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#repository">Repository</a></li>
+<li class="toctree-l2"><a class="reference internal" href="modules/classifier.html">Classifier</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="modules/classifier.html#configuration">Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="modules/classifier.html#regular-expression-matching">Regular Expression Matching</a></li>
+<li class="toctree-l3"><a class="reference internal" href="modules/classifier.html#sending-file-information">Sending File Information</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="mover.html">Mover</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="mover.html#configuration">Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="modules/hash.html">Hashing</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="modules/hash.html#configuration">Configuration</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="scheduler.html">Scheduler</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="scheduler.html#configuration">Configuration</a></li>
-<li class="toctree-l2"><a class="reference internal" href="scheduler.html#scheduling-workers">Scheduling Workers</a></li>
-<li class="toctree-l2"><a class="reference internal" href="scheduler.html#inter-module-communication">Inter-Module Communication</a></li>
+<li class="toctree-l2"><a class="reference internal" href="modules/mover.html">Mover</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="modules/mover.html#configuration">Configuration</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="shipper.html">Shipper</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="shipper.html#configuration">Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="modules/scheduler.html">Scheduler</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="modules/scheduler.html#configuration">Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="modules/scheduler.html#scheduling-workers">Scheduling Workers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="modules/scheduler.html#inter-module-communication">Inter-Module Communication</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="watcher.html">Watcher</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="watcher.html#configuration">Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="modules/shipper.html">Shipper</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="modules/shipper.html#configuration">Configuration</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="workers.html">Workers</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="workers.html#configuration">Configuration</a></li>
-<li class="toctree-l2"><a class="reference internal" href="workers.html#job-commands">Job Commands</a></li>
-<li class="toctree-l2"><a class="reference internal" href="workers.html#chaining-jobs-the-reliable-way">Chaining Jobs the Reliable Way</a></li>
-<li class="toctree-l2"><a class="reference internal" href="workers.html#chaining-jobs-the-possibly-not-so-reliable-way">Chaining Jobs the Possibly-Not-So-Reliable Way</a></li>
+<li class="toctree-l2"><a class="reference internal" href="modules/watcher.html">Watcher</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="modules/watcher.html#configuration">Configuration</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="modules/workers.html">Workers</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="modules/workers.html#configuration">Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="modules/workers.html#job-commands">Job Commands</a></li>
+<li class="toctree-l3"><a class="reference internal" href="modules/workers.html#chaining-jobs-the-reliable-way">Chaining Jobs the Reliable Way</a></li>
+<li class="toctree-l3"><a class="reference internal" href="modules/workers.html#chaining-jobs-the-possibly-not-so-reliable-way">Chaining Jobs the Possibly-Not-So-Reliable Way</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -190,14 +194,14 @@
 <h2>Organization<a class="headerlink" href="#organization" title="Permalink to this headline">¶</a></h2>
 <p>The various functions of Hornet are performed by a number of semi-independent modules:</p>
 <ul class="simple">
-<li><a class="reference internal" href="scheduler.html"><em>Scheduler</em></a> &#8211; coordinate the processing of the files with the hornet modules.</li>
-<li><a class="reference internal" href="watcher.html"><em>Watcher</em></a> &#8211; monitors a portion of the filesystem for new files to process;</li>
-<li><a class="reference internal" href="classifier.html"><em>Classifier</em></a> &#8211; recognizes files of certain types and how to proces them;</li>
-<li><a class="reference internal" href="mover.html"><em>Mover</em></a> &#8211; copies files from the &#8220;hot&#8221; data storage to the &#8220;warm&#8221; data storage;</li>
-<li><a class="reference internal" href="workers.html"><em>Workers</em></a> &#8211; performs nearline analysis on some or all files;</li>
-<li><a class="reference internal" href="shipper.html"><em>Shipper</em></a> &#8211; move files to a &#8220;cold&#8221; storage file system;</li>
+<li><a class="reference internal" href="modules/scheduler.html"><em>Scheduler</em></a> &#8211; coordinate the processing of the files with the hornet modules.</li>
+<li><a class="reference internal" href="modules/watcher.html"><em>Watcher</em></a> &#8211; monitors a portion of the filesystem for new files to process;</li>
+<li><a class="reference internal" href="modules/classifier.html"><em>Classifier</em></a> &#8211; recognizes files of certain types and how to proces them;</li>
+<li><a class="reference internal" href="modules/mover.html"><em>Mover</em></a> &#8211; copies files from the &#8220;hot&#8221; data storage to the &#8220;warm&#8221; data storage;</li>
+<li><a class="reference internal" href="modules/workers.html"><em>Workers</em></a> &#8211; performs nearline analysis on some or all files;</li>
+<li><a class="reference internal" href="modules/shipper.html"><em>Shipper</em></a> &#8211; move files to a &#8220;cold&#8221; storage file system;</li>
 </ul>
-<p>Other components: <a class="reference internal" href="amqp.html"><em>AMQP</em></a>, <a class="reference internal" href="authentication.html"><em>Authentication</em></a>, and <a class="reference internal" href="hash.html"><em>Hashing</em></a></p>
+<p>Other components: <a class="reference internal" href="modules/amqp.html"><em>AMQP</em></a>, <a class="reference internal" href="authentication.html"><em>Authentication</em></a>, and <a class="reference internal" href="modules/hash.html"><em>Hashing</em></a></p>
 </div>
 <div class="section" id="repository">
 <h2>Repository<a class="headerlink" href="#repository" title="Permalink to this headline">¶</a></h2>
@@ -211,6 +215,18 @@
 <li><code class="docutils literal"><span class="pre">hornet</span></code> contains the source files for the <code class="docutils literal"><span class="pre">hornet</span></code> library, including all of the modules.</li>
 </ul>
 </div>
+<div class="section" id="logging">
+<h2>Logging<a class="headerlink" href="#logging" title="Permalink to this headline">¶</a></h2>
+<p>Terminal output is classified into six levels:</p>
+<ol class="arabic simple">
+<li>Critical &#8211; A fatal error has occurred. Hornet will shut down.</li>
+<li>Error &#8211; A non-fatal error has occurred. Hornet will continue, but the issue should be addressed.</li>
+<li>Warn &#8211; Something unexpected happened. Hornet will continue, but there may be an issue that needs to be addressed.</li>
+<li>Notice &#8211; Hornet is running just fine, and you should be aware of what&#8217;s happening.</li>
+<li>Info &#8211; Hornet is running just fine, and here is some more verbose information about what&#8217;s happening.</li>
+<li>Debug &#8211; Here are some verbose details about what&#8217;s happening.</li>
+</ol>
+</div>
 </div>
 
 
@@ -219,10 +235,10 @@
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="mover.html" class="btn btn-neutral float-right" title="Mover" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="concepts.html" class="btn btn-neutral float-right" title="Hornet Concepts" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="hash.html" class="btn btn-neutral" title="Hashing" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="index.html" class="btn btn-neutral" title="Welcome to hornet’s documentation!" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   

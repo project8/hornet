@@ -57,7 +57,7 @@ File Header Information
 Each file is accompanied in Hornet by information that, primarily, describes where the file was/is/will be located.  It also contains information about the jobs that are to be performed and those that have already finished.
 
 * Filename \* -- without path information.
-* FileType \*\* -- as recognized by the :doc:`Classifier <classifier>`
+* FileType \*\* -- as recognized by the :doc:`Classifier <modules/classifier>`
 * FileHash \*\* -- if calculated
 * SubPath \*\* -- the subdirectory path (see above)
 * HotPath \* -- the absolute directory path in hot storage

@@ -39,14 +39,14 @@ Configuration
 Job Commands
 ------------
 
-The job command should be a command that can be run on the command line.  Quotation marks can be escaped with `\`.
+The job command should be a command that can be run on the command line.  Quotation marks can be escaped with ``\``.
 
 Hornet also supports limited variable substitution.  The syntax is demonstrated in the Configuration section above.  Before a job is processed, ``{{.Filename}}`` will be replaced by the value of the ``Filename`` variable.  The following variables are available:
 
 * ``Filename``: the filename (no directory path included)
 * ``FileType``: the file type, as identified by the :doc:`Classifier <classifier>`
 * ``FileHash``: the file hash, if it was calculated (see the :doc:`Classifier <classifier>`)
-* ``SubPath``: the subdirectory path (see the Directory Structure section of :doc:`Concepts <concepts>`)
+* ``SubPath``: the subdirectory path (see the Directory Structure section of :doc:`Concepts <../concepts>`)
 * ``HotPath``: the absolute directory of the file in hot storage
 * ``WarmPath``: the absolute directory of the file in warm storage
 * ``FileHotPath``: the absolute path of the file in hot storage
