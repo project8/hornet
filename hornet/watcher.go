@@ -5,34 +5,27 @@ import(
 	"github.com/spf13/viper"
 	"gopkg.in/fsnotify.v1"
 )
-/*
-const(
-	dirCreatedMask = syscall.IN_ISDIR | syscall.IN_CREATE
-	dirMovedToMask = syscall.IN_ISDIR | syscall.IN_MOVED_TO
-	ignoreMask = syscall.IN_IGNORED
-)
-*/
+
 func shouldAddWatch( evt fsnotify.Event ) bool {
+
+	// Returns true if the event was triggered by file creation or rename (i.e. move)
 	newCreated := evt.Op == fsnotify.Create
 	wasMovedTo := evt.Op == fsnotify.Rename
 	return newCreated || wasMovedTo
 }
 
-//func shouldIgnore( evt *fsnotify.Event ) bool {
-//	return (evt.Mask & syscall.IN_IGNORED) == ignoreMask
-//}
-
 func isEintr( e error ) bool {
+
+	// Detects particular system interrupt error
 	return e != nil && strings.Contains( e.Error(), "interrupted system call" )
 }
 
-//const fileWatchFlags = syscall.IN_CLOSE_WRITE
-//const subdWatchFlags = syscall.IN_ONLYDIR | syscall.IN_CREATE | syscall.IN_MOVED_TO | syscall.IN_DELETE | syscall.IN_MOVED_FROM
-
 func Watcher( context OperatorContext ) {
+
 	defer context.PoolCount.Done()
 	defer Log.Info( "Watcher is finished." )
 
+	// New file watcher
 	fileWatch, fileWatchErr := fsnotify.NewWatcher()
 	if fileWatchErr != nil {
 		Log.Critical( "Could not create the file watcher! %v", fileWatchErr )
@@ -41,6 +34,7 @@ func Watcher( context OperatorContext ) {
 	}
 	defer fileWatch.Close()
 
+	// New subdirectory watcher
 	subdWatch, subdWatchErr := fsnotify.NewWatcher()
 	if subdWatchErr != nil {
 		Log.Critical( "Could not create the subdirectory watcher! %v", subdWatchErr )
@@ -49,8 +43,11 @@ func Watcher( context OperatorContext ) {
 	}
 	defer subdWatch.Close()
 
+	// Add watch directories to fileWatch and subdWatch
 	var nOrigDirs uint = 0
 	if viper.IsSet( "watcher.dir" ) {
+
+		// n=1 case
 		watchDir := viper.GetString( "watcher.dir" )
 		if !PathIsDirectory( watchDir ) {
 			Log.Critical( "Watch directory does not exist or is not a directory:\n\t%s", watchDir )
@@ -63,10 +60,12 @@ func Watcher( context OperatorContext ) {
 		nOrigDirs++
 	}
 	if viper.IsSet( "watcher.dirs" ) {
+
+		// n>1 case
 		watchDirs := viper.GetStringSlice( "watcher.dirs" )
 		for _, watchDir := range watchDirs {
 			if !PathIsDirectory( watchDir ) {
-				Log.Critical(" Watch directory does not exist or is not a directory:\n\t%s", watchDir )
+				Log.Critical( "Watch directory does not exist or is not a directory:\n\t%s", watchDir )
 				context.ReqQueue <- ThreadCannotContinue
 				return
 			}
@@ -77,6 +76,8 @@ func Watcher( context OperatorContext ) {
 		}
 	}
 	if nOrigDirs == 0 {
+
+		// n=0 case
 		Log.Critical( "No watch directories were specified" )
 		context.ReqQueue <- ThreadCannotContinue
 		return
@@ -89,23 +90,25 @@ runLoop:
 		select {
 
 		case control := <-context.CtrlQueue:
+
+			// Stop signal from CtrlQueue
 			if control == StopExecution {
 				Log.Info( "Stopping on interrupt." )
 				break runLoop
 			}
 
-		case fileCloseEvt := <-fileWatch.Events:
-			//if shouldIgnore( fileCloseEvt ) {
-			//	continue runLoop
-			//}
-			context.SchStream <- fileCloseEvt.Name
-		
 		case newSubDirEvt := <-subdWatch.Events:
+
+			// New subdirectory OR file is created
 			dirName := newSubDirEvt.Name
+
 			if !PathIsDirectory( dirName ) {
-				continue runLoop
-			}
-			if shouldAddWatch( newSubDirEvt ) {
+
+				// File case
+				context.SchStream <- dirName
+			} else if shouldAddWatch( newSubDirEvt ) {
+
+				// Directory case
 				if err := fileWatch.Add( dirName ); err != nil {
 					Log.Critical( "Couldn't add subdir file watch [%v]", err )
 					context.ReqQueue <- ThreadCannotContinue
@@ -120,18 +123,26 @@ runLoop:
 			}
 
 		case fileWatchErr = <-fileWatch.Errors:
+
+			// Error thrown on fileWatch
 			if !isEintr( fileWatchErr ) {
+
+				// Specific error detected by isEintr() is passable
 				Log.Critical( "fsnotify error on file watch %v", fileWatchErr )
 				context.ReqQueue <- ThreadCannotContinue
 				break runLoop
 			}
 
 		case subdWatchErr = <-subdWatch.Errors:
+
+			// Error thrown on subdWatch
 			if !isEintr( fileWatchErr ) {
+
+				// Specific error detected by isEintr() is passable
 				Log.Critical( "fsnotify error on directory watch %v", subdWatchErr )
 				context.ReqQueue <- ThreadCannotContinue
 				break runLoop
 			}
 		} 	// select
 	} 		// for
-}			// method
+}			// Watcher
