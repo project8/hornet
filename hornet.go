@@ -88,10 +88,12 @@ func main() {
 	}
 	hornet.Log.Debug("Full configuration:\n%v", string(indentedConfig))
 
-	// get the authenticator credentials
-	if authErr := hornet.LoadAuthenticators(); authErr != nil {
-		hornet.Log.Critical("Error getting authentication credentials:\n\t%s", authErr.Error())
-		return
+	if viper.GetBool("amqp.active") || viper.GetBool("slack.active") {
+		// get the authenticator credentials
+		if authErr := hornet.LoadAuthenticators(); authErr != nil {
+			hornet.Log.Critical("Error getting authentication credentials:\n\t%s", authErr.Error())
+			return
+		}
 	}
 
 	// Setup the connection to slack

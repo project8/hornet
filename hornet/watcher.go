@@ -1,171 +1,112 @@
-/*
-* watcher.go
-*
-* watcher is responsible for monitoring changes to the filesystem and sending
-* those changes to workers.
- */
 package hornet
 
-import (
+import(
 	"strings"
-
 	"github.com/spf13/viper"
-	"golang.org/x/exp/inotify"
+	"gopkg.in/fsnotify.v1"
 )
 
-const (
-	dirCreatedMask   = inotify.IN_ISDIR | inotify.IN_CREATE
-	dirMovedToMask   = inotify.IN_ISDIR | inotify.IN_MOVED_TO
-	//dirMovedFromMask = inotify.IN_ISDIR | inotify.IN_MOVED_FROM
-	//dirDeletedMask   = inotify.IN_ISDIR | inotify.IN_DELETE
-	ignoreMask = inotify.IN_IGNORED
-)
-
-// shouldAddWatch tests to see if this is a new directory or if this directory
-// was moved to a place where it should be watched.
-func shouldAddWatch(evt *inotify.Event) bool {
-	newCreated := (evt.Mask & dirCreatedMask) == dirCreatedMask
-	wasMovedTo := (evt.Mask & dirMovedToMask) == dirMovedToMask
+func shouldPayAttention( evt fsnotify.Event ) bool {
+	// Returns true if the event was triggered by file creation or rename (i.e. move)
+	newCreated := evt.Op == fsnotify.Create
+	wasMovedTo := evt.Op == fsnotify.Rename
 	return newCreated || wasMovedTo
 }
 
-// shouldIgnore tests to see whether this is an event we should ignore.
-// For instance, directory deletion events are caught by the filewatcher 
-// with the IN_IGNORED bit set.
-func shouldIgnore(evt *inotify.Event) bool {
-	return (evt.Mask & inotify.IN_IGNORED) == ignoreMask
+func isEintr( e error ) bool {
+	// Detects particular system interrupt error
+	return e != nil && strings.Contains( e.Error(), "interrupted system call" )
 }
 
-// isEintr is exactly what it sounds like.
-func isEintr(e error) bool {
-	return e != nil && strings.Contains(e.Error(), "interrupted system call")
-}
-
-// Inotify flags.  We only monitor for file close events, i.e. the data in the
-// file is fixed.
-const fileWatchFlags = inotify.IN_CLOSE_WRITE
-const subdWatchFlags = inotify.IN_ONLYDIR | inotify.IN_CREATE | inotify.IN_MOVED_TO | inotify.IN_DELETE | inotify.IN_MOVED_FROM
-
-// Watcher uses inotify to monitor changes to a specific path.
-func Watcher(context OperatorContext) {
-	// Decrement the waitgroup counter when done
+func Watcher( context OperatorContext ) {
 	defer context.PoolCount.Done()
-	defer Log.Info("Watcher is finished.")
+	defer Log.Info( "Watcher is finished." )
 
-	// Start up the file watching
-	fileWatch, fileWatchErr := inotify.NewWatcher()
-	if fileWatchErr != nil {
-		Log.Critical("Could not create the file watcher! %v", fileWatchErr)
+	// New subdirectory watcher
+	watcher, watcherErr := fsnotify.NewWatcher()
+	if watcherErr != nil {
+		Log.Critical( "Could not create the watcher! %v", watcherErr )
 		context.ReqQueue <- ThreadCannotContinue
 		return
 	}
-	defer fileWatch.Close()
-	//log.Printf("[watcher debug] file flags: %v", fileWatchFlags)
-	//log.Printf("[watcher debug] subd flags: %v", subdWatchFlags)
+	defer watcher.Close()
 
-	// Start up the subdirectory watching
-	subdWatch, subdWatchErr := inotify.NewWatcher()
-	if subdWatchErr != nil {
-		Log.Critical("Could not create the subdirectory watcher! %v", subdWatchErr)
-		context.ReqQueue <- ThreadCannotContinue
-		return
-	}
-	defer subdWatch.Close()
-
-	// Add the directories specified in the configuration
+	// Add watch directories to watcher
 	var nOrigDirs uint = 0
-	if viper.IsSet("watcher.dir") {
-		watchDir := viper.GetString("watcher.dir")
-		if PathIsDirectory(watchDir) == false {
-			Log.Critical("Watch directory does not exist or is not a directory:\n\t%s", watchDir)
+	if viper.IsSet( "watcher.dir" ) {
+		// n=1 case
+		watchDir := viper.GetString( "watcher.dir" )
+		if !PathIsDirectory( watchDir ) {
+			Log.Critical( "Watch directory does not exist or is not a directory:\n\t%s", watchDir )
 			context.ReqQueue <- ThreadCannotContinue
 			return
 		}
-		fileWatch.AddWatch(watchDir, fileWatchFlags)
-		subdWatch.AddWatch(watchDir, subdWatchFlags)
-		Log.Notice("Now watching <%s>", watchDir)
+		watcher.Add( watchDir )
+		Log.Notice( "Now watching <%s>", watchDir )
 		nOrigDirs++
 	}
-	if viper.IsSet("watcher.dirs") {
-		watchDirs := viper.GetStringSlice("watcher.dirs")
+	if viper.IsSet( "watcher.dirs" ) {
+
+		// n>1 case
+		watchDirs := viper.GetStringSlice( "watcher.dirs" )
 		for _, watchDir := range watchDirs {
-			if PathIsDirectory(watchDir) == false {
-				Log.Critical("[Watch directory does not exist or is not a directory:\n\t%s", watchDir)
+			if !PathIsDirectory( watchDir ) {
+				Log.Critical( "Watch directory does not exist or is not a directory:\n\t%s", watchDir )
 				context.ReqQueue <- ThreadCannotContinue
 				return
 			}
-			fileWatch.AddWatch(watchDir, fileWatchFlags)
-			subdWatch.AddWatch(watchDir, subdWatchFlags)
-			Log.Notice("Now watching <%s>", watchDir)
+			watcher.Add( watchDir )
+			Log.Notice( "Now watching <%s>", watchDir )
 			nOrigDirs++
 		}
 	}
 	if nOrigDirs == 0 {
-		Log.Critical("No watch directories were specified")
+		// n=0 case
+		Log.Critical( "No watch directories were specified" )
 		context.ReqQueue <- ThreadCannotContinue
 		return
 	}
 
-	Log.Info("Started successfully.  Waiting for events...")
+	Log.Info( "Started successfully. Waiting for events..." )
 
 runLoop:
 	for {
 		select {
-		// First check for any control messages.
+
 		case control := <-context.CtrlQueue:
+			// Stop signal from CtrlQueue
 			if control == StopExecution {
-				Log.Info("Stopping on interrupt.")
+				Log.Info( "Stopping on interrupt." )
 				break runLoop
 			}
 
-		// if a new file is available in our watched directories, check to see
-		// if we're supposed to do something - and if so, send it along.
-		case fileCloseEvt := <-fileWatch.Event:
-			if shouldIgnore(fileCloseEvt) {
-				//log.Printf("[watcher file event (ignoring)] %s", fileCloseEvt.String())
-				continue runLoop
-			}
-			//log.Printf("[watcher file event] %s", fileCloseEvt.String())
-			context.SchStream <- fileCloseEvt.Name
+		case newEvent := <-watcher.Events:
+			// New subdirectory OR file is created
+			fileName := newEvent.Name
 
-		// directories are a little more complicated.  if it's a new directory,
-		// watch it.  if it's a directory getting moved-from, delete the watch.
-		// if it's a directory getting deleted, delete the watch.  if it's a
-		// directory getting moved-to, watch it.
-		case newSubDirEvt := <-subdWatch.Event:
-			//log.Printf("[watcher dir event] %s", newSubDirEvt.String())
-			dirname := newSubDirEvt.Name
-			if shouldAddWatch(newSubDirEvt) {
-				if err := fileWatch.AddWatch(dirname, fileWatchFlags); err != nil {
-					Log.Critical("Couldn't add subdir file watch [%v]", err)
+			if PathIsRegularFile( fileName ) && shouldPayAttention( newEvent ) {
+				// File case
+				Log.Debug( "Submitting file [%v]", fileName )
+				context.SchStream <- fileName
+			} else if PathIsDirectory( fileName ) && shouldPayAttention( newEvent ) {
+				// Directory case
+				if err := watcher.Add( fileName ); err != nil {
+					Log.Critical( "Couldn't add subdir dir watch [%v]", err )
 					context.ReqQueue <- ThreadCannotContinue
 					break runLoop
 				}
-				if err := subdWatch.AddWatch(dirname, subdWatchFlags); err != nil {
-					Log.Critical("Couldn't add subdir dir watch [%v]", err)
-					context.ReqQueue <- ThreadCannotContinue
-					break runLoop
-				}
-				Log.Notice("Added subdirectory to file & subdirectory watches [%v]", dirname)
+				Log.Notice( "Added subdirectory to watch [%v]", fileName )
 			}
 
-			//	if either of the filesystem watchers gets an error, die
-			//	as gracefully as possible.
-		case fileWatchErr = <-fileWatch.Error:
-			if isEintr(fileWatchErr) == false {
-				Log.Critical("inotify error on file watch %v", fileWatchErr)
+		case watchErr := <-watcher.Errors:
+			// Error thrown on watcher
+			if !isEintr( watchErr ) {
+
+				// Specific error detected by isEintr() is passable
+				Log.Critical( "fsnotify error on watch %v", watchErr )
 				context.ReqQueue <- ThreadCannotContinue
 				break runLoop
 			}
-
-		case subdWatchErr = <-subdWatch.Error:
-			if isEintr(fileWatchErr) == false {
-				Log.Critical("inotify error on directory watch %v", subdWatchErr)
-				context.ReqQueue <- ThreadCannotContinue
-				break runLoop
-			}
-
-		}
-	}
-}
-
+		} 	// select
+	} 		// for
+}			// Watcher

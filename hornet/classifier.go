@@ -15,7 +15,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -91,11 +90,6 @@ func ValidateClassifierConfig() (e error) {
 		}
 	}
 
-	if viper.IsSet("hash") == false {
-		e = errors.New("Hash configuration not provided")
-		Log.Critical(e.Error())
-		return
-	}
 	return
 }
 
@@ -215,11 +209,6 @@ func Classifier(context OperatorContext) {
 	Log.Info("Base paths: %v", BasePaths)
     
 
-	// Deal with the hash (do we need it, how do we run it, and do we send it somewhere?)
-	requireHash := viper.GetBool("hash.required")
-	hashCmd := viper.GetString("hash.command")
-	hashOpt := viper.GetString("hash.cmd-opt")
-
 	// Sending the file info
 	sendtoRoutingKey := viper.GetString("classifier.send-to")
 	sendFileInfo := viper.GetBool("classifier.send-file-info")
@@ -311,13 +300,12 @@ typeLoop:
 					opReturn.FHeader.SubPath = getSubPath(opReturn.FHeader.HotPath)
 					opReturn.FHeader.JobQueue = make(chan Job, maxJobs)
 					if typeInfo.DoHash {
-						if hash, hashErr := exec.Command(hashCmd, hashOpt, inputFilePath).CombinedOutput(); hashErr != nil {
-							opReturn.Err = fmt.Errorf("[classifier] error while hashing:\n\t%v", hashErr.Error())
-							opReturn.IsFatal = requireHash
+						if hash, hashErr := Hash(inputFilePath); hashErr != nil {
+							opReturn.Err = hashErr
+							opReturn.IsFatal = true
 							Log.Error(opReturn.Err.Error())
 						} else {
-							hashTokens := strings.Fields(string(hash))
-							opReturn.FHeader.FileHash = hashTokens[0]
+							opReturn.FHeader.FileHash = hash
 							Log.Debug("File <%s> hash: %s", inputFilename, opReturn.FHeader.FileHash)
 						}
 					}
