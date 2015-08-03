@@ -7,7 +7,6 @@ import(
 )
 
 func shouldAddWatch( evt fsnotify.Event ) bool {
-
 	// Returns true if the event was triggered by file creation or rename (i.e. move)
 	newCreated := evt.Op == fsnotify.Create
 	wasMovedTo := evt.Op == fsnotify.Rename
@@ -15,24 +14,13 @@ func shouldAddWatch( evt fsnotify.Event ) bool {
 }
 
 func isEintr( e error ) bool {
-
 	// Detects particular system interrupt error
 	return e != nil && strings.Contains( e.Error(), "interrupted system call" )
 }
 
 func Watcher( context OperatorContext ) {
-
 	defer context.PoolCount.Done()
 	defer Log.Info( "Watcher is finished." )
-
-	// New file watcher
-	fileWatch, fileWatchErr := fsnotify.NewWatcher()
-	if fileWatchErr != nil {
-		Log.Critical( "Could not create the file watcher! %v", fileWatchErr )
-		context.ReqQueue <- ThreadCannotContinue
-		return
-	}
-	defer fileWatch.Close()
 
 	// New subdirectory watcher
 	subdWatch, subdWatchErr := fsnotify.NewWatcher()
@@ -54,7 +42,6 @@ func Watcher( context OperatorContext ) {
 			context.ReqQueue <- ThreadCannotContinue
 			return
 		}
-		fileWatch.Add( watchDir )
 		subdWatch.Add( watchDir )
 		Log.Notice( "Now watching <%s>", watchDir )
 		nOrigDirs++
@@ -69,14 +56,12 @@ func Watcher( context OperatorContext ) {
 				context.ReqQueue <- ThreadCannotContinue
 				return
 			}
-			fileWatch.Add( watchDir )
 			subdWatch.Add( watchDir )
 			Log.Notice( "Now watching <%s>", watchDir )
 			nOrigDirs++
 		}
 	}
 	if nOrigDirs == 0 {
-
 		// n=0 case
 		Log.Critical( "No watch directories were specified" )
 		context.ReqQueue <- ThreadCannotContinue
@@ -90,7 +75,6 @@ runLoop:
 		select {
 
 		case control := <-context.CtrlQueue:
-
 			// Stop signal from CtrlQueue
 			if control == StopExecution {
 				Log.Info( "Stopping on interrupt." )
@@ -98,22 +82,14 @@ runLoop:
 			}
 
 		case newSubDirEvt := <-subdWatch.Events:
-
 			// New subdirectory OR file is created
 			dirName := newSubDirEvt.Name
 
 			if !PathIsDirectory( dirName ) {
-
 				// File case
 				context.SchStream <- dirName
 			} else if shouldAddWatch( newSubDirEvt ) {
-
 				// Directory case
-				if err := fileWatch.Add( dirName ); err != nil {
-					Log.Critical( "Couldn't add subdir file watch [%v]", err )
-					context.ReqQueue <- ThreadCannotContinue
-					break runLoop
-				}
 				if err := subdWatch.Add( dirName ); err != nil {
 					Log.Critical( "Couldn't add subdir dir watch [%v]", err )
 					context.ReqQueue <- ThreadCannotContinue
@@ -122,21 +98,9 @@ runLoop:
 				Log.Notice( "Added subdirectory to file & subdirectory watches [%v]", dirName )
 			}
 
-		case fileWatchErr = <-fileWatch.Errors:
-
-			// Error thrown on fileWatch
-			if !isEintr( fileWatchErr ) {
-
-				// Specific error detected by isEintr() is passable
-				Log.Critical( "fsnotify error on file watch %v", fileWatchErr )
-				context.ReqQueue <- ThreadCannotContinue
-				break runLoop
-			}
-
 		case subdWatchErr = <-subdWatch.Errors:
-
 			// Error thrown on subdWatch
-			if !isEintr( fileWatchErr ) {
+			if !isEintr( subdWatchErr ) {
 
 				// Specific error detected by isEintr() is passable
 				Log.Critical( "fsnotify error on directory watch %v", subdWatchErr )
