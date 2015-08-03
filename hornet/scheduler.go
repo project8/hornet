@@ -210,8 +210,12 @@ scheduleLoop:
 					workerQueue <- fileHeader
 					//fmt.Println("[scheduler] workers working:", workersWorking)
 				} else {
-					Log.Info("Sending <%s> to shipper (skipping nearline)", fileHeader.Filename)
-					shipperQueue <- fileHeader
+					if shipperIsActive == true {
+						Log.Info("Sending <%s> to shipper (skipping nearline)", fileHeader.Filename)
+						shipperQueue <- fileHeader
+					} else {
+						Log.Notice("Completed work on file <%s>", fileRet.FHeader.Filename)
+					}
 				}
 			}
 		case fileRet := <-workerRetQueue:
