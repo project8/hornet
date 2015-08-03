@@ -53,6 +53,9 @@ func Scheduler(schQueue chan string, ctrlQueue, reqQueue chan ControlMessage, th
 		return
 	}
 
+	shipperIsActive := viper.GetBool("shipper.active")
+	Log.Debug("Shipper active: %v", shipperIsActive)
+
 	// for now, we require that there's only 1 shipper
 	if viper.GetInt("shipper.n-shippers") != 1 {
 		Log.Critical("Currently can only have 1 shipper")
@@ -116,33 +119,37 @@ func Scheduler(schQueue chan string, ctrlQueue, reqQueue chan ControlMessage, th
 		go Worker(workerCtx, WorkerID(i))
 	}
 
-	// setup the shipper
-	shipperCtx := OperatorContext{
-		SchStream:        schQueue,
-		FileStream:       shipperQueue,
-		RetStream:        shipperRetQueue,
-		CtrlQueue:        ctrlQueue,
-		ReqQueue:         reqQueue,
-		ThreadCountQueue: threadCountQueue,
-		PoolCount:        poolCount,
+	if shipperIsActive {
+		// setup the shipper
+		shipperCtx := OperatorContext{
+			SchStream:        schQueue,
+			FileStream:       shipperQueue,
+			RetStream:        shipperRetQueue,
+			CtrlQueue:        ctrlQueue,
+			ReqQueue:         reqQueue,
+			ThreadCountQueue: threadCountQueue,
+			PoolCount:        poolCount,
+		}
+		poolCount.Add(1)
+		threadCountQueue <- 1
+		go Shipper(shipperCtx)
 	}
-	poolCount.Add(1)
-	threadCountQueue <- 1
-	go Shipper(shipperCtx)
 
 	// setup the watcher
-	watcherCtx := OperatorContext{
-		SchStream:        schQueue,
-		FileStream:       nil,
-		RetStream:        nil,
-		CtrlQueue:        ctrlQueue,
-		ReqQueue:         reqQueue,
-		ThreadCountQueue: threadCountQueue,
-		PoolCount:        poolCount,
+	if viper.GetBool("watcher.active") {
+		watcherCtx := OperatorContext{
+			SchStream:        schQueue,
+			FileStream:       nil,
+			RetStream:        nil,
+			CtrlQueue:        ctrlQueue,
+			ReqQueue:         reqQueue,
+			ThreadCountQueue: threadCountQueue,
+			PoolCount:        poolCount,
+		}
+		poolCount.Add(1)
+		threadCountQueue <- 1
+		go Watcher(watcherCtx)
 	}
-	poolCount.Add(1)
-	threadCountQueue <- 1
-	go Watcher(watcherCtx)
 
 	workersWorking := int(0)
 
@@ -217,9 +224,13 @@ scheduleLoop:
 				Log.Info("Received %s from the workers:\n\t%v", severity, fileRet.Err)
 			}
 			if fileRet.IsFatal == false {
-				fileHeader := fileRet.FHeader // original data file is still the input file from the worker
-				Log.Info("Sending <%s> to the shipper", fileHeader.Filename)
-				shipperQueue <- fileHeader
+				if shipperIsActive == true {
+					fileHeader := fileRet.FHeader // original data file is still the input file from the worker
+					Log.Info("Sending <%s> to the shipper", fileHeader.Filename)
+					shipperQueue <- fileHeader
+				} else {
+					Log.Notice("Completed work on file <%s>", fileRet.FHeader.Filename)
+				}
 			}
 		case fileRet := <-shipperRetQueue:
 			if fileRet.Err != nil {

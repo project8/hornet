@@ -59,7 +59,7 @@
             "/some/special/path",
             "/another/path"
         ],
-        "send-file-info": true,
+        "send-file-info": false,
         "send-to": "hornet.print-message",
         "wait-for-sender": 2,
         "max-jobs": 25
@@ -97,6 +97,7 @@
 
     "shipper":
     {
+        "active": false,
         "n-shippers": 1,
         "dest-dir": "/remote-data",
         "hostname": "my.server",
