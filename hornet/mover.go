@@ -11,9 +11,7 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"strings"
 
 	"github.com/spf13/viper"
 )
@@ -81,11 +79,6 @@ func Mover(context OperatorContext) {
 		return
 	}
 
-	// Deal with the hash (do we need it, how do we run it, and do we send it somewhere?)
-	requireHash := viper.GetBool("hash.required")
-	hashCmd := viper.GetString("hash.command")
-	hashOpt := viper.GetString("hash.cmd-opt")
-
 	Log.Info("Mover started successfully")
 
 moveLoop:
@@ -112,7 +105,7 @@ moveLoop:
 			opReturn.FHeader.FileWarmPath = outputFilePath
 			// check if we already know about the destDirPath
 			if ds[destDirPath] == false {
-				Log.Info("Creating directory %s\n", destDirPath)
+				Log.Info("Creating/adding directory %s\n", destDirPath)
 				if mkErr := os.MkdirAll(destDirPath, os.ModeDir|os.ModePerm); mkErr != nil {
 					opReturn.Err = fmt.Errorf("Couldn't make directory %v: [%v]", destDirPath, mkErr)
 					opReturn.IsFatal = true
@@ -128,24 +121,29 @@ moveLoop:
 				Log.Error(opReturn.Err.Error())
 			}
 
+			deleteInputFile := true   // Assume it will be ok; if hash is present for the input, and it doesn't match the hash of the output, the deletion will be stopped
 			if len(opReturn.FHeader.FileHash) > 0 {
-				if hash, hashErr := exec.Command(hashCmd, hashOpt, inputFilePath).CombinedOutput(); hashErr != nil {
-					opReturn.Err = fmt.Errorf("Error while hashing:\n\t%v", hashErr.Error())
-					opReturn.IsFatal = requireHash
+				if hash, hashErr := Hash(inputFilePath); hashErr != nil {
+					opReturn.Err = hashErr
+					opReturn.IsFatal = true
 					Log.Error(opReturn.Err.Error())
+					deleteInputFile = false
 				} else {
-					if opReturn.FHeader.FileHash != strings.Fields(string(hash))[0] {
-						opReturn.Err = fmt.Errorf("[Warm and hot copies of the file do not match!\n\tInput: %s\n\tOutput: %s", inputFilePath, outputFilePath)
+					if opReturn.FHeader.FileHash != hash {
+						opReturn.Err = fmt.Errorf("Warm and hot copies of the file do not match!\n\tInput: %s\n\tOutput: %s", inputFilePath, outputFilePath)
 						opReturn.IsFatal = true
 						Log.Error(opReturn.Err.Error())
-					} else {
-						// files match; ok to delete the input file
-						if rmErr := Remove(inputFilePath); rmErr != nil {
-							opReturn.Err = fmt.Errorf("Error removing file %s", inputFilePath)
-							opReturn.IsFatal = true
-							Log.Error(opReturn.Err.Error())
-						}
+						deleteInputFile = false
 					}
+					// else: hash matches, so deleting the input file is ok
+				}
+			}
+
+			if deleteInputFile == true {
+				if rmErr := Remove(inputFilePath); rmErr != nil {
+					opReturn.Err = fmt.Errorf("Error removing file %s", inputFilePath)
+					opReturn.IsFatal = true
+					Log.Error(opReturn.Err.Error())
 				}
 			}
 

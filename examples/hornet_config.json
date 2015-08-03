@@ -65,13 +65,6 @@
         "max-jobs": 25
     },
 
-    "hash":
-    {
-        "required": true,
-        "command": "md5sum",
-        "cmd-opt": "-b"
-    },
-
     "mover":
     {
         "dest-dir": "/warm-data"
