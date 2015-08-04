@@ -46,7 +46,7 @@ The various functions of Hornet are performed by a number of semi-independent mo
 
 * :doc:`Shipper <modules/shipper>` -- move files to a "cold" storage file system;
 
-Other components: :doc:`AMQP <modules/amqp>`, and :doc:`Authentication <authentication>`
+Other components: :doc:`Logging <modules/logging>`, :doc:`AMQP <modules/amqp>`, and :doc:`Authentication <authentication>`
 
 Repository
 ----------

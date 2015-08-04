@@ -4,6 +4,11 @@
         "queue-size": 100
     },
 
+    "logger":
+    {
+        "level": "NOTICE"
+    },
+
     "amqp":
     {
         "active": true,
