@@ -9,7 +9,7 @@ Each of the subsections here describes a particular module and its configuration
 .. toctree::
     amqp
     classifier
-    hash
+    logging
     mover
     scheduler
     shipper

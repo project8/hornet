@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Hashing &mdash; hornet v1.0.0 documentation</title>
+  <title>Logging &mdash; hornet v1.0.0 documentation</title>
   
 
   
@@ -103,7 +103,7 @@
 <li class="toctree-l3"><a class="reference internal" href="classifier.html#sending-file-information">Sending File Information</a></li>
 </ul>
 </li>
-<li class="toctree-l2 current"><a class="current reference internal" href="">Hashing</a><ul>
+<li class="toctree-l2 current"><a class="current reference internal" href="">Logging</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#configuration">Configuration</a></li>
 </ul>
 </li>
@@ -160,11 +160,11 @@
       
           <li><a href="modules.html">Modules</a> &raquo;</li>
       
-    <li>Hashing</li>
+    <li>Logging</li>
       <li class="wy-breadcrumbs-aside">
         
           
-            <a href="../_sources/modules/hash.txt" rel="nofollow"> View page source</a>
+            <a href="../_sources/modules/logging.txt" rel="nofollow"> View page source</a>
           
         
       </li>
@@ -173,32 +173,20 @@
 </div>
           <div role="main" class="document">
             
-  <div class="section" id="hashing">
-<h1>Hashing<a class="headerlink" href="#hashing" title="Permalink to this headline">¶</a></h1>
-<p>The hashing configuration specifies how files are hashed.  File hashes are typically used for two purposes:</p>
-<ol class="arabic simple">
-<li>To ensure that files copied from one location to another (in particular, from the hot storage to the warm storage) are unchanged (i.e. no random bit flips);</li>
-<li>To serve as a means of file identification in the run database that doesn&#8217;t depend on the filename.</li>
-</ol>
+  <div class="section" id="logging">
+<h1>Logging<a class="headerlink" href="#logging" title="Permalink to this headline">¶</a></h1>
+<p>The logging configuration allows you to configure the printing of log messages to the terminal.</p>
 <div class="section" id="configuration">
 <h2>Configuration<a class="headerlink" href="#configuration" title="Permalink to this headline">¶</a></h2>
-<div class="highlight-python"><div class="highlight"><pre>&quot;hash&quot;:
+<div class="highlight-python"><div class="highlight"><pre>&quot;logging&quot;:
 {
-        &quot;required&quot;: true,
-        &quot;command&quot;: &quot;md5sum&quot;,
-        &quot;cmd-opt&quot;: &quot;-b&quot;
-}
+    &quot;level&quot;: &quot;INFO&quot;
+},
 </pre></div>
 </div>
 <ul class="simple">
-<li><code class="docutils literal"><span class="pre">required</span></code> (boolean): determines whether a hash failure is a fatal error for hornet.  If true, and a file type requests a hash, if the hash fails, then hornet will report the error and exit.</li>
-<li><code class="docutils literal"><span class="pre">command</span></code> (string): the command used to run the hash.</li>
-<li><code class="docutils literal"><span class="pre">cmd-opt</span></code> (string): the options passed to the command before the filename.</li>
+<li><code class="docutils literal"><span class="pre">level</span></code> (string): Determines the verbosity of the terminal logging. The default is INFO.  The options are CRITICAL, ERROR, WARNING, NOTICE, INFO, and DEBUG (must be all-caps)</li>
 </ul>
-<p>The hash command used is built from the configuration and the input filename:</p>
-<div class="highlight-python"><div class="highlight"><pre>&gt; [command] [cmd-opt] [filename]
-</pre></div>
-</div>
 </div>
 </div>
 
