@@ -50,6 +50,8 @@ Aside from standard go libraries, several external packages are used, which you'
   > go get github.com/spf13/viper
 ```
 
+When using on a Windows system, Hornet requires the [Microsoft File Checksum Integrity Verifier](http://www.microsoft.com/en-us/download/details.aspx?id=11533). Please make sure the install location is included in the `Path` environment variable.
+
 #### Operating system support
 Hornet has been tested on Linux (Debian 8), Mac (OS X 10.10), and Windows (7).
 
