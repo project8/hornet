@@ -74,11 +74,14 @@ func main() {
 	fmt.Println("/ / /   / / // / /____\\/ // / /  \\ \\ \\/ / /    / / // / /_______\\/_/ /")
 	fmt.Println("\\/_/    \\/_/ \\/_________/ \\/_/    \\_\\/\\/_/     \\/_/ \\/__________/\\_\\/\n")
 
-	hornet.Log.Debug("Reading config file: %v", configFile)
+	hornet.Log.Notice("Reading config file: %v", configFile)
 	viper.SetConfigFile(configFile)
 	if parseErr := viper.ReadInConfig(); parseErr != nil {
 		hornet.Log.Critical("%v", parseErr)
 	}
+
+	// configure the logger, now that the config file is ready
+	hornet.ConfigureLogging()
 
 	// print the full configuration
 	indentedConfig, confErr := json.MarshalIndent(viper.AllSettings(), "", "    ")
@@ -88,10 +91,12 @@ func main() {
 	}
 	hornet.Log.Debug("Full configuration:\n%v", string(indentedConfig))
 
-	// get the authenticator credentials
-	if authErr := hornet.LoadAuthenticators(); authErr != nil {
-		hornet.Log.Critical("Error getting authentication credentials:\n\t%s", authErr.Error())
-		return
+	if viper.GetBool("amqp.active") || viper.GetBool("slack.active") {
+		// get the authenticator credentials
+		if authErr := hornet.LoadAuthenticators(); authErr != nil {
+			hornet.Log.Critical("Error getting authentication credentials:\n\t%s", authErr.Error())
+			return
+		}
 	}
 
 	// Setup the connection to slack

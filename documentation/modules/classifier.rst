@@ -5,8 +5,8 @@ The Classifier is primarily responsible for identifying files according to a par
 
 It also has a number of other responsibilities:
 
-* Determine the subdirectory path for each file (see the Directory Structure section of :doc:`Concepts <concepts>`);
-* Calculating the initial hash of each file (see :doc:`Hashing <hash>`), and
+* Determine the subdirectory path for each file (see the Directory Structure section of :doc:`Concepts <../concepts>`);
+* Calculating the initial hash of each file, and
 * Sending file information via AMQP (see below).
 
 
@@ -51,7 +51,7 @@ Configuration
 * ``[type].match-regexp`` (string): one of the two options for file identification; a regular expression that will match the entire filename (not including directory path) according to the `regular expression syntax <http://golang.org/pkg/regexp/syntax>`_ in the Go standard library.
 * ``[type].match-extension]`` (string): the second of the two options for file identification; a simple file-extension match that looks for the postfix of the filename after the last ``'.'``.
 * ``[type].do-hash`` (boolean): whether or not to perform a hash that will be used to verify that the file is moved without any changes.
-* ``base-paths`` (array of strings): paths that should be included in the list of base directories (see the Directory Structure section of :doc:`Concepts <concepts>`).
+* ``base-paths`` (array of strings): paths that should be included in the list of base directories (see the Directory Structure section of :doc:`Concepts <../concepts>`).
 * ``send-file-info`` (boolean): whether or not to transmit the file information via AMQP.
 * ``send-to`` (string): the AMQP routing key used to direct the file-information message.
 * ``wait-for-sender`` (unsigned int): a configurable delay used to wait for the AMQP sender to be ready before starting the Classifier (since network delays can sometimes make AMQP initialization slow).

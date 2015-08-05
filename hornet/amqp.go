@@ -370,25 +370,32 @@ amqpLoop:
 						Log.Notice("\t\tHostname: %v", p8Message.SenderInfo.Hostname)
 						Log.Notice("\t\tUsername: %v", p8Message.SenderInfo.Username)
 						Log.Notice("\tPayload:")
-						for key, value := range p8Message.Payload.(map[interface{}]interface{}) {
-							switch typedValue := value.(type) {
-								case []byte:
-									Log.Notice("\t\t%s (byte sl): %v", key.(string), string(typedValue))
-								case [][]byte:
-									//log.Printf("\t\t%s (byte sl sl): %v", key.(string), [][]string(typedValue))
-									sliceString := "["
-									for _, byteSlice := range typedValue {
-										fmt.Sprintf(sliceString, "%s, %s", sliceString, string(byteSlice))
-									}
-									fmt.Sprintf(sliceString, "%s]", sliceString)
-									Log.Notice("\t\t%s (byte sl sl): %s", key.(string), sliceString)
-								case rune, bool, int, uint, float32, float64, complex64, complex128, string:
-									Log.Notice("\t\t%s (type): %v", key.(string), typedValue)
-								case []rune, []bool, []int, []uint, []float32, []float64, []complex64, []complex128, []string:
-									Log.Notice("\t\t%s (array): %v", key.(string), typedValue)
-								default:
-									Log.Notice("\t\t%s (default): %v", key.(string), value)
+						switch typedPayload := p8Message.Payload.(type) {
+						case string:
+							Log.Notice("\t\t%s", typedPayload)
+						case map[interface{}]interface{}:
+							for key, value := range p8Message.Payload.(map[interface{}]interface{}) {
+								switch typedValue := value.(type) {
+									case []byte:
+										Log.Notice("\t\t%s (byte sl): %v", key.(string), string(typedValue))
+									case [][]byte:
+										//log.Printf("\t\t%s (byte sl sl): %v", key.(string), [][]string(typedValue))
+										sliceString := "["
+										for _, byteSlice := range typedValue {
+											fmt.Sprintf(sliceString, "%s, %s", sliceString, string(byteSlice))
+										}
+										fmt.Sprintf(sliceString, "%s]", sliceString)
+										Log.Notice("\t\t%s (byte sl sl): %s", key.(string), sliceString)
+									case rune, bool, int, uint, float32, float64, complex64, complex128, string:
+										Log.Notice("\t\t%s (type): %v", key.(string), typedValue)
+									case []rune, []bool, []int, []uint, []float32, []float64, []complex64, []complex128, []string:
+										Log.Notice("\t\t%s (array): %v", key.(string), typedValue)
+									default:
+										Log.Notice("\t\t%s (default): %v", key.(string), value)
+								}
 							}
+						default:
+							Log.Warning("Unknown payload type")
 						}
 					default:
 						Log.Error("Unknown hornet target for request messages: %v", p8Message.Target)
