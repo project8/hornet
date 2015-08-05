@@ -84,6 +84,7 @@ func (c *SlackClient) sendSlackMessage(channel, message, username string) error 
 	payload.Set("channel", channel)
 	payload.Set("text", message)
 	payload.Set("username", username)
+    payload.Set("as_user", "true") //does honet ever want to not do this?
 
 	res, err := http.PostForm(fmt.Sprintf("%s/%s", slackAddr, postMessageURI), payload)
 	if err != nil {
