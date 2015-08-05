@@ -6,7 +6,7 @@ The Classifier is primarily responsible for identifying files according to a par
 It also has a number of other responsibilities:
 
 * Determine the subdirectory path for each file (see the Directory Structure section of :doc:`Concepts <../concepts>`);
-* Calculating the initial hash of each file (see :doc:`Hashing <hash>`), and
+* Calculating the initial hash of each file, and
 * Sending file information via AMQP (see below).
 
 
