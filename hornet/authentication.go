@@ -24,7 +24,7 @@ type AmqpCredentialType struct {
 }
 
 type SlackCredentialType struct {
-	Token string `json:"token"`
+	Token string `json:"hornet"`
 	Available bool
 }
 

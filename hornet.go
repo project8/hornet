@@ -99,24 +99,16 @@ func main() {
 		}
 	}
 
-	// Setup the connection to slack
-	if slackErr := hornet.InitializeSlack(); slackErr != nil {
-		hornet.Log.Critical("Error initializing slack: %v", slackErr.Error())
-		return
-	}
-
 	// Check the number of threads to be used
 	// Threads used:
-	//   1 each for the scheduler, classifier, watcher, mover, amqp sender, amqp receiver = 6
+	//   1 each for the scheduler, classifier, watcher, mover, amqp sender, amqp receiver, slack client = 7
 	//   N nearline workers (specified in scheduler.n-nearline-workers)
 	//   M shippers (specified in scheduler.n-shippers)
-	nThreads := 6 + viper.GetInt("workers.n-workers") + viper.GetInt("shipper.n-shippers")
+	nThreads := 7 + viper.GetInt("workers.n-workers") + viper.GetInt("shipper.n-shippers")
 	if nThreads > hornet.MaxThreads {
 		hornet.Log.Critical("Maximum number of threads exceeded")
 		return
 	}
-
-	// if we've made it this far, it's time to get down to business.
 
 	var pool sync.WaitGroup
 
@@ -131,6 +123,12 @@ func main() {
 	controlQueue := make(chan hornet.ControlMessage)
 	requestQueue := make(chan hornet.ControlMessage)
 	threadCountQueue := make(chan uint, hornet.MaxThreads)
+
+	// Setup the connection to slack
+	if slackErr := hornet.InitializeSlack(controlQueue, requestQueue, threadCountQueue, &pool); slackErr != nil {
+		hornet.Log.Critical("Error initializing slack: %v", slackErr.Error())
+		return
+	}
 
 	hornet.StartAmqp(controlQueue, requestQueue, threadCountQueue, &pool)
 
