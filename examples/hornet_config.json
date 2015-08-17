@@ -12,7 +12,7 @@
     "amqp":
     {
         "active": true,
-         "use-auth": "true",
+        "use-auth": "true",
         "broker": "my.server",
         "port": 5672,
         "exchange": "requests",
@@ -22,8 +22,7 @@
     "slack":
     {
         "active": false,
-        "prefix": "[hornet] ",
-        "username": "project8",
+        "username": "hornet",
         "alerts-channel": "#p8_alerts",
         "notices-channel": "#p8_notices"
     },
