@@ -2,6 +2,7 @@ package hornet
 
 import(
 	"strings"
+	"time"
 	"github.com/spf13/viper"
 	"gopkg.in/fsnotify.v1"
 )
@@ -16,6 +17,12 @@ func shouldPayAttention( evt fsnotify.Event ) bool {
 func isEintr( e error ) bool {
 	// Detects particular system interrupt error
 	return e != nil && strings.Contains( e.Error(), "interrupted system call" )
+}
+
+func fileMoratorium(file string, fileQueue chan string, waitTime time.Duration) {
+	time.Sleep(waitTime)
+	fileQueue <- file
+	return
 }
 
 func Watcher( context OperatorContext ) {
@@ -67,6 +74,12 @@ func Watcher( context OperatorContext ) {
 		return
 	}
 
+	moratoriumTime := 5 * time.Second
+	if viper.IsSet( "watcher.file-wait-time" ) {
+		moratoriumTime = viper.GetDuration("watcher.file-wait-time") * time.Second
+	}
+	Log.Debug("File moratorium time: %v", moratoriumTime)
+
 	Log.Info( "Started successfully. Waiting for events..." )
 
 runLoop:
@@ -87,7 +100,8 @@ runLoop:
 			if PathIsRegularFile( fileName ) && shouldPayAttention( newEvent ) {
 				// File case
 				Log.Debug( "Submitting file [%v]", fileName )
-				context.SchStream <- fileName
+				//context.SchStream <- fileName
+				go fileMoratorium(fileName, context.SchStream, moratoriumTime)
 			} else if PathIsDirectory( fileName ) && shouldPayAttention( newEvent ) {
 				// Directory case
 				if err := watcher.Add( fileName ); err != nil {
