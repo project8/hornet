@@ -35,7 +35,8 @@
         [
             "/otherdata1",
             "/otherdata2"
-        ]
+        ],
+        "file-wait-time": "5s"
     },
 
     "classifier":
