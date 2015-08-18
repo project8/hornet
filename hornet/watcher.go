@@ -76,7 +76,7 @@ func Watcher( context OperatorContext ) {
 
 	moratoriumTime := 5 * time.Second
 	if viper.IsSet( "watcher.file-wait-time" ) {
-		moratoriumTime = viper.GetDuration("watcher.file-wait-time") * time.Second
+		moratoriumTime = viper.GetDuration("watcher.file-wait-time")
 	}
 	Log.Debug("File moratorium time: %v", moratoriumTime)
 
