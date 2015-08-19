@@ -114,29 +114,28 @@ moveLoop:
 					ds[destDirPath] = true
 				}
 			}
+
+			deleteInputFile := true
+
 			// copy the file
 			if copyErr := Copy(inputFilePath, outputFilePath); copyErr != nil {
 				opReturn.Err = fmt.Errorf("Error copying (%v -> %v) [%v]", inputFilePath, outputFilePath, copyErr)
 				opReturn.IsFatal = true
 				Log.Error(opReturn.Err.Error())
-			}
-
-			deleteInputFile := true   // Assume it will be ok; if hash is present for the input, and it doesn't match the hash of the output, the deletion will be stopped
-			if len(opReturn.FHeader.FileHash) > 0 {
+				deleteInputFile = false
+			} else if len(opReturn.FHeader.FileHash) > 0 {
 				if hash, hashErr := Hash(inputFilePath); hashErr != nil {
 					opReturn.Err = hashErr
 					opReturn.IsFatal = true
 					Log.Error(opReturn.Err.Error())
 					deleteInputFile = false
-				} else {
-					if opReturn.FHeader.FileHash != hash {
-						opReturn.Err = fmt.Errorf("Warm and hot copies of the file do not match!\n\tInput: %s\n\tOutput: %s", inputFilePath, outputFilePath)
-						opReturn.IsFatal = true
-						Log.Error(opReturn.Err.Error())
-						deleteInputFile = false
-					}
-					// else: hash matches, so deleting the input file is ok
+				} else if opReturn.FHeader.FileHash != hash {
+					opReturn.Err = fmt.Errorf("Warm and hot copies of the file do not match!\n\tInput: %s\n\tOutput: %s", inputFilePath, outputFilePath)
+					opReturn.IsFatal = true
+					Log.Error(opReturn.Err.Error())
+					deleteInputFile = false
 				}
+				// else: hash matches, so deleting the input file is ok
 			}
 
 			if deleteInputFile == true {
