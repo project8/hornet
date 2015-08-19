@@ -47,6 +47,10 @@ func Copy(src, dest string) (e error) {
 	if copyErr := copy(src, dest); copyErr != nil {
 		Log.Error("File copy failed! (%v -> %v) [%v]\n", src, dest, copyErr)
 		e = errors.New("Failed to copy file")
+		if remErr := Remove(dest); remErr != nil {
+			Log.Error("Failed to remove the failed-copy (destination) file [%v]", remErr)
+			e = errors.New("Failed to copy file & failed to removed the failed-copy destination file")
+		}
 	}
 	return
 }
