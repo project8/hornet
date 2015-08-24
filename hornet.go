@@ -33,6 +33,7 @@ import (
 	"github.com/spf13/viper"
 
 	"github.com/project8/hornet/hornet"
+	"github.com/project8/hornet/gogitver"
 )
 
 
@@ -74,6 +75,7 @@ func main() {
 	fmt.Println("/ / /   / / // / /____\\/ // / /  \\ \\ \\/ / /    / / // / /_______\\/_/ /")
 	fmt.Println("\\/_/    \\/_/ \\/_________/ \\/_/    \\_\\/\\/_/     \\/_/ \\/__________/\\_\\/\n")
 
+	hornet.Log.Info("Version %v", gogitver.Tag())
 	hornet.Log.Notice("Reading config file: %v", configFile)
 	viper.SetConfigFile(configFile)
 	if parseErr := viper.ReadInConfig(); parseErr != nil {
