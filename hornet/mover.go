@@ -90,12 +90,21 @@ moveLoop:
 		select {
 		// the control messages can stop execution
 		// TODO: should finish pending jobs before dying.
-		case controlMsg := <-context.CtrlQueue:
+		case controlMsg, queueOk := <-context.CtrlQueue:
+			if ! queueOk {
+				Log.Error("Control queue has closed unexpectedly")
+				break moveLoop
+			}
 			if controlMsg == StopExecution {
 				Log.Info("Mover stopping on interrupt.")
 				break moveLoop
 			}
-		case fileHeader := <-context.FileStream:
+		case fileHeader, queueOk := <-context.FileStream:
+			if ! queueOk {
+				Log.Error("File stream has closed unexpectedly")
+				context.reqQueue <- StopExecution
+				break moveLoop
+			}
 			inputFilePath := filepath.Join(fileHeader.HotPath, fileHeader.Filename)
 			opReturn := OperatorReturn{
 				Operator: "mover",

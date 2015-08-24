@@ -241,12 +241,21 @@ classifierLoop:
 	for {
 		select {
 		// the control messages can stop execution
-		case controlMsg := <-context.CtrlQueue:
+		case controlMsg, queueOk := <-context.CtrlQueue:
+			if ! queueOk {
+				Log.Error("Control queue has closed unexpectedly")
+				break classifierLoop
+			}
 			if controlMsg == StopExecution {
 				Log.Info("Classifier stopping on interrupt.")
 				break classifierLoop
 			}
-		case fileHeader := <-context.FileStream:
+		case fileHeader, queueOk := <-context.FileStream:
+			if ! queueOk {
+				Log.Error("File stream has closed unexpectedly")
+				context.reqQueue <- StopExecution
+				break classifierLoop
+			}
 			inputFilePath := filepath.Join(fileHeader.HotPath, fileHeader.Filename)
 			opReturn := OperatorReturn{
 				Operator: "shipper",

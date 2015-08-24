@@ -86,14 +86,24 @@ runLoop:
 	for {
 		select {
 
-		case control := <-context.CtrlQueue:
+		case control, queueOk := <-context.CtrlQueue:
+			if ! queueOk {
+				Log.Error("Control queue has closed unexpectedly")
+				break runLoop
+			}
 			// Stop signal from CtrlQueue
 			if control == StopExecution {
 				Log.Info( "Stopping on interrupt." )
 				break runLoop
 			}
 
-		case newEvent := <-watcher.Events:
+		case newEvent, queueOk := <-watcher.Events:
+			if ! queueOk {
+				Log.Error("File stream has closed unexpectedly")
+				context.reqQueue <- StopExecution
+				break runLoop
+			}
+
 			// New subdirectory OR file is created
 			fileName := newEvent.Name
 
@@ -112,7 +122,7 @@ runLoop:
 				Log.Notice( "Added subdirectory to watch [%v]", fileName )
 			}
 
-		case watchErr := <-watcher.Errors:
+		case watchErr, queueOk := <-watcher.Errors:
 			// Error thrown on watcher
 			if !isEintr( watchErr ) {
 

@@ -239,13 +239,23 @@ amqpLoop:
 	for {
 		select {
 		// the control messages can stop execution
-		case controlMsg := <-ctrlQueue:
+		case controlMsg, queueOk := <-ctrlQueue:
+			if ! queueOk {
+				Log.Error("Control queue has closed unexpectedly")
+				break amqpLoop
+			}
 			if controlMsg == StopExecution {
 				Log.Info("AMQP receiver stopping on interrupt.")
 				break amqpLoop
 			}
 		// process any AMQP messages that are received
-		case message := <-messageQueue:
+		case message, queueOk := <-messageQueue:
+			if ! queueOk {
+				Log.Error("AMQP message queue has closed unexpectedly")
+				context.reqQueue <- StopExecution
+				break amqpLoop
+			}
+
 			// Send an acknowledgement to the broker
 			message.Ack(false)
 
@@ -459,12 +469,20 @@ amqpLoop:
 		select {
 		// the control messages can stop execution
 		case controlMsg := <-ctrlQueue:
+			if ! queueOk {
+				break amqpLoop
+			}
 			if controlMsg == StopExecution {
 				Log.Info("AMQP sender stopping on interrupt.")
 				break amqpLoop
 			}
-		// process any message reuqests receivec on the send-messsage queue
-		case p8Message := <-SendMessageQueue:
+		// process any message reuqests received on the send-messsage queue
+		case p8Message, queueOk := <-SendMessageQueue:
+			if ! queueOk {
+				Log.Error("Send-message queue has closed")
+				break amqpLoop
+			}
+
 			// Translate the request into a map that can be encoded for transmission
 			var senderInfo = map[string]interface{} {
 				"package": p8Message.SenderInfo.Package,

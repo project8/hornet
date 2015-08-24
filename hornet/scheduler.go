@@ -156,14 +156,23 @@ func Scheduler(schQueue chan string, ctrlQueue, reqQueue chan ControlMessage, th
 scheduleLoop:
 	for {
 		select {
-		case controlMsg := <-ctrlQueue:
+		case controlMsg, queueOk := <-ctrlQueue:
+			if ! queueOk {
+				Log.Error("Control queue has closed unexpectedly")
+				break scheduleLoop
+			}
 			if controlMsg == StopExecution {
 				Log.Info("Scheduler stopping on interrupt")
 				// close the worker queue to stop the workers
 				close(workerQueue)
 				break scheduleLoop
 			}
-		case file := <-schQueue:
+		case file, queueOk := <-schQueue:
+			if ! queueOk {
+				Log.Error("Scheduler queue has closed unexpectedly")
+				reqQueue <- StopExecution
+				break scheduleLoop
+			}
 			if absPath, absErr := filepath.Abs(file); absErr != nil {
 				Log.Error("Unable to determine an absolute path for <%s>", file)
 			} else {
@@ -180,7 +189,12 @@ scheduleLoop:
 					Log.Info("<%s> is not a regular file; ignoring", absPath)
 				}
 			}
-		case fileRet := <-classifierRetQueue:
+		case fileRet, queueOk := <-classifierRetQueue:
+			if ! queueOk {
+				Log.Error("Classifier return queue has closed unexpectedly")
+				reqQueue <- StopExecution
+				break scheduleLoop
+			}
 			if fileRet.Err != nil {
 				severity := "warning"
 				if fileRet.IsFatal {
@@ -193,7 +207,12 @@ scheduleLoop:
 				Log.Info("Sending <%s> to the mover", fileHeader.Filename)
 				moverQueue <- fileHeader
 			}
-		case fileRet := <-moverRetQueue:
+		case fileRet, queueOk := <-moverRetQueue:
+			if ! queueOk {
+				Log.Error("Mover return queue has closed unexpectedly")
+				reqQueue <- StopExecution
+				break scheduleLoop
+			}
 			if fileRet.Err != nil {
 				severity := "warning"
 				if fileRet.IsFatal {
@@ -218,7 +237,12 @@ scheduleLoop:
 					}
 				}
 			}
-		case fileRet := <-workerRetQueue:
+		case fileRet, queueOk := <-workerRetQueue:
+			if ! queueOk {
+				Log.Error("Worker return queue has closed unexpectedly")
+				reqQueue <- StopExecution
+				break scheduleLoop
+			}
 			workersWorking--
 			if fileRet.Err != nil {
 				severity := "warning"
@@ -236,7 +260,12 @@ scheduleLoop:
 					Log.Notice("Completed work on file <%s>", fileRet.FHeader.Filename)
 				}
 			}
-		case fileRet := <-shipperRetQueue:
+		case fileRet, queueOk := <-shipperRetQueue:
+			if ! queueOk {
+				Log.Error("Shipper return queue has closed unexpectedly")
+				reqQueue <- StopExecution
+				break scheduleLoop
+			}
 			if fileRet.Err != nil {
 				severity := "warning"
 				if fileRet.IsFatal {
