@@ -51,7 +51,7 @@ shipLoop:
 		case fileHeader, queueOk := <-context.FileStream:
 			if ! queueOk {
 				Log.Error("File stream has closed unexpectedly")
-				context.reqQueue <- StopExecution
+				context.ReqQueue <- StopExecution
 				break shipLoop
 			}
 			opReturn := OperatorReturn{

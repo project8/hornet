@@ -55,7 +55,7 @@ workLoop:
 		case fileHeader, queueOk := <-context.FileStream:
 			if ! queueOk {
 				Log.Error("File stream has closed unexpectedly")
-				context.reqQueue <- StopExecution
+				context.ReqQueue <- StopExecution
 				break workLoop
 			}
 
@@ -74,7 +74,7 @@ jobLoop:
 				case job, queueOk := <-opReturn.FHeader.JobQueue: // get the job
 					if ! queueOk {
 						Log.Error("Job queue has closed unexpectedly")
-						context.reqQueue <- StopExecution
+						context.ReqQueue <- StopExecution
 						break jobLoop
 					}
 					// execute parsing on job.Command

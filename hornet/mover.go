@@ -102,7 +102,7 @@ moveLoop:
 		case fileHeader, queueOk := <-context.FileStream:
 			if ! queueOk {
 				Log.Error("File stream has closed unexpectedly")
-				context.reqQueue <- StopExecution
+				context.ReqQueue <- StopExecution
 				break moveLoop
 			}
 			inputFilePath := filepath.Join(fileHeader.HotPath, fileHeader.Filename)

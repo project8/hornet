@@ -100,7 +100,7 @@ runLoop:
 		case newEvent, queueOk := <-watcher.Events:
 			if ! queueOk {
 				Log.Error("File stream has closed unexpectedly")
-				context.reqQueue <- StopExecution
+				context.ReqQueue <- StopExecution
 				break runLoop
 			}
 

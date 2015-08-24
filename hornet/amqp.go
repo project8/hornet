@@ -252,7 +252,7 @@ amqpLoop:
 		case message, queueOk := <-messageQueue:
 			if ! queueOk {
 				Log.Error("AMQP message queue has closed unexpectedly")
-				context.reqQueue <- StopExecution
+				reqQueue <- StopExecution
 				break amqpLoop
 			}
 
@@ -468,8 +468,9 @@ amqpLoop:
 	for {
 		select {
 		// the control messages can stop execution
-		case controlMsg := <-ctrlQueue:
+		case controlMsg, queueOk := <-ctrlQueue:
 			if ! queueOk {
+				Log.Error("Control queue closed unexpectedly")
 				break amqpLoop
 			}
 			if controlMsg == StopExecution {
@@ -480,6 +481,7 @@ amqpLoop:
 		case p8Message, queueOk := <-SendMessageQueue:
 			if ! queueOk {
 				Log.Error("Send-message queue has closed")
+				reqQueue <- StopExecution
 				break amqpLoop
 			}
 
