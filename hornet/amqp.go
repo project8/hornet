@@ -257,7 +257,9 @@ amqpLoop:
 			}
 
 			// Send an acknowledgement to the broker
-			message.Ack(false)
+			if ackErr := message.Ack(false); ackErr != nil {
+				Log.Error("Unable to acknowledge AMQP message")
+			}
 
 			// Decode the body of the message
 			//log.Printf("[amqp receiver] Received message with encoding %s", message.ContentEncoding)
