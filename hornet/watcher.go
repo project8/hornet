@@ -99,7 +99,7 @@ runLoop:
 
 		case newEvent, queueOk := <-watcher.Events:
 			if ! queueOk {
-				Log.Error("File stream has closed unexpectedly")
+				Log.Error("Watcher event queue has closed unexpectedly")
 				context.ReqQueue <- StopExecution
 				break runLoop
 			}
@@ -123,6 +123,12 @@ runLoop:
 			}
 
 		case watchErr, queueOk := <-watcher.Errors:
+			if ! queueOk {
+				Log.Error("Watcher error queue has closed unexpectedly")
+				context.ReqQueue <- StopExecution
+				break runLoop
+			}
+
 			// Error thrown on watcher
 			if !isEintr( watchErr ) {
 
