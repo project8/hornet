@@ -39,12 +39,21 @@ shipLoop:
 		select {
 		// the control messages can stop execution
 		// TODO: should finish pending jobs before dying.
-		case controlMsg := <-context.CtrlQueue:
+		case controlMsg, queueOk := <-context.CtrlQueue:
+			if ! queueOk {
+				Log.Error("Control queue has closed unexpectedly")
+				break shipLoop
+			}
 			if controlMsg == StopExecution {
 				Log.Info("Shipper stopping on interrupt.")
 				break shipLoop
 			}
-		case fileHeader := <-context.FileStream:
+		case fileHeader, queueOk := <-context.FileStream:
+			if ! queueOk {
+				Log.Error("File stream has closed unexpectedly")
+				context.ReqQueue <- StopExecution
+				break shipLoop
+			}
 			opReturn := OperatorReturn{
 				Operator: "shipper",
 				FHeader:  fileHeader,
