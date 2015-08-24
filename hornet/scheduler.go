@@ -45,6 +45,8 @@ func summaryLoop() {
 	time.Sleep(summaryInterval)
 	if filesScheduled != 0 || filesFinished != 0 {
 		Log.Notice("Scheduler summary:\n\tIn the past %v,\n\t - Scheduled %d file(s)\n\t - Finished %d file(s)", summaryInterval, filesScheduled, filesFinished)
+		filesScheduled = 0
+		filesFinished = 0
 	}/* else {
 		Log.Notice("No files scheduled or finished in the past %v", summaryInterval)
 	}*/
@@ -209,6 +211,7 @@ scheduleLoop:
 						HotPath:      path,
 						FileHotPath:  absPath,
 					}
+					filesScheduled++
 					Log.Notice("Sending <%s> to the classifier", fileHeader.Filename)
 					classifierQueue <- fileHeader
 				} else {
