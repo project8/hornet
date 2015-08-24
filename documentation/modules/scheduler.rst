@@ -10,10 +10,12 @@ Configuration
 
     "scheduler":
     {
-        "queue-size": 100
+        "queue-size": 100,
+        "summary-interval": "1m"
     }
 
 * ``queue-size`` (unsigned int): minimum size of the queues to which files are submitted, and which are used to pass files between the Scheduler and the various modules. If more files than this are submitted to Hornet on the command line, then the queue size will be increased to compensate for all of them.
+* ``summary-interval`` (duration string): interval between printings of the scheduler summary is printed.
 
 
 Scheduling Workers

@@ -11,6 +11,7 @@ package hornet
 import (
 	"path/filepath"
 	"sync"
+	"time"
 
 	"github.com/spf13/viper"
 )
@@ -30,6 +31,22 @@ type OperatorContext struct {
 	ReqQueue         chan ControlMessage
 	ThreadCountQueue chan uint
 	PoolCount        *sync.WaitGroup
+}
+
+var filesScheduled, filesFinished int
+var summaryInterval time.Duration
+
+func finishFile(header *FileInfo) {
+	Log.Info("Completed work on file <%s>", header.Filename)
+	filesFinished++
+}
+
+func printSummaryLoop() {
+	time.Sleep(summaryInterval)
+	if filesScheduled != 0 || filesFinished != 0 {
+		Log.Notice("In the past %v:\nScheduled %i files\nFinished %i files", summaryInterval, filesScheduled, filesFinished)
+	}
+	go printSummaryLoop()
 }
 
 func Scheduler(schQueue chan string, ctrlQueue, reqQueue chan ControlMessage, threadCountQueue chan uint, poolCount *sync.WaitGroup) {
@@ -153,6 +170,12 @@ func Scheduler(schQueue chan string, ctrlQueue, reqQueue chan ControlMessage, th
 
 	workersWorking := int(0)
 
+	filesScheduled = 0
+	filesFinished = 0
+
+	summaryInterval = viper.GetDuration("summary-interval")
+	go printSummaryLoop()
+
 scheduleLoop:
 	for {
 		select {
@@ -233,7 +256,7 @@ scheduleLoop:
 						Log.Info("Sending <%s> to shipper (skipping nearline)", fileHeader.Filename)
 						shipperQueue <- fileHeader
 					} else {
-						Log.Notice("Completed work on file <%s>", fileRet.FHeader.Filename)
+					finishFile(&fileRet.FHeader)
 					}
 				}
 			}
@@ -257,7 +280,7 @@ scheduleLoop:
 					Log.Info("Sending <%s> to the shipper", fileHeader.Filename)
 					shipperQueue <- fileHeader
 				} else {
-					Log.Notice("Completed work on file <%s>", fileRet.FHeader.Filename)
+					finishFile(&fileRet.FHeader)
 				}
 			}
 		case fileRet, queueOk := <-shipperRetQueue:
@@ -274,7 +297,7 @@ scheduleLoop:
 				Log.Info("Received %s from the shipper:\n\t%v", severity, fileRet.Err)
 			}
 			if fileRet.IsFatal == false {
-				Log.Notice("Completed work on file <%s>", fileRet.FHeader.Filename)
+					finishFile(&fileRet.FHeader)
 			}
 		}
 	}

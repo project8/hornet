@@ -1,7 +1,8 @@
 {
     "scheduler":
     {
-        "queue-size": 100
+        "queue-size": 100,
+        "summary-interval": "1m"
     },
 
     "logger":
