@@ -42,13 +42,23 @@ workLoop:
 		select {
 		// the control messages can stop execution
 		// TODO: should finish pending jobs before dying.
-		case controlMsg := <-context.CtrlQueue:
+		case controlMsg, queueOk := <-context.CtrlQueue:
+			if ! queueOk {
+				Log.Error("Control queue has closed unexpectedly")
+				break workLoop
+			}
 			if controlMsg == StopExecution {
 				//localLog(jobCount, "stopping on interrupt.")
 				Log.Info(withState("Stopping on interrupt."))
 				break workLoop
 			}
-		case fileHeader := <-context.FileStream:
+		case fileHeader, queueOk := <-context.FileStream:
+			if ! queueOk {
+				Log.Error("File stream has closed unexpectedly")
+				context.ReqQueue <- StopExecution
+				break workLoop
+			}
+
 			//inputFile := filepath.Join(fileHeader.WarmPath, fileHeader.Filename)
 			opReturn := OperatorReturn{
 				Operator: fmt.Sprintf("worker_%d", id),
@@ -61,7 +71,12 @@ jobLoop:
 			for {
 				// select statement to make a non-blocking receive on the job queue channel
 				select {
-				case job := <-opReturn.FHeader.JobQueue: // get the job
+				case job, queueOk := <-opReturn.FHeader.JobQueue: // get the job
+					if ! queueOk {
+						Log.Error("Job queue has closed unexpectedly")
+						context.ReqQueue <- StopExecution
+						break jobLoop
+					}
 					// execute parsing on job.Command
 					var cmdBuf bytes.Buffer
 					job.CommandTemplate.Execute(&cmdBuf, opReturn.FHeader)

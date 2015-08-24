@@ -11,6 +11,7 @@ package hornet
 import (
 	"path/filepath"
 	"sync"
+	"time"
 
 	"github.com/spf13/viper"
 )
@@ -30,6 +31,24 @@ type OperatorContext struct {
 	ReqQueue         chan ControlMessage
 	ThreadCountQueue chan uint
 	PoolCount        *sync.WaitGroup
+}
+
+var filesScheduled, filesFinished int
+var summaryInterval time.Duration
+
+func finishFile(header *FileInfo) {
+	Log.Info("Completed work on file <%s>", header.Filename)
+	filesFinished++
+}
+
+func summaryLoop() {
+	time.Sleep(summaryInterval)
+	if filesScheduled != 0 || filesFinished != 0 {
+		Log.Notice("Scheduler summary:\n\tIn the past %v,\n\t - Scheduled %d file(s)\n\t - Finished %d file(s)", summaryInterval, filesScheduled, filesFinished)
+	}/* else {
+		Log.Notice("No files scheduled or finished in the past %v", summaryInterval)
+	}*/
+	go summaryLoop()
 }
 
 func Scheduler(schQueue chan string, ctrlQueue, reqQueue chan ControlMessage, threadCountQueue chan uint, poolCount *sync.WaitGroup) {
@@ -153,17 +172,33 @@ func Scheduler(schQueue chan string, ctrlQueue, reqQueue chan ControlMessage, th
 
 	workersWorking := int(0)
 
+	filesScheduled = 0
+	filesFinished = 0
+
+	summaryInterval = viper.GetDuration("scheduler.summary-interval")
+	Log.Info("Scheduler summary interval: %v", summaryInterval)
+	go summaryLoop()
+
 scheduleLoop:
 	for {
 		select {
-		case controlMsg := <-ctrlQueue:
+		case controlMsg, queueOk := <-ctrlQueue:
+			if ! queueOk {
+				Log.Error("Control queue has closed unexpectedly")
+				break scheduleLoop
+			}
 			if controlMsg == StopExecution {
 				Log.Info("Scheduler stopping on interrupt")
 				// close the worker queue to stop the workers
 				close(workerQueue)
 				break scheduleLoop
 			}
-		case file := <-schQueue:
+		case file, queueOk := <-schQueue:
+			if ! queueOk {
+				Log.Error("Scheduler queue has closed unexpectedly")
+				reqQueue <- StopExecution
+				break scheduleLoop
+			}
 			if absPath, absErr := filepath.Abs(file); absErr != nil {
 				Log.Error("Unable to determine an absolute path for <%s>", file)
 			} else {
@@ -180,7 +215,12 @@ scheduleLoop:
 					Log.Info("<%s> is not a regular file; ignoring", absPath)
 				}
 			}
-		case fileRet := <-classifierRetQueue:
+		case fileRet, queueOk := <-classifierRetQueue:
+			if ! queueOk {
+				Log.Error("Classifier return queue has closed unexpectedly")
+				reqQueue <- StopExecution
+				break scheduleLoop
+			}
 			if fileRet.Err != nil {
 				severity := "warning"
 				if fileRet.IsFatal {
@@ -193,7 +233,12 @@ scheduleLoop:
 				Log.Info("Sending <%s> to the mover", fileHeader.Filename)
 				moverQueue <- fileHeader
 			}
-		case fileRet := <-moverRetQueue:
+		case fileRet, queueOk := <-moverRetQueue:
+			if ! queueOk {
+				Log.Error("Mover return queue has closed unexpectedly")
+				reqQueue <- StopExecution
+				break scheduleLoop
+			}
 			if fileRet.Err != nil {
 				severity := "warning"
 				if fileRet.IsFatal {
@@ -214,11 +259,16 @@ scheduleLoop:
 						Log.Info("Sending <%s> to shipper (skipping nearline)", fileHeader.Filename)
 						shipperQueue <- fileHeader
 					} else {
-						Log.Notice("Completed work on file <%s>", fileRet.FHeader.Filename)
+					finishFile(&fileRet.FHeader)
 					}
 				}
 			}
-		case fileRet := <-workerRetQueue:
+		case fileRet, queueOk := <-workerRetQueue:
+			if ! queueOk {
+				Log.Error("Worker return queue has closed unexpectedly")
+				reqQueue <- StopExecution
+				break scheduleLoop
+			}
 			workersWorking--
 			if fileRet.Err != nil {
 				severity := "warning"
@@ -233,10 +283,15 @@ scheduleLoop:
 					Log.Info("Sending <%s> to the shipper", fileHeader.Filename)
 					shipperQueue <- fileHeader
 				} else {
-					Log.Notice("Completed work on file <%s>", fileRet.FHeader.Filename)
+					finishFile(&fileRet.FHeader)
 				}
 			}
-		case fileRet := <-shipperRetQueue:
+		case fileRet, queueOk := <-shipperRetQueue:
+			if ! queueOk {
+				Log.Error("Shipper return queue has closed unexpectedly")
+				reqQueue <- StopExecution
+				break scheduleLoop
+			}
 			if fileRet.Err != nil {
 				severity := "warning"
 				if fileRet.IsFatal {
@@ -245,7 +300,7 @@ scheduleLoop:
 				Log.Info("Received %s from the shipper:\n\t%v", severity, fileRet.Err)
 			}
 			if fileRet.IsFatal == false {
-				Log.Notice("Completed work on file <%s>", fileRet.FHeader.Filename)
+					finishFile(&fileRet.FHeader)
 			}
 		}
 	}
