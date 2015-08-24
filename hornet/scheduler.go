@@ -212,7 +212,7 @@ scheduleLoop:
 						FileHotPath:  absPath,
 					}
 					filesScheduled++
-					Log.Notice("Sending <%s> to the classifier", fileHeader.Filename)
+					Log.Info("Sending <%s> to the classifier", fileHeader.Filename)
 					classifierQueue <- fileHeader
 				} else {
 					Log.Info("<%s> is not a regular file; ignoring", absPath)
