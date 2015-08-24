@@ -41,12 +41,14 @@ func finishFile(header *FileInfo) {
 	filesFinished++
 }
 
-func printSummaryLoop() {
+func summaryLoop() {
 	time.Sleep(summaryInterval)
 	if filesScheduled != 0 || filesFinished != 0 {
-		Log.Notice("In the past %v:\nScheduled %i files\nFinished %i files", summaryInterval, filesScheduled, filesFinished)
-	}
-	go printSummaryLoop()
+		Log.Notice("Scheduler summary:\n\tIn the past %v,\n\t - Scheduled %d file(s)\n\t - Finished %d file(s)", summaryInterval, filesScheduled, filesFinished)
+	}/* else {
+		Log.Notice("No files scheduled or finished in the past %v", summaryInterval)
+	}*/
+	go summaryLoop()
 }
 
 func Scheduler(schQueue chan string, ctrlQueue, reqQueue chan ControlMessage, threadCountQueue chan uint, poolCount *sync.WaitGroup) {
@@ -173,8 +175,9 @@ func Scheduler(schQueue chan string, ctrlQueue, reqQueue chan ControlMessage, th
 	filesScheduled = 0
 	filesFinished = 0
 
-	summaryInterval = viper.GetDuration("summary-interval")
-	go printSummaryLoop()
+	summaryInterval = viper.GetDuration("scheduler.summary-interval")
+	Log.Info("Scheduler summary interval: %v", summaryInterval)
+	go summaryLoop()
 
 scheduleLoop:
 	for {
