@@ -43,6 +43,7 @@ type P8Message struct {
 	MsgType    MsgCodeT
 	MsgOp      MsgCodeT
 	RetCode    MsgCodeT
+	RetMsg     string
 	TimeStamp  string
 	SenderInfo
 	Payload    interface{}
@@ -324,15 +325,21 @@ amqpLoop:
 			// validation for certain types of messages
 			switch msgType {
 			case MTReply:
-				if retcodeIfc, retcodePresent := body["retcode"]; retcodePresent == false {
+				if retcodeIfc, retcodePresent := body["retcode"]; ! retcodePresent {
 					Log.Error("Message is missing a required element:\n\tretcode: %v", retcodePresent)
 					continue amqpLoop
 				} else {
 					p8Message.RetCode = ConvertToMsgCode(retcodeIfc)
 				}
+				if retmsgIfc, retmsgPresent := body["return_msg"]; ! retmsgPresent {
+					Log.Warning("Message is missing a required element:\n\treturn_msg: %v", retmsgPresent)
+					//continue amqpLoop
+				} else {
+					p8Message.RetMsg = ConvertToString(retmsgIfc)
+				}
 			case MTRequest:
 				
-				if msgopIfc, msgopPresent := body["msgop"]; msgopPresent == false {
+				if msgopIfc, msgopPresent := body["msgop"]; ! msgopPresent {
 					Log.Error("Request message is missing a required element:\n\tmsgop: %v", msgopPresent)
 					continue amqpLoop
 				} else {
@@ -356,7 +363,7 @@ amqpLoop:
 			// Handle with the message according to the message type
 			switch msgType {
 			case MTReply:
-				Log.Info("Received reply message: %d", p8Message.RetCode)
+				Log.Info("Received reply message: (%d) %s", p8Message.RetCode, p8Message.RetMsg)
 				if replyHandlerChan, canReply := replyMap[message.CorrelationId]; canReply {
 					replyHandlerChan <- p8Message
 				}
@@ -500,6 +507,7 @@ amqpLoop:
 				"msgtype": p8Message.MsgType,
 				"msgop": p8Message.MsgOp,
 				"retcode": p8Message.RetCode,
+				"return_msg": p8Message.RetMsg,
 				"timestamp": p8Message.TimeStamp,
 				"sender_info": senderInfo,
 				"payload": p8Message.Payload,
@@ -583,13 +591,14 @@ func PrepareRequest(target []string, encoding string, msgOp MsgCodeT, replyChan 
 
 // PrepareReply sets up most of the fields in a P8Message reply object.
 // The payload is not set here.
-func PrepareReply(target []string, encoding string, corrId string, retCode MsgCodeT, replyChan chan P8Message)(p8Message P8Message) {
+func PrepareReply(target []string, encoding string, corrId string, retCode MsgCodeT, retMsg string, replyChan chan P8Message)(p8Message P8Message) {
 	p8Message = P8Message {
 		Target:     target,
 		Encoding:   encoding,
 		CorrId:     corrId,
 		MsgType:    MTReply,
 		RetCode:    retCode,
+		RetMsg:     retMsg,
 		TimeStamp:  time.Now().UTC().Format(TimeFormat),
 		SenderInfo: MasterSenderInfo,
 		ReplyChan:  replyChan,
