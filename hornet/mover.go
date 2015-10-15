@@ -12,6 +12,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/spf13/viper"
 )
@@ -131,6 +132,7 @@ moveLoop:
 			deleteInputFile := true
 
 			// copy the file
+			timeStart := time.Now()
 			if copyErr := Copy(inputFilePath, outputFilePath); copyErr != nil {
 				opReturn.Err = fmt.Errorf("Error copying (%v -> %v) [%v]", inputFilePath, outputFilePath, copyErr)
 				opReturn.IsFatal = true
@@ -149,6 +151,13 @@ moveLoop:
 					deleteInputFile = false
 				}
 				// else: hash matches, so deleting the input file is ok
+			}
+			timeEnd := time.Now()
+			if fileInfo, fiErr := os.Stat(outputFilePath); fiErr != nil {
+				Log.Warning("Unable to get file information on the output file: %v", fiErr)
+				Log.Info("File copy took %v to transfer [unknown] bytes", timeEnd.Sub(timeStart))
+			} else {
+				Log.Info("File copy took %v to transfer %v bytes", timeEnd.Sub(timeStart), fileInfo.Size())
 			}
 
 			if deleteInputFile == true {
