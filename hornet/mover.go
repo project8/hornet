@@ -30,7 +30,8 @@ func copy(source, destination string) error {
 	}
 	defer src.Close()
 
-	dst, dstErr := os.Create(destination)
+	tempDest := destination + ".hmtemp"
+	dst, dstErr := os.Create(tempDest)
 	if dstErr != nil {
 		return dstErr
 	}
@@ -38,6 +39,10 @@ func copy(source, destination string) error {
 
 	if _, cpyErr := io.Copy(dst, src); cpyErr != nil {
 		return cpyErr
+	}
+
+	if renameErr := os.Rename(tempDest, destination); renameErr != nil {
+		return renameErr
 	}
 
 	return nil
