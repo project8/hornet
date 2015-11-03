@@ -35,11 +35,14 @@ func copy(source, destination string) error {
 	if dstErr != nil {
 		return dstErr
 	}
-	defer dst.Close()
+	// we can't defer the Close() call because we need to rename after the close
+	//defer dst.Close()
 
 	if _, cpyErr := io.Copy(dst, src); cpyErr != nil {
+		dst.Close()
 		return cpyErr
 	}
+	dst.Close() // this has to be done before calling Rename()
 
 	if renameErr := os.Rename(tempDest, destination); renameErr != nil {
 		return renameErr
