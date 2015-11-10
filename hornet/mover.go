@@ -47,6 +47,9 @@ func copy(source, destination string) error {
 	if renameErr := os.Rename(tempDest, destination); renameErr != nil {
 		return renameErr
 	}
+	if chmodErr := os.Chmod(destination, 0664); chmodErr != nil {
+		return chmodErr
+	}
 
 	return nil
 }
