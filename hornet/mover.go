@@ -131,7 +131,7 @@ moveLoop:
 			// check if we already know about the destDirPath
 			if ds[destDirPath] == false {
 				Log.Info("Creating/adding directory %s\n", destDirPath)
-				if mkErr := os.MkdirAll(destDirPath, os.ModeDir|os.ModePerm); mkErr != nil {
+				if mkErr := os.MkdirAll(destDirPath, os.ModeDir|0775); mkErr != nil {
 					opReturn.Err = fmt.Errorf("Couldn't make directory %v: [%v]", destDirPath, mkErr)
 					opReturn.IsFatal = true
 					Log.Error(opReturn.Err.Error())
