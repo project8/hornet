@@ -17,10 +17,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-// A DirectorySet is just a simple Set type for directories.
-type DirectorySet map[string]bool
-
-// copy will copy the contents of one file to another.  the arguments are both
+/// copy will copy the contents of one file to another.  the arguments are both
 // strings i.e. paths to the original and the desired destination.  if something
 // goes wrong, it returns an error.
 func copy(source, destination string) error {
@@ -85,9 +82,6 @@ func Mover(context OperatorContext) {
 	defer context.PoolCount.Done()
 	defer Log.Info("Mover is finished.")
 
-	// keep a running list of all of the directories we know about.
-	ds := make(DirectorySet)
-
 	destDirBase, dirErr := filepath.Abs(viper.GetString("mover.dest-dir"))
 	if dirErr != nil || PathIsDirectory(destDirBase) == false{
 		Log.Critical("Destination directory is not valid: <%v>", destDirBase)
@@ -129,15 +123,11 @@ moveLoop:
 			opReturn.FHeader.WarmPath = destDirPath
 			opReturn.FHeader.FileWarmPath = outputFilePath
 			// check if we already know about the destDirPath
-			if ds[destDirPath] == false {
-				Log.Info("Creating/adding directory %s\n", destDirPath)
-				if mkErr := os.MkdirAll(destDirPath, os.ModeDir|0775); mkErr != nil {
-					opReturn.Err = fmt.Errorf("Couldn't make directory %v: [%v]", destDirPath, mkErr)
-					opReturn.IsFatal = true
-					Log.Error(opReturn.Err.Error())
-				} else {
-					ds[destDirPath] = true
-				}
+			Log.Debug("Creating/adding directory %s\n", destDirPath)
+			if mkErr := os.MkdirAll(destDirPath, os.ModeDir|0775); mkErr != nil {
+				opReturn.Err = fmt.Errorf("Couldn't make directory %v: [%v]", destDirPath, mkErr)
+				opReturn.IsFatal = true
+				Log.Error(opReturn.Err.Error())
 			}
 
 			deleteInputFile := true
