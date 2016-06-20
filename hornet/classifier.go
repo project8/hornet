@@ -227,7 +227,7 @@ func Classifier(context OperatorContext) {
 				return
 			}
 		}
-		masterFileInfoMessage = PrepareRequest([]string{sendtoRoutingKey}, "application/msgpack", MOCommand, nil)
+		masterFileInfoMessage = PrepareRequest([]string{sendtoRoutingKey}, "application/json", MOCommand, nil)
 		masterFileInfoMessage.Payload = make(map[string]interface{})
 		masterFileInfoMessage.Payload.(map[string]interface{})["values"] = []string{"do_insert"}
 		masterFileInfoMessage.Payload.(map[string]interface{})["file_name"] = ""
