@@ -21,7 +21,7 @@ import (
 	"github.com/streadway/amqp"
 	"github.com/ugorji/go/codec"
 	"github.com/kardianos/osext"
-	"code.google.com/p/go-uuid/uuid"
+	"github.com/pborman/uuid"
 	"github.com/spf13/viper"
 
 	"github.com/project8/hornet/gogitver"
