@@ -89,6 +89,8 @@ There are two options for building hornet:
         > hornet --config my_config.json
 
 ### So, you want to . . .
+Unless otherwise noted, these are config file values to set.
+* Submit files directly to hornet for processing (command line): `hornet --config my_config.json [files to be processed; wildcards allowed]`
 * Change the number of nearline workers to adapt to available processing power and analysis time: `scheduler.n-nearline-workers`
 * Turn AMQP usage off: `amqp.receiver` and `amqp.sender` set to `false`.  Also, if `hash.required` is `true`, then make sure `hash.send-to` is `""` (empty string)
 * Turn the watcher on or off: `watcher.active` set to `true` or `false`, respectively
