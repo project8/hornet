@@ -59,7 +59,7 @@ Hornet has been tested on Linux (Debian 8), Mac (OS X 10.10), and Windows (7).
 ### Installation
 Download hornet:
 ```
-  > go get -b github.com/project8/hornet
+  > go get -d github.com/project8/hornet
 ```
 Add the -u flag to update hornet and its dependencies.
 
