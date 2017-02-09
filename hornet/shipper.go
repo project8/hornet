@@ -40,7 +40,7 @@ shipLoop:
 		// the control messages can stop execution
 		// TODO: should finish pending jobs before dying.
 		case controlMsg, queueOk := <-context.CtrlQueue:
-			if ! queueOk {
+			if !queueOk {
 				Log.Error("Control queue has closed unexpectedly")
 				break shipLoop
 			}
@@ -49,7 +49,7 @@ shipLoop:
 				break shipLoop
 			}
 		case fileHeader, queueOk := <-context.FileStream:
-			if ! queueOk {
+			if !queueOk {
 				Log.Error("File stream has closed unexpectedly")
 				context.ReqQueue <- StopExecution
 				break shipLoop
@@ -78,15 +78,15 @@ shipLoop:
 			} else {
 				rsyncDest = destDirBase
 			}
-			Log.Debug("rsync dest: %s", rsyncDest)
+			Log.Debugf("rsync dest: %s", rsyncDest)
 
 			cmd := exec.Command("rsync", "-a", "--relative", inputFileSubPath, rsyncDest)
-			// Set the command's working directory to the input basepath, 
+			// Set the command's working directory to the input basepath,
 			// so that the inputFileSubPath is definitely referring to the file.
 			// The input basepath is the warm path minus the subpath
 			inputBaseDir := strings.TrimSuffix(filepath.Clean(opReturn.FHeader.WarmPath), filepath.Clean(fileHeader.SubPath))
 			cmd.Dir = filepath.Clean(inputBaseDir)
-			Log.Debug("rsync command is: %v", cmd)
+			Log.Debugf("rsync command is: %v", cmd)
 
 			// run the process
 			outputError := cmd.Run()

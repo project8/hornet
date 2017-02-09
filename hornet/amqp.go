@@ -18,11 +18,11 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/streadway/amqp"
-	"github.com/ugorji/go/codec"
 	"github.com/kardianos/osext"
 	"github.com/pborman/uuid"
 	"github.com/spf13/viper"
+	"github.com/streadway/amqp"
+	"github.com/ugorji/go/codec"
 
 	"github.com/project8/hornet/gogitver"
 )
@@ -37,17 +37,17 @@ type SenderInfo struct {
 }
 
 type P8Message struct {
-    Target     []string
-	Encoding   string
-	CorrId     string
-	MsgType    MsgCodeT
-	MsgOp      MsgCodeT
-	RetCode    MsgCodeT
-	RetMsg     string
-	TimeStamp  string
+	Target    []string
+	Encoding  string
+	CorrId    string
+	MsgType   MsgCodeT
+	MsgOp     MsgCodeT
+	RetCode   MsgCodeT
+	RetMsg    string
+	TimeStamp string
 	SenderInfo
-	Payload    interface{}
-	ReplyChan  chan P8Message
+	Payload   interface{}
+	ReplyChan chan P8Message
 }
 
 // Globally-accessible message-sending queue
@@ -58,6 +58,7 @@ var TargetSeparator string = "."
 
 // Value to confirm that the AMQP sender routine has started
 var AmqpSenderIsActive bool = false
+
 // Value to confirm that the AMQP receiver routine has started
 var AmqpReceiverIsActive bool = false
 
@@ -65,22 +66,23 @@ var AmqpReceiverIsActive bool = false
 var replyMap map[string]chan P8Message
 
 var MasterSenderInfo SenderInfo
+
 func fillMasterSenderInfo() (e error) {
 	MasterSenderInfo.Package = "hornet"
 	MasterSenderInfo.Exe, e = osext.Executable()
 	if e != nil {
-		Log.Error("Error while getting the executable:\n\t%v", e)
+		Log.Errorf("Error while getting the executable:\n\t%v", e)
 	}
 	MasterSenderInfo.Version = gogitver.Tag()
 	MasterSenderInfo.Commit = gogitver.Git()
 	MasterSenderInfo.Hostname, e = os.Hostname()
 	if e != nil {
-		Log.Error("Error while getting the hostname:\n\t%v", e)
+		Log.Errorf("Error while getting the hostname:\n\t%v", e)
 	}
 	user, userErr := user.Current()
 	e = userErr
 	if e != nil {
-		Log.Error("Error while getting the username:\n\t%v", e)
+		Log.Errorf("Error while getting the username:\n\t%v", e)
 	} else {
 		MasterSenderInfo.Username = user.Username
 	}
@@ -105,7 +107,7 @@ func ValidateAmqpConfig() (e error) {
 		Log.Error(e.Error())
 	}
 
-	if (viper.IsSet("amqp.broker") == false || viper.IsSet("amqp.exchange") == false) {
+	if viper.IsSet("amqp.broker") == false || viper.IsSet("amqp.exchange") == false {
 		e = errors.New("AMQP sender/receiver cannot be used without the broker and exchange being set")
 		Log.Error(e.Error())
 	}
@@ -115,7 +117,7 @@ func ValidateAmqpConfig() (e error) {
 
 func StartAmqp(ctrlQueue, reqQueue chan ControlMessage, threadCountQueue chan uint, poolCount *sync.WaitGroup) (e error) {
 	if configErr := ValidateAmqpConfig(); configErr != nil {
-		Log.Critical("Error in the AMQP configuration: %s", configErr.Error())
+		Log.Criticalf("Error in the AMQP configuration: %s", configErr.Error())
 		reqQueue <- ThreadCannotContinue
 		return
 	}
@@ -169,7 +171,7 @@ func AmqpReceiver(ctrlQueue chan ControlMessage, reqQueue chan ControlMessage, p
 	}
 	connection, receiveErr := amqp.Dial(brokerAddress)
 	if receiveErr != nil {
-		Log.Critical("Unable to connect to the AMQP broker at (%s) for receiving:\n\t%v", brokerAddress, receiveErr.Error())
+		Log.Criticalf("Unable to connect to the AMQP broker at (%s) for receiving:\n\t%v", brokerAddress, receiveErr.Error())
 		reqQueue <- StopExecution
 		return
 	}
@@ -179,7 +181,7 @@ func AmqpReceiver(ctrlQueue chan ControlMessage, reqQueue chan ControlMessage, p
 	// Deferred command: close the channel
 	channel, chanErr := connection.Channel()
 	if chanErr != nil {
-		Log.Critical("Unable to get the AMQP channel:\n\t%v", chanErr.Error())
+		Log.Criticalf("Unable to get the AMQP channel:\n\t%v", chanErr.Error())
 		reqQueue <- StopExecution
 		return
 	}
@@ -189,7 +191,7 @@ func AmqpReceiver(ctrlQueue chan ControlMessage, reqQueue chan ControlMessage, p
 	exchangeName := viper.GetString("amqp.exchange")
 	exchDeclErr := channel.ExchangeDeclare(exchangeName, "topic", false, false, false, false, nil)
 	if exchDeclErr != nil {
-		Log.Critical("Unable to declare exchange <%s>:\n\t%v", exchangeName, exchDeclErr.Error())
+		Log.Criticalf("Unable to declare exchange <%s>:\n\t%v", exchangeName, exchDeclErr.Error())
 		reqQueue <- StopExecution
 		return
 	}
@@ -199,13 +201,13 @@ func AmqpReceiver(ctrlQueue chan ControlMessage, reqQueue chan ControlMessage, p
 	queueName := viper.GetString("amqp.queue")
 	_, queueDeclErr := channel.QueueDeclare(queueName, false, true, true, false, nil)
 	if queueDeclErr != nil {
-		Log.Critical("Unable to declare queue <%s>:\n\t%v", queueName, queueDeclErr.Error())
+		Log.Criticalf("Unable to declare queue <%s>:\n\t%v", queueName, queueDeclErr.Error())
 		reqQueue <- StopExecution
 		return
 	}
 	defer func() {
 		if _, err := channel.QueueDelete(queueName, false, false, false); err != nil {
-			Log.Error("Error while deleting queue:\n\t%v", err)
+			Log.Errorf("Error while deleting queue:\n\t%v", err)
 		}
 	}()
 
@@ -213,13 +215,13 @@ func AmqpReceiver(ctrlQueue chan ControlMessage, reqQueue chan ControlMessage, p
 	// Deferred command: unbind the "hornet" queue from the exchange
 	queueBindErr := channel.QueueBind(queueName, queueName+".#", exchangeName, false, nil)
 	if queueBindErr != nil {
-		Log.Critical("Unable to bind queue <%s> to exchange <%s>:\n\t%v", queueName, exchangeName, queueBindErr.Error())
+		Log.Criticalf("Unable to bind queue <%s> to exchange <%s>:\n\t%v", queueName, exchangeName, queueBindErr.Error())
 		reqQueue <- StopExecution
 		return
 	}
 	defer func() {
 		if err := channel.QueueUnbind(queueName, queueName+".#", exchangeName, nil); err != nil {
-			Log.Error("Error while unbinding queue:\n\t%v", err)
+			Log.Errorf("Error while unbinding queue:\n\t%v", err)
 		}
 	}()
 
@@ -227,21 +229,21 @@ func AmqpReceiver(ctrlQueue chan ControlMessage, reqQueue chan ControlMessage, p
 	// Channel::Cancel is not executed as a deferred command, because consuming will be stopped by Channel.Close
 	messageQueue, consumeErr := channel.Consume(queueName, "", false, true, true, false, nil)
 	if consumeErr != nil {
-		Log.Critical("Unable start consuming from queue <%s>:\n\t%v", queueName, queueBindErr.Error())
+		Log.Criticalf("Unable start consuming from queue <%s>:\n\t%v", queueName, queueBindErr.Error())
 		reqQueue <- StopExecution
 		return
 	}
 
 	Log.Info("AMQP Receiver started successfully")
 	AmqpReceiverIsActive = true
-	defer func() {AmqpReceiverIsActive = false}()
+	defer func() { AmqpReceiverIsActive = false }()
 
 amqpLoop:
 	for {
 		select {
 		// the control messages can stop execution
 		case controlMsg, queueOk := <-ctrlQueue:
-			if ! queueOk {
+			if !queueOk {
 				Log.Error("Control queue has closed unexpectedly")
 				break amqpLoop
 			}
@@ -251,7 +253,7 @@ amqpLoop:
 			}
 		// process any AMQP messages that are received
 		case message, queueOk := <-messageQueue:
-			if ! queueOk {
+			if !queueOk {
 				Log.Error("AMQP message queue has closed unexpectedly")
 				reqQueue <- StopExecution
 				break amqpLoop
@@ -303,11 +305,11 @@ amqpLoop:
 
 			// Translate the body of the message into a P8Message object
 			senderInfo := senderInfoIfc.(map[interface{}]interface{})
-			p8Message := P8Message {
-				Encoding:   message.ContentEncoding,
-				CorrId:     message.CorrelationId,
-				MsgType:    msgType,
-				TimeStamp:  ConvertToString(timestampIfc),
+			p8Message := P8Message{
+				Encoding:  message.ContentEncoding,
+				CorrId:    message.CorrelationId,
+				MsgType:   msgType,
+				TimeStamp: ConvertToString(timestampIfc),
 				SenderInfo: SenderInfo{
 					Package:  ConvertToString(senderInfo["package"]),
 					Exe:      ConvertToString(senderInfo["exe"]),
@@ -325,21 +327,21 @@ amqpLoop:
 			// validation for certain types of messages
 			switch msgType {
 			case MTReply:
-				if retcodeIfc, retcodePresent := body["retcode"]; ! retcodePresent {
+				if retcodeIfc, retcodePresent := body["retcode"]; !retcodePresent {
 					Log.Error("Message is missing a required element:\n\tretcode: %v", retcodePresent)
 					continue amqpLoop
 				} else {
 					p8Message.RetCode = ConvertToMsgCode(retcodeIfc)
 				}
-				if retmsgIfc, retmsgPresent := body["return_msg"]; ! retmsgPresent {
+				if retmsgIfc, retmsgPresent := body["return_msg"]; !retmsgPresent {
 					Log.Warning("Message is missing a required element:\n\treturn_msg: %v", retmsgPresent)
 					//continue amqpLoop
 				} else {
 					p8Message.RetMsg = ConvertToString(retmsgIfc)
 				}
 			case MTRequest:
-				
-				if msgopIfc, msgopPresent := body["msgop"]; ! msgopPresent {
+
+				if msgopIfc, msgopPresent := body["msgop"]; !msgopPresent {
 					Log.Error("Request message is missing a required element:\n\tmsgop: %v", msgopPresent)
 					continue amqpLoop
 				} else {
@@ -395,22 +397,22 @@ amqpLoop:
 						case map[interface{}]interface{}:
 							for key, value := range p8Message.Payload.(map[interface{}]interface{}) {
 								switch typedValue := value.(type) {
-									case []byte:
-										Log.Notice("\t\t%s (byte sl): %v", key.(string), string(typedValue))
-									case [][]byte:
-										//log.Printf("\t\t%s (byte sl sl): %v", key.(string), [][]string(typedValue))
-										sliceString := "["
-										for _, byteSlice := range typedValue {
-											fmt.Sprintf(sliceString, "%s, %s", sliceString, string(byteSlice))
-										}
-										fmt.Sprintf(sliceString, "%s]", sliceString)
-										Log.Notice("\t\t%s (byte sl sl): %s", key.(string), sliceString)
-									case rune, bool, int, uint, float32, float64, complex64, complex128, string:
-										Log.Notice("\t\t%s (type): %v", key.(string), typedValue)
-									case []rune, []bool, []int, []uint, []float32, []float64, []complex64, []complex128, []string:
-										Log.Notice("\t\t%s (array): %v", key.(string), typedValue)
-									default:
-										Log.Notice("\t\t%s (default): %v", key.(string), value)
+								case []byte:
+									Log.Notice("\t\t%s (byte sl): %v", key.(string), string(typedValue))
+								case [][]byte:
+									//log.Printf("\t\t%s (byte sl sl): %v", key.(string), [][]string(typedValue))
+									sliceString := "["
+									for _, byteSlice := range typedValue {
+										fmt.Sprintf(sliceString, "%s, %s", sliceString, string(byteSlice))
+									}
+									fmt.Sprintf(sliceString, "%s]", sliceString)
+									Log.Notice("\t\t%s (byte sl sl): %s", key.(string), sliceString)
+								case rune, bool, int, uint, float32, float64, complex64, complex128, string:
+									Log.Notice("\t\t%s (type): %v", key.(string), typedValue)
+								case []rune, []bool, []int, []uint, []float32, []float64, []complex64, []complex128, []string:
+									Log.Notice("\t\t%s (array): %v", key.(string), typedValue)
+								default:
+									Log.Notice("\t\t%s (default): %v", key.(string), value)
 								}
 							}
 						default:
@@ -430,7 +432,6 @@ func AmqpSender(ctrlQueue chan ControlMessage, reqQueue chan ControlMessage, poo
 	// decrement the wg counter at the end
 	defer poolCount.Done()
 	defer Log.Info("AMQP sender is finished.")
-
 
 	// Connect to the AMQP broker
 	// Deferred command: close the connection
@@ -471,14 +472,14 @@ func AmqpSender(ctrlQueue chan ControlMessage, reqQueue chan ControlMessage, poo
 
 	Log.Info("AMQP sender started successfully")
 	AmqpSenderIsActive = true
-	defer func() {AmqpSenderIsActive = false}()
+	defer func() { AmqpSenderIsActive = false }()
 
 amqpLoop:
 	for {
 		select {
 		// the control messages can stop execution
 		case controlMsg, queueOk := <-ctrlQueue:
-			if ! queueOk {
+			if !queueOk {
 				Log.Error("Control queue closed unexpectedly")
 				break amqpLoop
 			}
@@ -488,29 +489,29 @@ amqpLoop:
 			}
 		// process any message reuqests received on the send-messsage queue
 		case p8Message, queueOk := <-SendMessageQueue:
-			if ! queueOk {
+			if !queueOk {
 				Log.Error("Send-message queue has closed")
 				reqQueue <- StopExecution
 				break amqpLoop
 			}
 
 			// Translate the request into a map that can be encoded for transmission
-			var senderInfo = map[string]interface{} {
-				"package": p8Message.SenderInfo.Package,
-				"exe": p8Message.SenderInfo.Exe,
-				"version": p8Message.SenderInfo.Version,
-				"commit": p8Message.SenderInfo.Commit,
+			var senderInfo = map[string]interface{}{
+				"package":  p8Message.SenderInfo.Package,
+				"exe":      p8Message.SenderInfo.Exe,
+				"version":  p8Message.SenderInfo.Version,
+				"commit":   p8Message.SenderInfo.Commit,
 				"hostname": p8Message.SenderInfo.Hostname,
 				"username": p8Message.SenderInfo.Username,
 			}
-			var body = map[string]interface{} {
-				"msgtype": p8Message.MsgType,
-				"msgop": p8Message.MsgOp,
-				"retcode": p8Message.RetCode,
-				"return_msg": p8Message.RetMsg,
-				"timestamp": p8Message.TimeStamp,
+			var body = map[string]interface{}{
+				"msgtype":     p8Message.MsgType,
+				"msgop":       p8Message.MsgOp,
+				"retcode":     p8Message.RetCode,
+				"return_msg":  p8Message.RetMsg,
+				"timestamp":   p8Message.TimeStamp,
 				"sender_info": senderInfo,
-				"payload": p8Message.Payload,
+				"payload":     p8Message.Payload,
 			}
 
 			// Get the UUID for the correlation ID
@@ -528,11 +529,11 @@ amqpLoop:
 			bodyNBytes := unsafe.Sizeof(p8Message)
 			//log.Printf("[amqp sender] Message size in bytes: %d", bodyNBytes)
 
-			var message = amqp.Publishing {
+			var message = amqp.Publishing{
 				ContentEncoding: p8Message.Encoding,
-				Body: make([]byte, 0, bodyNBytes),
-				ReplyTo: replyTo,
-				CorrelationId: correlationId,
+				Body:            make([]byte, 0, bodyNBytes),
+				ReplyTo:         replyTo,
+				CorrelationId:   correlationId,
 			}
 			// Encode the message body for transmission
 			switch p8Message.Encoding {
@@ -576,8 +577,8 @@ amqpLoop:
 
 // PrepareRequest sets up most of the fields in a P8Message request object.
 // The payload is not set here.
-func PrepareRequest(target []string, encoding string, msgOp MsgCodeT, replyChan chan P8Message)(p8Message P8Message) {
-	p8Message = P8Message {
+func PrepareRequest(target []string, encoding string, msgOp MsgCodeT, replyChan chan P8Message) (p8Message P8Message) {
+	p8Message = P8Message{
 		Target:     target,
 		Encoding:   encoding,
 		MsgType:    MTRequest,
@@ -591,8 +592,8 @@ func PrepareRequest(target []string, encoding string, msgOp MsgCodeT, replyChan 
 
 // PrepareReply sets up most of the fields in a P8Message reply object.
 // The payload is not set here.
-func PrepareReply(target []string, encoding string, corrId string, retCode MsgCodeT, retMsg string, replyChan chan P8Message)(p8Message P8Message) {
-	p8Message = P8Message {
+func PrepareReply(target []string, encoding string, corrId string, retCode MsgCodeT, retMsg string, replyChan chan P8Message) (p8Message P8Message) {
+	p8Message = P8Message{
 		Target:     target,
 		Encoding:   encoding,
 		CorrId:     corrId,
@@ -605,4 +606,3 @@ func PrepareReply(target []string, encoding string, corrId string, retCode MsgCo
 	}
 	return
 }
-

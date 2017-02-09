@@ -2,12 +2,13 @@ package hornet
 
 import (
 	"fmt"
-	"github.com/spf13/viper"
-	"gopkg.in/fsnotify.v1"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/spf13/viper"
+	"gopkg.in/fsnotify.v1"
 )
 
 func shouldPayAttention(evt fsnotify.Event) bool {
@@ -35,7 +36,7 @@ func Watcher(context OperatorContext) {
 	// New subdirectory watcher
 	watcher, watcherErr := fsnotify.NewWatcher()
 	if watcherErr != nil {
-		Log.Critical("Could not create the watcher! %v", watcherErr)
+		Log.Criticalf("Could not create the watcher! %v", watcherErr)
 		context.ReqQueue <- ThreadCannotContinue
 		return
 	}
@@ -47,12 +48,12 @@ func Watcher(context OperatorContext) {
 		// n=1 case
 		watchDir := viper.GetString("watcher.dir")
 		if !PathIsDirectory(watchDir) {
-			Log.Critical("Watch directory does not exist or is not a directory:\n\t%s", watchDir)
+			Log.Criticalf("Watch directory does not exist or is not a directory:\n\t%s", watchDir)
 			context.ReqQueue <- ThreadCannotContinue
 			return
 		}
 		watcher.Add(watchDir)
-		Log.Notice("Now watching <%s>", watchDir)
+		Log.Noticef("Now watching <%s>", watchDir)
 		nOrigDirs++
 	}
 	if viper.IsSet("watcher.dirs") {
@@ -61,12 +62,12 @@ func Watcher(context OperatorContext) {
 		watchDirs := viper.GetStringSlice("watcher.dirs")
 		for _, watchDir := range watchDirs {
 			if !PathIsDirectory(watchDir) {
-				Log.Critical("Watch directory does not exist or is not a directory:\n\t%s", watchDir)
+				Log.Criticalf("Watch directory does not exist or is not a directory:\n\t%s", watchDir)
 				context.ReqQueue <- ThreadCannotContinue
 				return
 			}
 			watcher.Add(watchDir)
-			Log.Notice("Now watching <%s>", watchDir)
+			Log.Noticef("Now watching <%s>", watchDir)
 			nOrigDirs++
 		}
 	}
@@ -81,30 +82,30 @@ func Watcher(context OperatorContext) {
 	if viper.IsSet("watcher.file-wait-time") {
 		moratoriumTime = viper.GetDuration("watcher.file-wait-time")
 	}
-	Log.Debug("File moratorium time: %v", moratoriumTime)
+	Log.Debugf("File moratorium time: %v", moratoriumTime)
 
 	Log.Info("Started successfully. Waiting for events...")
 
 	processRecursiveDir := func(path string, info os.FileInfo, err error) error {
 		if err != nil {
-			Log.Critical("Unable to recursively process directory %s", path)
+			Log.Criticalf("Unable to recursively process directory %s", path)
 			procErr := fmt.Errorf("Unable to recursively process directory %s", path)
 			return procErr
 		}
 		if PathIsRegularFile(path) {
 			// File case
-			Log.Debug("Submitting file [%v]", path)
+			Log.Debugf("Submitting file [%v]", path)
 			//context.SchStream <- path
 			go fileMoratorium(path, context.SchStream, moratoriumTime)
 		} else if PathIsDirectory(path) {
 			// Directory case
 			if err := watcher.Add(path); err != nil {
-				Log.Critical("Couldn't add subdir %s watch [%v]", path, err)
+				Log.Criticalf("Couldn't add subdir %s watch [%v]", path, err)
 				context.ReqQueue <- ThreadCannotContinue
 				procErr := fmt.Errorf("Unable to add directory %s to watch [%v]", path, err)
 				return procErr
 			}
-			Log.Notice("Added subdirectory to watch [%v]", path)
+			Log.Noticef("Added subdirectory to watch [%v]", path)
 		}
 		return nil
 	}
@@ -139,7 +140,7 @@ runLoop:
 			fileName := newEvent.Name
 
 			if recProcErr := filepath.Walk(fileName, processRecursiveDir); recProcErr != nil {
-				Log.Critical("Error processing directory or file [%s]\n\t:%v", fileName, recProcErr)
+				Log.Criticalf("Error processing directory or file [%s]\n\t:%v", fileName, recProcErr)
 				context.ReqQueue <- ThreadCannotContinue
 				break runLoop
 			}
@@ -170,7 +171,7 @@ runLoop:
 			if !isEintr(watchErr) {
 
 				// Specific error detected by isEintr() is passable
-				Log.Critical("fsnotify error on watch %v", watchErr)
+				Log.Criticalf("fsnotify error on watch %v", watchErr)
 				context.ReqQueue <- ThreadCannotContinue
 				break runLoop
 			}

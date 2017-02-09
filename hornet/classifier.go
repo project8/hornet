@@ -35,10 +35,10 @@ type TypeInfo struct {
 }
 
 type JobInfo struct {
-	Name             string
-	FileType         string
-	Command          string
-	CommandTemplate  *template.Template
+	Name            string
+	FileType        string
+	Command         string
+	CommandTemplate *template.Template
 }
 
 // ValidateClassifierConfig checks the sanity of the classifier section of a configuration.
@@ -101,7 +101,7 @@ func getSubPath(path string) (subPath string) {
 			var relErr error
 			subPath, relErr = filepath.Rel(basePath, path)
 			if relErr != nil {
-				Log.Debug("Unable to get relative path after checking prefix:\n\t%s\n\t%s\n\t%v", basePath, path, relErr)
+				Log.Debugf("Unable to get relative path after checking prefix:\n\t%s\n\t%s\n\t%v", basePath, path, relErr)
 				subPath = ""
 			} else {
 				break
@@ -117,7 +117,7 @@ func Classifier(context OperatorContext) {
 	defer Log.Info("Classifier is finished.")
 
 	if configErr := ValidateClassifierConfig(); configErr != nil {
-		Log.Critical("Error in the classifier configuration: %s", configErr.Error())
+		Log.Criticalf("Error in the classifier configuration: %s", configErr.Error())
 		context.ReqQueue <- ThreadCannotContinue
 		return
 	}
@@ -141,13 +141,13 @@ func Classifier(context OperatorContext) {
 			types[iType].RegexpTemplate = regexp.MustCompile(regexpTemplate.(string))
 		}
 		types[iType].DoHash = typeMap["do-hash"].(bool)
-		Log.Info("Adding type:\n\t%v", types[iType])
+		Log.Infof("Adding type:\n\t%v", types[iType])
 	}
 
 	// Process the jobs
 	maxJobs := uint(viper.GetInt("classifier.max-jobs"))
 
-	jobsRawIfc :=  viper.Get("workers.jobs")
+	jobsRawIfc := viper.Get("workers.jobs")
 	jobsRaw := jobsRawIfc.([]interface{})
 
 	var jobs = make([]JobInfo, len(jobsRaw))
@@ -158,17 +158,17 @@ func Classifier(context OperatorContext) {
 		jobs[iJob].FileType = jobMap["file-type"].(string)
 		jobs[iJob].Command = jobMap["command"].(string)
 		if jobs[iJob].CommandTemplate, cmdErr = template.New("cmd").Parse(jobs[iJob].Command); cmdErr != nil {
-			Log.Critical("Template error while processing <%v>", jobs[iJob].Command)
-			context.ReqQueue <- ThreadCannotContinue;
+			Log.Criticalf("Template error while processing <%v>", jobs[iJob].Command)
+			context.ReqQueue <- ThreadCannotContinue
 			return
 		}
-		Log.Debug("Adding job:\n\t%v", jobs[iJob])
+		Log.Debugf("Adding job:\n\t%v", jobs[iJob])
 
 		// add this job to the list of jobs for its file type
 		for iType, _ := range types {
 			if types[iType].Name == jobs[iJob].FileType {
 				types[iType].Jobs = append(types[iType].Jobs, iJob)
-				Log.Info("Type <%s> will now perform job %d <%s>: %v", types[iType].Name, iJob, jobs[iJob].Name, types[iType].Jobs)
+				Log.Infof("Type <%s> will now perform job %d <%s>: %v", types[iType].Name, iJob, jobs[iJob].Name, types[iType].Jobs)
 			}
 		}
 	}
@@ -206,8 +206,7 @@ func Classifier(context OperatorContext) {
 	}
 
 	//BasePaths = append(BasePaths, []string(basePaths)...)
-	Log.Info("Base paths: %v", BasePaths)
-    
+	Log.Infof("Base paths: %v", BasePaths)
 
 	// Sending the file info
 	sendtoRoutingKey := viper.GetString("classifier.send-to")
@@ -242,7 +241,7 @@ classifierLoop:
 		select {
 		// the control messages can stop execution
 		case controlMsg, queueOk := <-context.CtrlQueue:
-			if ! queueOk {
+			if !queueOk {
 				Log.Error("Control queue has closed unexpectedly")
 				break classifierLoop
 			}
@@ -251,7 +250,7 @@ classifierLoop:
 				break classifierLoop
 			}
 		case fileHeader, queueOk := <-context.FileStream:
-			if ! queueOk {
+			if !queueOk {
 				Log.Error("File stream has closed unexpectedly")
 				context.ReqQueue <- StopExecution
 				break classifierLoop
@@ -280,7 +279,7 @@ classifierLoop:
 				fileInfoMessage = masterFileInfoMessage
 			}
 
-typeLoop:
+		typeLoop:
 			for _, typeInfo := range types {
 				acceptType = true // this must start as true for this multi-test setup to work
 				if typeInfo.DoMatchExtension {
@@ -295,7 +294,7 @@ typeLoop:
 							for iSubmatch, submatch := range allSubmatches[0][1:] {
 								subexpName := subexpNames[iSubmatch+1]
 								if len(subexpName) > 0 {
-									Log.Debug("Adding to payload: %s: %s", subexpName, submatch)
+									Log.Debugf("Adding to payload: %s: %s", subexpName, submatch)
 									fileInfoMessage.Payload.(map[string]interface{})[subexpName] = submatch
 								}
 							}
@@ -304,7 +303,7 @@ typeLoop:
 				}
 
 				if acceptType {
-					Log.Info("Classifying file <%s> as type <%s>", inputFilename, typeInfo.Name)
+					Log.Infof("Classifying file <%s> as type <%s>", inputFilename, typeInfo.Name)
 					opReturn.FHeader.FileType = typeInfo.Name
 					opReturn.FHeader.SubPath = getSubPath(opReturn.FHeader.HotPath)
 					opReturn.FHeader.JobQueue = make(chan Job, maxJobs)
@@ -315,7 +314,7 @@ typeLoop:
 							Log.Error(opReturn.Err.Error())
 						} else {
 							opReturn.FHeader.FileHash = hash
-							Log.Debug("File <%s> hash: %s", inputFilename, opReturn.FHeader.FileHash)
+							Log.Debugf("File <%s> hash: %s", inputFilename, opReturn.FHeader.FileHash)
 						}
 					}
 					if sendFileInfo {
@@ -325,13 +324,13 @@ typeLoop:
 						SendMessageQueue <- fileInfoMessage
 					}
 					// jobs for the job queue
-					Log.Debug("Type %s has %d jobs: %v", typeInfo.Name, len(typeInfo.Jobs), typeInfo.Jobs)
+					Log.Debugf("Type %s has %d jobs: %v", typeInfo.Name, len(typeInfo.Jobs), typeInfo.Jobs)
 					for _, jobId := range typeInfo.Jobs {
 						newJob := Job{
 							//Command: jobs[jobId].Command,
 							CommandTemplate: jobs[jobId].CommandTemplate,
 						}
-						
+
 						select {
 						case opReturn.FHeader.JobQueue <- newJob:
 							// do nothing
@@ -349,7 +348,7 @@ typeLoop:
 			}
 
 			if acceptType == false {
-				Log.Error("Unable to classify file <%s>", inputFilename)
+				Log.Errorf("Unable to classify file <%s>", inputFilename)
 				opReturn.Err = errors.New("[Classifier] Unable to classify")
 				opReturn.IsFatal = true
 				context.RetStream <- opReturn

@@ -8,7 +8,6 @@ import (
 	"strings"
 )
 
-
 // Hash performs an md5 hash of the specified file and returns the hash string
 // Microsoft File Checksum Integrity Verifier is used on Windows systems
 // The output is expected to look like:

@@ -32,10 +32,9 @@ import (
 
 	"github.com/spf13/viper"
 
-	"github.com/project8/hornet/hornet"
 	"github.com/project8/hornet/gogitver"
+	"github.com/project8/hornet/hornet"
 )
-
 
 func main() {
 	// setup logging, first thing
@@ -75,11 +74,11 @@ func main() {
 	fmt.Println("/ / /   / / // / /____\\/ // / /  \\ \\ \\/ / /    / / // / /_______\\/_/ /")
 	fmt.Println("\\/_/    \\/_/ \\/_________/ \\/_/    \\_\\/\\/_/     \\/_/ \\/__________/\\_\\/\n")
 
-	hornet.Log.Info("Version %v", gogitver.Tag())
-	hornet.Log.Notice("Reading config file: %v", configFile)
+	hornet.Log.Infof("Version %v", gogitver.Tag())
+	hornet.Log.Noticef("Reading config file: %v", configFile)
 	viper.SetConfigFile(configFile)
 	if parseErr := viper.ReadInConfig(); parseErr != nil {
-		hornet.Log.Critical("%v", parseErr)
+		hornet.Log.Criticalf("%v", parseErr)
 	}
 
 	// configure the logger, now that the config file is ready
@@ -91,12 +90,12 @@ func main() {
 		hornet.Log.Critical("Error marshaling configuration!")
 		return
 	}
-	hornet.Log.Debug("Full configuration:\n%v", string(indentedConfig))
+	hornet.Log.Debugf("Full configuration:\n%v", string(indentedConfig))
 
 	if viper.GetBool("amqp.active") || viper.GetBool("slack.active") {
 		// get the authenticator credentials
 		if authErr := hornet.LoadAuthenticators(); authErr != nil {
-			hornet.Log.Critical("Error getting authentication credentials:\n\t%s", authErr.Error())
+			hornet.Log.Criticalf("Error getting authentication credentials:\n\t%s", authErr.Error())
 			return
 		}
 	}
@@ -128,7 +127,7 @@ func main() {
 
 	// Setup the connection to slack
 	if slackErr := hornet.InitializeSlack(controlQueue, requestQueue, threadCountQueue, &pool); slackErr != nil {
-		hornet.Log.Critical("Error initializing slack: %v", slackErr.Error())
+		hornet.Log.Criticalf("Error initializing slack: %v", slackErr.Error())
 		return
 	}
 
@@ -171,7 +170,7 @@ stopLoop:
 	// Close all of the worker threads gracefully
 	// Use the select/default idiom to avoid the problem where one of the threads has already
 	// closed and we can't send to the control queue
-	hornet.Log.Info("Stopping %d threads", len(threadCountQueue)-1)
+	hornet.Log.Infof("Stopping %d threads", len(threadCountQueue)-1)
 	for i := 0; i < len(threadCountQueue); i++ {
 		select {
 		case controlQueue <- hornet.StopExecution:
