@@ -54,10 +54,10 @@ func copy(source, destination string) error {
 // Copy copies a file from one place to another.
 func Copy(src, dest string) (e error) {
 	if copyErr := copy(src, dest); copyErr != nil {
-		Log.Error("File copy failed! (%v -> %v) [%v]\n", src, dest, copyErr)
+		Log.Errorf("File copy failed! (%v -> %v) [%v]\n", src, dest, copyErr)
 		e = errors.New("Failed to copy file")
 		if remErr := Remove(dest); remErr != nil {
-			Log.Error("Failed to remove the failed-copy (destination) file [%v]", remErr)
+			Log.Errorf("Failed to remove the failed-copy (destination) file [%v]", remErr)
 			e = errors.New("Failed to copy file & failed to removed the failed-copy destination file")
 		}
 	}
@@ -67,7 +67,7 @@ func Copy(src, dest string) (e error) {
 // Remove deletes a file
 func Remove(file string) (e error) {
 	if rmErr := os.Remove(file); rmErr != nil {
-		Log.Error("File rm failed! (%v) [%v]\n", file, rmErr)
+		Log.Errorf("File rm failed! (%v) [%v]\n", file, rmErr)
 		e = errors.New("Failed to remove file")
 	}
 	return
@@ -83,8 +83,8 @@ func Mover(context OperatorContext) {
 	defer Log.Info("Mover is finished.")
 
 	destDirBase, dirErr := filepath.Abs(viper.GetString("mover.dest-dir"))
-	if dirErr != nil || PathIsDirectory(destDirBase) == false{
-		Log.Critical("Destination directory is not valid: <%v>", destDirBase)
+	if dirErr != nil || PathIsDirectory(destDirBase) == false {
+		Log.Criticalf("Destination directory is not valid: <%v>", destDirBase)
 		context.ReqQueue <- ThreadCannotContinue
 		return
 	}
@@ -97,7 +97,7 @@ moveLoop:
 		// the control messages can stop execution
 		// TODO: should finish pending jobs before dying.
 		case controlMsg, queueOk := <-context.CtrlQueue:
-			if ! queueOk {
+			if !queueOk {
 				Log.Error("Control queue has closed unexpectedly")
 				break moveLoop
 			}
@@ -106,7 +106,7 @@ moveLoop:
 				break moveLoop
 			}
 		case fileHeader, queueOk := <-context.FileStream:
-			if ! queueOk {
+			if !queueOk {
 				Log.Error("File stream has closed unexpectedly")
 				context.ReqQueue <- StopExecution
 				break moveLoop
@@ -123,7 +123,7 @@ moveLoop:
 			opReturn.FHeader.WarmPath = destDirPath
 			opReturn.FHeader.FileWarmPath = outputFilePath
 			// check if we already know about the destDirPath
-			Log.Debug("Creating/adding directory %s\n", destDirPath)
+			Log.Debugf("Creating/adding directory %s\n", destDirPath)
 			if mkErr := os.MkdirAll(destDirPath, os.ModeDir|0775); mkErr != nil {
 				opReturn.Err = fmt.Errorf("Couldn't make directory %v: [%v]", destDirPath, mkErr)
 				opReturn.IsFatal = true
@@ -155,10 +155,10 @@ moveLoop:
 			}
 			timeEnd := time.Now()
 			if fileInfo, fiErr := os.Stat(outputFilePath); fiErr != nil {
-				Log.Warning("Unable to get file information on the output file: %v", fiErr)
-				Log.Info("File copy took %v to transfer [unknown] bytes", timeEnd.Sub(timeStart))
+				Log.Warningf("Unable to get file information on the output file: %v", fiErr)
+				Log.Infof("File copy took %v to transfer [unknown] bytes", timeEnd.Sub(timeStart))
 			} else {
-				Log.Info("File copy took %v to transfer %v bytes", timeEnd.Sub(timeStart), fileInfo.Size())
+				Log.Infof("File copy took %v to transfer %v bytes", timeEnd.Sub(timeStart), fileInfo.Size())
 			}
 
 			if deleteInputFile == true {

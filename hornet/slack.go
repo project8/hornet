@@ -6,7 +6,7 @@
 *
 * Includes adaptations for use in Hornet.
 *
-*/
+ */
 
 /*
 * Original License:
@@ -33,7 +33,6 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
-
 
 package hornet
 
@@ -62,7 +61,6 @@ type slackPostMessageRes struct {
 	Ok    bool
 	Error string
 }
-
 
 // sendSlackMessage sends a text message to a specific channel
 // with a specific username.
@@ -103,22 +101,26 @@ func sendSlackMessage(channel, message, username, token string) error {
 // configuration
 var slackActive bool
 var slackAlertsChannel, slackNoticesChannel string
+
 //var slackUsername string
 //var slackPrefix string
 
 var slackFormat = logging.MustStringFormatter(
-    "%{level} > %{message}",
+	"%{level} > %{message}",
 )
 
 // Notice writer
 type SlackNoticeWriter struct {
 	client *SlackClient
 }
+
 var slackNoticeWriter SlackNoticeWriter
 
 func (writer SlackNoticeWriter) Write(p []byte) (n int, err error) {
 	n = 0
-	if slackActive == false {return}
+	if slackActive == false {
+		return
+	}
 	if err = writer.client.SubmitMessage(slackNoticesChannel, string(p)); err == nil {
 		n = len(p)
 	}
@@ -129,11 +131,14 @@ func (writer SlackNoticeWriter) Write(p []byte) (n int, err error) {
 type SlackAlertWriter struct {
 	client *SlackClient
 }
+
 var slackAlertWriter SlackAlertWriter
 
 func (writer SlackAlertWriter) Write(p []byte) (n int, err error) {
 	n = 0
-	if slackActive == false {return}
+	if slackActive == false {
+		return
+	}
 	if err = writer.client.SubmitMessage(slackAlertsChannel, string(p)); err == nil {
 		n = len(p)
 	}
@@ -143,19 +148,19 @@ func (writer SlackAlertWriter) Write(p []byte) (n int, err error) {
 // SlackClient represents a slack api client. A Client is
 // used for making requests to the slack api.
 type SlackClient struct {
-	username string
-	token string
-	running bool
+	username       string
+	token          string
+	running        bool
 	messageBuffers map[string]string
-	messageMutex sync.Mutex
+	messageMutex   sync.Mutex
 }
 
 // createNewSlackClient returns a Client with the provided api token.
 func createNewSlackClient(username, token string) *SlackClient {
 	var client = SlackClient{
-		username: username,
-		token: token,
-		running: false,
+		username:       username,
+		token:          token,
+		running:        false,
 		messageBuffers: make(map[string]string),
 	}
 	return &client
@@ -163,10 +168,12 @@ func createNewSlackClient(username, token string) *SlackClient {
 
 // RunClient starts sending submitted messages via the Slack API
 func (c *SlackClient) RunClient(ctrlQueue, reqQueue chan ControlMessage, poolCount *sync.WaitGroup) {
-	if c.running == true {return}
+	if c.running == true {
+		return
+	}
 
 	// decrement the wg counter at the end
-	defer func(c *SlackClient) {c.running = false}(c)
+	defer func(c *SlackClient) { c.running = false }(c)
 	defer poolCount.Done()
 	defer Log.Info("Slack client is finished.")
 
@@ -212,7 +219,7 @@ slackLoop:
 // SubmitMessage submits a single message on a particular channel to the Slack client.
 func (c *SlackClient) SubmitMessage(channel, message string) error {
 	c.messageMutex.Lock()
-	Log.Debug("Submitting message (%v) <%v>", channel, message)
+	Log.Debugf("Submitting message (%v) <%v>", channel, message)
 	if _, hasBuffer := c.messageBuffers[channel]; hasBuffer {
 		c.messageBuffers[channel] += "\n" + message
 	} else {
@@ -222,10 +229,12 @@ func (c *SlackClient) SubmitMessage(channel, message string) error {
 	return nil
 }
 
-// InitializeSlack creates the SlackClient object, gets the API token, and sends an initial 
+// InitializeSlack creates the SlackClient object, gets the API token, and sends an initial
 // message to the notice channel to ensure that the connection works.
 func InitializeSlack(ctrlQueue, reqQueue chan ControlMessage, threadCountQueue chan uint, poolCount *sync.WaitGroup) (e error) {
-	if slackActive {return}
+	if slackActive {
+		return
+	}
 
 	// check whether slack activation has been requested in the config
 	slackActive = viper.GetBool("slack.active")
@@ -250,11 +259,11 @@ func InitializeSlack(ctrlQueue, reqQueue chan ControlMessage, threadCountQueue c
 	slackClient := createNewSlackClient(viper.GetString("slack.username"), Authenticators.Slack.Token)
 
 	/*
-	if SendSlackNotice("Hello Slack!") == false {
-		e = errors.New("[slack] unable to send a message to slack")
-		Log.Error(e.Error())
-		return
-	}
+		if SendSlackNotice("Hello Slack!") == false {
+			e = errors.New("[slack] unable to send a message to slack")
+			Log.Error(e.Error())
+			return
+		}
 	*/
 
 	// Notice logging
@@ -307,4 +316,3 @@ func SendSlackNotice(message string) bool {
 	return true
 }
 */
-

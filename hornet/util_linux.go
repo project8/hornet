@@ -8,7 +8,6 @@ import (
 	"strings"
 )
 
-
 // Hash performs an md5 hash of the specified file and returns the hash string
 // md5sum is used on Linux systems
 // The output is expected to look like: dc5e29010b13215bbf8cfc6997f15489  my_file

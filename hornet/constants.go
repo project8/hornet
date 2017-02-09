@@ -3,7 +3,7 @@
 *
 * the set of constants that might be used throughout hornet
 *
-*/
+ */
 
 package hornet
 
@@ -29,7 +29,6 @@ const (
 // Time format
 const TimeFormat = "2006-01-02T22:04:05Z"
 
-
 // Project 8 Wire Protocol Standards
 type MsgCodeT uint64
 
@@ -52,4 +51,3 @@ const (
 const (
 	RCSuccess MsgCodeT = 0
 )
-

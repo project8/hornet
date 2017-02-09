@@ -10,7 +10,6 @@ import (
 	"os/exec"
 	"strings"
 	"time"
-
 	//"github.com/spf13/viper"
 )
 
@@ -43,7 +42,7 @@ workLoop:
 		// the control messages can stop execution
 		// TODO: should finish pending jobs before dying.
 		case controlMsg, queueOk := <-context.CtrlQueue:
-			if ! queueOk {
+			if !queueOk {
 				Log.Error("Control queue has closed unexpectedly")
 				break workLoop
 			}
@@ -53,7 +52,7 @@ workLoop:
 				break workLoop
 			}
 		case fileHeader, queueOk := <-context.FileStream:
-			if ! queueOk {
+			if !queueOk {
 				Log.Error("File stream has closed unexpectedly")
 				context.ReqQueue <- StopExecution
 				break workLoop
@@ -67,12 +66,12 @@ workLoop:
 				IsFatal:  false,
 			}
 
-jobLoop:
+		jobLoop:
 			for {
 				// select statement to make a non-blocking receive on the job queue channel
 				select {
 				case job, queueOk := <-opReturn.FHeader.JobQueue: // get the job
-					if ! queueOk {
+					if !queueOk {
 						Log.Error("Job queue has closed unexpectedly")
 						context.ReqQueue <- StopExecution
 						break jobLoop
@@ -85,7 +84,7 @@ jobLoop:
 					commandParts := strings.Fields(command)
 					job.CommandName = commandParts[0]
 					job.CommandArgs = commandParts[1:len(commandParts)]
-					Log.Info(withState("Executing command: %s %v"), job.CommandName, job.CommandArgs)
+					Log.Infof(withState("Executing command: %s %v"), job.CommandName, job.CommandArgs)
 					// create the command
 					cmd := exec.Command(job.CommandName, job.CommandArgs...)
 
@@ -112,8 +111,8 @@ jobLoop:
 							}
 						}
 						// if we're here, the job succeeded
-						Log.Info(withState("Execution finished.  Elapsed time: %v"), time.Since(startTime))
-						Log.Debug(withState("Job output:\n%s"), string(outputBytes))
+						Log.Infof(withState("Execution finished.  Elapsed time: %v"), time.Since(startTime))
+						Log.Debugf(withState("Job output:\n%s"), string(outputBytes))
 						opReturn.FHeader.FinishedJobs = append(opReturn.FHeader.FinishedJobs, job)
 					} else {
 						opReturn.Err = fmt.Errorf("error opening stdout: %v", stdoutErr)
@@ -128,5 +127,5 @@ jobLoop:
 			} // end the job loop
 		} // end main select
 	} // end the worker loop
-	Log.Info(withState("No work remaining.  Total of %d jobs processed."), jobCount)
+	Log.Infof(withState("No work remaining.  Total of %d jobs processed."), jobCount)
 }
