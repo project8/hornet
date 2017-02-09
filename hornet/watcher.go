@@ -1,6 +1,9 @@
 package hornet
 
 import(
+	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 	"github.com/spf13/viper"
@@ -82,6 +85,31 @@ func Watcher( context OperatorContext ) {
 
 	Log.Info( "Started successfully. Waiting for events..." )
 
+	processRecursiveDir := func(path string, info os.FileInfo, err error) error {
+        	if err != nil {
+                	Log.Critical( "Unable to recursively process directory %s", path )
+			procErr := fmt.Errorf( "Unable to recursively process directory %s", path )
+                	return procErr
+        	}
+		if PathIsRegularFile( path ) {
+                	// File case
+                        Log.Debug( "Submitting file [%v]", path )
+                        //context.SchStream <- path
+                        go fileMoratorium(path, context.SchStream, moratoriumTime)
+                } else if PathIsDirectory( path ) {
+                        // Directory case
+                        if err := watcher.Add( path ); err != nil {
+                        	Log.Critical( "Couldn't add subdir %s watch [%v]", path, err )
+                        	context.ReqQueue <- ThreadCannotContinue
+                                procErr := fmt.Errorf( "Unable to add directory %s to watch [%v]", path, err )
+				return procErr
+                        }
+                        Log.Notice( "Added subdirectory to watch [%v]", path )
+                }
+		return nil
+	}
+
+
 runLoop:
 	for {
 		select {
@@ -104,9 +132,19 @@ runLoop:
 				break runLoop
 			}
 
+                        if ! shouldPayAttention( newEvent ) {
+                                continue
+                        }
+
 			// New subdirectory OR file is created
 			fileName := newEvent.Name
 
+			if recProcErr := filepath.Walk( fileName, processRecursiveDir ); recProcErr != nil {
+				Log.Critical( "Error processing directory or file [%s]\n\t:%v", fileName, recProcErr )
+				context.ReqQueue <- ThreadCannotContinue
+				break runLoop
+			}
+/*
 			if PathIsRegularFile( fileName ) && shouldPayAttention( newEvent ) {
 				// File case
 				Log.Debug( "Submitting file [%v]", fileName )
@@ -121,7 +159,7 @@ runLoop:
 				}
 				Log.Notice( "Added subdirectory to watch [%v]", fileName )
 			}
-
+*/
 		case watchErr, queueOk := <-watcher.Errors:
 			if ! queueOk {
 				Log.Error("Watcher error queue has closed unexpectedly")
