@@ -22,7 +22,7 @@ func PathIsDirectory(path string) bool {
 	return false
 }
 
-// PathIsRegularFile returns true if the string argument is a path to a 
+// PathIsRegularFile returns true if the string argument is a path to a
 // regular file on the filesystem.
 func PathIsRegularFile(path string) bool {
 	if info, err := os.Stat(path); err == nil {
@@ -79,28 +79,25 @@ func RenamePathRelativeTo(filename, base, dest string) (s string, e error) {
 }
 
 // ConvertToMsgCode converts interface{} values with the types that typically underly JSON-encoded integers
-func ConvertToMsgCode(ifcVal interface{}) (MsgCodeT) {
+func ConvertToMsgCode(ifcVal interface{}) MsgCodeT {
 	switch val := ifcVal.(type) {
-		case int64:
-			return MsgCodeT(val)
-		case uint64:
-			return MsgCodeT(val)
-		default:
-			return 999
+	case int64:
+		return MsgCodeT(val)
+	case uint64:
+		return MsgCodeT(val)
+	default:
+		return 999
 	}
 }
 
 // ConvertToMsgCode converts interface{} values with the types that typically underly JSON-encoded integers
-func ConvertToString(ifcVal interface{}) (string) {
+func ConvertToString(ifcVal interface{}) string {
 	switch val := ifcVal.(type) {
-		case string:
-			return val
-		case []uint8:
-			return string(val)
-		default:
-			return "UNKNOWN MESSAGE TYPE"
+	case string:
+		return val
+	case []uint8:
+		return string(val)
+	default:
+		return "UNKNOWN MESSAGE TYPE"
 	}
 }
-
-
-

@@ -19,7 +19,7 @@ line at runtime.
 ### Dependencies
 Hornet requires go version 1.1 or better.  It's recommended that you setup your  go workspace and `GOPATH` environment ([e.g.](http://golang.org/doc/code.html#Workspaces)) in the standard way.
 
-For use on systems where the standard go version is too old (e.g. Debian Wheezy), 
+For use on systems where the standard go version is too old (e.g. Debian Wheezy),
 the `godeb` application is suggested.  First, install the too-old version of `golang`.
 Then proceed to install godeb.  When I (Noah) installed it on teselecta, I used the following sequence of commands:
 ```
@@ -29,7 +29,7 @@ Then proceed to install godeb.  When I (Noah) installed it on teselecta, I used 
   > sudo dpkg -i --force-overwrite go_[version]-godeb1_[system].deb
 ```
 The second line removes the old version of go that I previously installed using the apt-get package manager.
-The third line gave me an error, so I used the fourth line to force the package manager to overwrite 
+The third line gave me an error, so I used the fourth line to force the package manager to overwrite
 the golang package.
 
 Aside from standard go libraries, several external packages are used, which you'll need to acquire:
@@ -59,24 +59,28 @@ Hornet has been tested on Linux (Debian 8), Mac (OS X 10.10), and Windows (7).
 ### Installation
 Download hornet:
 ```
-  > go get github.com/project8/hornet
+  > go get -b github.com/project8/hornet
 ```
+Add the -u flag to update hornet and its dependencies.
 
 Update hornet's knowledge of its git commit and tag:
 ```
+  > cd $GOPATH/src/github.com/project8/hornet
   > make remove_older_describe_go
 ```
 
 There are two options for building hornet:
 
 1. If you want to build an "official" copy that gets installed for general use:
-
-        > go install hornet
+```
+  > go install github.com/project8/hornet
+```
 
  The executable `hornet` should now be in `$GOPATH/bin`.
 2. If you want to build a local copy for development purposes:
-
-        > go build -o run_hornet .
+```
+  > go build -o run_hornet .
+```
 
  This will create the executable `run_hornet` in the source directory. The name is different from `hornet` since there's a subdirectory with that name.
 
@@ -85,8 +89,9 @@ There are two options for building hornet:
 1. Make a copy of `examples/hornet_config.json`
 2. Make any changes needed.  At a minimum, you will need to change `amqp.broker` (assuming either the sender or receiver are active), `watcher.dir` (assuming the watcher is active), `mover.dest-dir`, and `shipper.dest-dir`.  All of the directories used must exist.
 3. Run the executable:
-
-        > hornet --config my_config.json
+```
+  > hornet --config my_config.json
+```
 
 ### So, you want to . . .
 Unless otherwise noted, these are config file values to set.

@@ -6,7 +6,7 @@
 * The current set of authenticators is:
 *   - AMQP (username/password)
 *   - Slack (token)
-*/
+ */
 
 package hornet
 
@@ -18,18 +18,18 @@ import (
 )
 
 type AmqpCredentialType struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
+	Username  string `json:"username"`
+	Password  string `json:"password"`
 	Available bool
 }
 
 type SlackCredentialType struct {
-	Token string `json:"hornet"`
+	Token     string `json:"hornet"`
 	Available bool
 }
 
 type AuthenticatorsType struct {
-	Amqp AmqpCredentialType `json:"amqp"`
+	Amqp  AmqpCredentialType  `json:"amqp"`
 	Slack SlackCredentialType `json:"slack"`
 }
 
@@ -37,12 +37,12 @@ var Authenticators AuthenticatorsType
 
 func LoadAuthenticators() (e error) {
 	// Get the home directory, where the authenticators live
-    usr, usrErr := user.Current()
-    if usrErr != nil {
-        e = usrErr
+	usr, usrErr := user.Current()
+	if usrErr != nil {
+		e = usrErr
 		Log.Error(e.Error())
-    }
-    //log.Println( usr.HomeDir )
+	}
+	//log.Println( usr.HomeDir )
 
 	// Read in the authenticators file
 	authFilePath := filepath.Join(usr.HomeDir, ".project8_authentications.json")
@@ -69,12 +69,10 @@ func LoadAuthenticators() (e error) {
 		Authenticators.Slack.Available = true
 	}
 
-	Log.Info("Authenticators ready for use:\n\t%s%t\n\t%s%t",
+	Log.Infof("Authenticators ready for use:\n\t%s%t\n\t%s%t",
 		"AMQP: ", Authenticators.Amqp.Available,
 		"Slack: ", Authenticators.Slack.Available,
 	)
 
 	return
 }
-
-
