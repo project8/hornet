@@ -403,9 +403,9 @@ amqpLoop:
 									//log.Printf("\t\t%s (byte sl sl): %v", key.(string), [][]string(typedValue))
 									sliceString := "["
 									for _, byteSlice := range typedValue {
-										fmt.Sprintf(sliceString, "%s, %s", sliceString, string(byteSlice))
+										_ = fmt.Sprintf(sliceString, "%s, %s", sliceString, string(byteSlice))
 									}
-									fmt.Sprintf(sliceString, "%s]", sliceString)
+									_ = fmt.Sprintf(sliceString, "%s]", sliceString)
 									Log.Notice("\t\t%s (byte sl sl): %s", key.(string), sliceString)
 								case rune, bool, int, uint, float32, float64, complex64, complex128, string:
 									Log.Notice("\t\t%s (type): %v", key.(string), typedValue)
