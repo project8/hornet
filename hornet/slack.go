@@ -42,6 +42,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"os"
 	"sync"
 	"time"
 
@@ -68,6 +69,8 @@ func sendSlackMessage(channel, message, username, token string) error {
 	if channel == "" || message == "" || username == "" || token == "" {
 		return errors.New("channel, message, username, and token are required")
 	}
+	host, _ := os.Hostname()
+	message = "[" + host + "]" + message
 
 	payload := url.Values{}
 	payload.Set("token", token)
