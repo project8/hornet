@@ -37,14 +37,14 @@ var filesScheduled, filesFinished int
 var summaryInterval time.Duration
 
 func finishFile(header *FileInfo) {
-	Log.Info("Completed work on file <%s>", header.Filename)
+	Log.Infof("Completed work on file <%s>", header.Filename)
 	filesFinished++
 }
 
 func summaryLoop() {
 	time.Sleep(summaryInterval)
 	if filesScheduled != 0 || filesFinished != 0 {
-		Log.Notice("Scheduler summary:\n\tIn the past %v,\n\t - Scheduled %d file(s)\n\t - Finished %d file(s)", summaryInterval, filesScheduled, filesFinished)
+		Log.Noticef("Scheduler summary:\n\tIn the past %v,\n\t - Scheduled %d file(s)\n\t - Finished %d file(s)", summaryInterval, filesScheduled, filesFinished)
 		filesScheduled = 0
 		filesFinished = 0
 	} /* else {
