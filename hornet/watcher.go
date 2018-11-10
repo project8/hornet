@@ -42,6 +42,48 @@ func Watcher(context OperatorContext) {
 	}
 	defer watcher.Close()
 
+	moratoriumTime := 5 * time.Second
+	if viper.IsSet("watcher.file-wait-time") {
+		moratoriumTime = viper.GetDuration("watcher.file-wait-time")
+	}
+	Log.Debugf("File moratorium time: %v", moratoriumTime)
+
+	ignoreDirs := []string{}
+	if viper.IsSet("watcher.ignore-dirs") {
+		ignoreDirs = viper.GetStringSlice("watcher.ignore-dirs")
+	}
+	Log.Infof("Ignoring directories named: %v", ignoreDirs)
+
+	processRecursiveDir := func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			Log.Criticalf("Unable to recursively process directory %s", path)
+			procErr := fmt.Errorf("Unable to recursively process directory %s", path)
+			return procErr
+		}
+		if PathIsRegularFile(path) {
+			// File case
+			Log.Debugf("Submitting file [%v]", path)
+			//context.SchStream <- path
+			go fileMoratorium(path, context.SchStream, moratoriumTime)
+		} else if PathIsDirectory(path) {
+			for _, ignoreDir := range ignoreDirs {
+				if info.Name() == ignoreDir {
+					Log.Debugf("Skipping directory without errors [%v]", path)
+					return filepath.SkipDir
+				}
+			}
+			// Directory case
+			if err := watcher.Add(path); err != nil {
+				Log.Criticalf("Couldn't add subdir %s watch [%v]", path, err)
+				context.ReqQueue <- ThreadCannotContinue
+				procErr := fmt.Errorf("Unable to add directory %s to watch [%v]", path, err)
+				return procErr
+			}
+			Log.Noticef("Added subdirectory to watch [%v]", path)
+		}
+		return nil
+	}
+
 	// Add watch directories to watcher
 	var nOrigDirs uint = 0
 	if viper.IsSet("watcher.dir") {
@@ -52,17 +94,26 @@ func Watcher(context OperatorContext) {
 			context.ReqQueue <- ThreadCannotContinue
 			return
 		}
+                if recProcErr := filepath.Walk(watchDir, processRecursiveDir); recProcErr != nil {
+			Log.Criticalf("Error processing directory or file [%s]\n\t:%v", watchDir, recProcErr)
+			context.ReqQueue <- ThreadCannotContinue
+			return
+		}
 		watcher.Add(watchDir)
 		Log.Noticef("Now watching <%s>", watchDir)
 		nOrigDirs++
 	}
 	if viper.IsSet("watcher.dirs") {
-
 		// n>1 case
 		watchDirs := viper.GetStringSlice("watcher.dirs")
 		for _, watchDir := range watchDirs {
 			if !PathIsDirectory(watchDir) {
 				Log.Criticalf("Watch directory does not exist or is not a directory:\n\t%s", watchDir)
+				context.ReqQueue <- ThreadCannotContinue
+				return
+			}
+			if recProcErr := filepath.Walk(watchDir, processRecursiveDir); recProcErr != nil {
+				Log.Criticalf("Error processing directory or file [%s]\n\t:%v", watchDir, recProcErr)
 				context.ReqQueue <- ThreadCannotContinue
 				return
 			}
@@ -78,37 +129,7 @@ func Watcher(context OperatorContext) {
 		return
 	}
 
-	moratoriumTime := 5 * time.Second
-	if viper.IsSet("watcher.file-wait-time") {
-		moratoriumTime = viper.GetDuration("watcher.file-wait-time")
-	}
-	Log.Debugf("File moratorium time: %v", moratoriumTime)
-
 	Log.Info("Started successfully. Waiting for events...")
-
-	processRecursiveDir := func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			Log.Criticalf("Unable to recursively process directory %s", path)
-			procErr := fmt.Errorf("Unable to recursively process directory %s", path)
-			return procErr
-		}
-		if PathIsRegularFile(path) {
-			// File case
-			Log.Debugf("Submitting file [%v]", path)
-			//context.SchStream <- path
-			go fileMoratorium(path, context.SchStream, moratoriumTime)
-		} else if PathIsDirectory(path) {
-			// Directory case
-			if err := watcher.Add(path); err != nil {
-				Log.Criticalf("Couldn't add subdir %s watch [%v]", path, err)
-				context.ReqQueue <- ThreadCannotContinue
-				procErr := fmt.Errorf("Unable to add directory %s to watch [%v]", path, err)
-				return procErr
-			}
-			Log.Noticef("Added subdirectory to watch [%v]", path)
-		}
-		return nil
-	}
 
 runLoop:
 	for {

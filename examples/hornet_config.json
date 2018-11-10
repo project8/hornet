@@ -37,6 +37,10 @@
             "/otherdata1",
             "/otherdata2"
         ],
+        "ignore-dirs":
+        [
+            "lost+found"
+        ],
         "file-wait-time": "5s"
     },
 
@@ -52,7 +56,7 @@
             {
                 "name": "rsa-mat",
                 "match-regexp": "runid(?P<run_id>[0-9]*)_(?P<fname_other>[A-Za-z0-9_]*).mat",
-                "do-hash": true 
+                "do-hash": true
             },
             {
                 "name": "rsa-setup",
