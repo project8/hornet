@@ -1,4 +1,4 @@
-FROM golang:1.4
+FROM golang:latest
 
 # install requisite debian components
 RUN apt-get update && apt-get install -y rsync
@@ -36,20 +36,22 @@ RUN echo "{\n}" > ~/.project8_authentications.json && \
         -e '29s/,//' \
         /go/src/github.com/project8/hornet/examples/hornet_config.json > /go/hornet_config.json
 
+RUN cat /go/hornet_config.json
+
 # use go to install golang deps
-RUN go get github.com/streadway/amqp \
-           github.com/ugorji/go/codec \
-           github.com/op/go-logging \
-           golang.org/x/exp/inotify \
-           github.com/kardianos/osext \
-           code.google.com/p/go-uuid/uuid \
-           github.com/spf13/viper
+#RUN go install github.com/streadway/amqp@latest \
+#           github.com/ugorji/go/codec@latest \
+#           github.com/op/go-logging@latest \
+#           golang.org/x/exp/inotify@latest \
+#           github.com/kardianos/osext@latest \
+#           code.google.com/p/go-uuid/uuid@latest \
+#           github.com/spf13/viper@latest
 
 # This next is a hack, it requires you to have first done ``cp ~/.project8_authentications project8_authentications``
 # There is probably a data-volumes based solution that cleans this up
 
-RUN cd /go/src/github.com/project8/hornet && make remove_older_describe_go
+RUN cd /go/src/github.com/project8/hornet && make remove_older_describe_go && make all
 
-RUN go install github.com/project8/hornet
+RUN go install github.com/project8/hornet@latest
 
 CMD ["hornet", "-config", "hornet_config.json"]
