@@ -32,11 +32,6 @@
     {
         "active": true,
         "dir": "/data",
-        "dirs":
-        [
-            "/otherdata1",
-            "/otherdata2"
-        ],
         "ignore-dirs":
         [
             "lost+found"
@@ -56,7 +51,7 @@
             {
                 "name": "rsa-mat",
                 "match-regexp": "runid(?P<run_id>[0-9]*)_(?P<fname_other>[A-Za-z0-9_]*).mat",
-                "do-hash": true
+                "do-hash": false
             },
             {
                 "name": "rsa-setup",
@@ -77,7 +72,7 @@
 
     "mover":
     {
-        "dest-dir": "/warm-data"
+        "dest-dir": "/data/warm"
     },
 
     "workers":
@@ -98,11 +93,11 @@
         ]
     },
 
-    "shipper":
+    "shipper":    
     {
         "active": false,
         "n-shippers": 1,
-        "dest-dir": "/remote-data",
+        "dest-dir": "/data/cold",
         "hostname": "my.server",
         "username": "aphysicist"
     }
