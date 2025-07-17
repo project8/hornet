@@ -32,7 +32,7 @@ import (
 
 	"github.com/spf13/viper"
 
-	"github.com/project8/hornet/hornet-helper"
+	"github.com/project8/hornet/hornet"
 	"github.com/carlmjohnson/versioninfo"
 )
 
