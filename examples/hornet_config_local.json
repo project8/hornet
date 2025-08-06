@@ -12,7 +12,7 @@
 
     "amqp":
     {
-        "active": true,
+        "active": false,
         "use-auth": "true",
         "broker": "my.server",
         "port": 5672,
@@ -34,7 +34,8 @@
         "dir": "/data",
         "ignore-dirs":
         [
-            "lost+found"
+            "lost+found",
+	    "warm"
         ],
         "file-wait-time": "5s"
     },
@@ -93,7 +94,7 @@
         ]
     },
 
-    "shipper":    
+    "shipper":
     {
         "active": false,
         "n-shippers": 1,

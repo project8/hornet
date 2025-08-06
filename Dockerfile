@@ -23,4 +23,10 @@ RUN echo "{\n}" > ~/.project8_authentications.json && \
 
 RUN cd /go/src/github.com/project8/hornet && go install
 
+# Create some test files for transfer
+
+RUN touch /data/hot/test1.Setup
+RUN touch /data/hot/test2.Setup
+RUN touch /data/hot/test3.Setup
+
 CMD ["hornet", "-config", "hornet_config.json"]
