@@ -23,8 +23,8 @@ import (
 	"github.com/spf13/viper"
 	"github.com/streadway/amqp"
 	"github.com/ugorji/go/codec"
+	"github.com/carlmjohnson/versioninfo"
 
-	"github.com/project8/hornet/gogitver"
 )
 
 type SenderInfo struct {
@@ -73,8 +73,10 @@ func fillMasterSenderInfo() (e error) {
 	if e != nil {
 		Log.Errorf("Error while getting the executable:\n\t%v", e)
 	}
-	MasterSenderInfo.Version = gogitver.Tag()
-	MasterSenderInfo.Commit = gogitver.Git()
+	//MasterSenderInfo.Version = gogitver.Tag()
+	//MasterSenderInfo.Commit = gogitver.Git()
+	MasterSenderInfo.Version = versioninfo.Revision
+	MasterSenderInfo.Commit = versioninfo.Revision
 	MasterSenderInfo.Hostname, e = os.Hostname()
 	if e != nil {
 		Log.Errorf("Error while getting the hostname:\n\t%v", e)
