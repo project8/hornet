@@ -1,0 +1,9 @@
+services:
+  hornet:
+    build: .
+    volumes:
+      - ./config:/config
+      - /data/hot0:/data/hot0
+      - /data/hot1:/data/hot1
+      - /data/hot2:/data/hot2
+      - /data/warm.julius:/data/warm.julius

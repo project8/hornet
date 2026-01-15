@@ -1,0 +1,106 @@
+{
+    "scheduler":
+    {
+        "queue-size": 100,
+        "summary-interval": "1m"
+    },
+
+    "logger":
+    {
+        "level": "NOTICE"
+    },
+
+    "amqp":
+    {
+        "active": false,
+        "use-auth": "true",
+        "broker": "my.server",
+        "port": 5672,
+        "exchange": "requests",
+        "queue": "hornet"
+     },
+
+    "slack":
+    {
+        "active": false,
+        "username": "hornet",
+        "alerts-channel": "#p8_alerts",
+        "notices-channel": "#p8_notices"
+    },
+
+    "watcher":
+    {
+        "active": true,
+        "dir": "/data",
+        "ignore-dirs":
+        [
+            "lost+found",
+	    "warm",
+	    "warm.julius"
+        ],
+        "file-wait-time": "5s"
+    },
+
+    "classifier":
+    {
+        "types":
+        [
+            {
+                "name": "egg",
+                "match-regexp": "runid(?P<run_id>[0-9]*)_(?P<fname_other>[A-Za-z0-9_]*).egg",
+                "do-hash": true
+            },
+            {
+                "name": "rsa-mat",
+                "match-regexp": "runid(?P<run_id>[0-9]*)_(?P<fname_other>[A-Za-z0-9_]*).mat",
+                "do-hash": false
+            },
+            {
+                "name": "rsa-setup",
+                "match-extension": "Setup",
+                "do-hash": false
+            }
+        ],
+        "base-paths":
+        [
+            "/some/special/path",
+            "/another/path"
+        ],
+        "send-file-info": false,
+        "send-to": "hornet.print-message",
+        "wait-for-sender": 2,
+        "max-jobs": 25
+    },
+
+    "mover":
+    {
+        "dest-dir": "/data/warm.julius"
+    },
+
+    "workers":
+    {
+        "n-workers": 5,
+        "jobs":
+        [
+            {
+                "name": "proc-egg",
+                "file-type": "egg",
+                "command": "echo \"here's an egg file\""
+            },
+            {
+                "name": "proc-rsa-mat",
+                "file-type": "rsa-mat",
+                "command": "echo \"here's an RSA MAT file\""
+            }
+        ]
+    },
+
+    "shipper":
+    {
+        "active": false,
+        "n-shippers": 1,
+        "dest-dir": "/data/cold",
+        "hostname": "my.server",
+        "username": "aphysicist"
+    }
+}
