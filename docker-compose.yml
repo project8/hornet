@@ -3,6 +3,7 @@ services:
     build: .
     volumes:
       - ./config:/config
+      - ./config/project8_authentications.json:/root/.project8_authentications.json
       - /data/hot0:/data/hot0
       - /data/hot1:/data/hot1
       - /data/hot2:/data/hot2

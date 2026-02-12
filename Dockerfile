@@ -11,8 +11,8 @@ RUN apt-get install -y vim \
 ADD . /go/src/github.com/project8/hornet
 
 # Make some directories and files
-RUN echo "{\n}" > ~/.project8_authentications.json && \
-    mkdir /data && \
+#RUN echo "{\n}" > ~/.project8_authentications.json && \
+RUN mkdir /data && \
     mkdir /data/hot && \
     mkdir /data/hot0 && \
     mkdir /data/hot1 && \
